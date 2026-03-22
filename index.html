@@ -76,7 +76,7 @@
                 "name": "Does TypePets collect my child's data?",
                 "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "No. All progress data is stored in the browser's localStorage and never sent anywhere. There are no accounts, no servers storing data, and no analytics tracking your child."
+                    "text": "No. All progress data is stored in the browser's localStorage and never sent anywhere. There are no accounts and no servers storing data. We use Cloudflare Web Analytics, a privacy-first tool that does not use cookies, does not track individuals, and does not collect personal information."
                 }
             },
             {
@@ -117,6 +117,7 @@
                 <a href="#how-it-works">How It Works</a>
                 <a href="#faq">FAQ</a>
                 <a href="/blog">Blog</a>
+                <a href="https://donate.stripe.com/PLACEHOLDER" target="_blank" rel="noopener" style="color:#F6C255;font-weight:600;">💛 Support</a>
                 <a href="/pages/home.html" class="nav-cta">Open App →</a>
             </div>
             <button class="nav-mobile-toggle" id="nav-toggle" aria-label="Menu">☰</button>
@@ -250,7 +251,7 @@
 
                 <details class="faq-item">
                     <summary>Does TypePets collect my child's data?</summary>
-                    <p>No. All progress data is stored in the browser's localStorage and never sent anywhere. There are no accounts, no servers, and no tracking. Your child's data stays on their device.</p>
+                    <p>No. All progress data is stored in the browser's localStorage and never sent anywhere. There are no accounts, no servers, and no tracking. We use Cloudflare Web Analytics, a privacy-first tool that doesn't use cookies or track individuals. Your child's data stays on their device.</p>
                 </details>
 
                 <details class="faq-item">
@@ -295,7 +296,7 @@
                 <a href="#faq">FAQ</a>
                 <a href="/privacy.html">Privacy</a>
                 <a href="/terms.html">Terms</a>
-                <a href="https://ko-fi.com/typepets" target="_blank" rel="noopener">☕ Support on Ko-fi</a>
+                <a href="https://donate.stripe.com/PLACEHOLDER" target="_blank" rel="noopener" style="color:#F6C255;">💛 Support TypePets</a>
             </div>
             <div class="footer-copy">
                 <p>© 2026 TypePets. Made with 🐾 for young typists everywhere.</p>
@@ -321,5 +322,7 @@
             });
         });
     </script>
+    <!-- Cloudflare Web Analytics -->
+    <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "CLOUDFLARE_ANALYTICS_TOKEN"}'></script>
 </body>
 </html>
