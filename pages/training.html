@@ -134,10 +134,10 @@
     };
 
     const STAGES = [
-        { id:1, name:'Home Row', desc:'Learn the home row — where your fingers rest!', keys:['a','s','d','f','j','k','l',';'], mode:'letters', target:20 },
-        { id:2, name:'Home Row Words', desc:'Type real words using home row keys!', keys:['a','s','d','f','g','h','j','k','l',';',' '], mode:'words', words:['sad','lad','dad','add','ask','all','fall','hall','dash','flash','salad','glass','shall','flask','lads','half','gasp','glad'], target:8 },
+        { id:1, name:'Home Row', desc:'Learn the home row — where your fingers rest!', keys:['a','s','d','f','j','k','l'], mode:'letters', target:20 },
+        { id:2, name:'Home Row Words', desc:'Type real words using home row keys!', keys:['a','s','d','f','g','h','j','k','l',' '], mode:'words', words:['sad','lad','dad','add','ask','all','fall','hall','dash','flash','salad','glass','shall','flask','lads','half','glad'], target:8 },
         { id:3, name:'Top Row', desc:'Reach up to the top row!', keys:['q','w','e','r','t','y','u','i','o','p'], mode:'letters', target:20 },
-        { id:4, name:'Top + Home Words', desc:'Mix top row and home row in words!', keys:['a','s','d','f','g','h','j','k','l',';','q','w','e','r','t','y','u','i','o','p',' '], mode:'words', words:['type','hero','quest','like','while','right','write','other','quite','guide','word','help','flip','silk','kite','lite','your','fire','wire','dust'], target:8 },
+        { id:4, name:'Top + Home Words', desc:'Mix top row and home row in words!', keys:['a','s','d','f','g','h','j','k','l','q','w','e','r','t','y','u','i','o','p',' '], mode:'words', words:['type','hero','quest','like','while','right','write','other','quite','guide','word','help','flip','silk','kite','lite','your','fire','wire','dust'], target:8 },
         { id:5, name:'Bottom Row', desc:'Reach down to the bottom row!', keys:['z','x','c','v','b','n','m',',','.','/'], mode:'letters', target:20 },
         { id:6, name:'All Letters', desc:"Combine all rows — you're getting good!", keys:'abcdefghijklmnopqrstuvwxyz '.split(''), mode:'words', words:['quick','brown','fox','jumps','over','lazy','dog','brave','magic','pixel','wizard','zebra','monkey','jungle','planet','rocket','castle','knight','dragon','quest'], target:10 },
         { id:7, name:'Numbers', desc:'Master the number row!', keys:['1','2','3','4','5','6','7','8','9','0'], mode:'letters', target:20 },
@@ -267,7 +267,20 @@
         if (e.key === ' ') e.preventDefault();
         if (document.getElementById('stageCompleteOverlay').classList.contains('active')) return;
         const stage = STAGES[currentStageIdx];
-        const pressed = e.key.toLowerCase();
+
+        // Map physical key codes to characters for special keys
+        const CODE_TO_CHAR = {
+            'Semicolon': ';', 'Comma': ',', 'Period': '.', 'Slash': '/',
+            'BracketLeft': '[', 'BracketRight': ']', 'Backslash': '\\',
+            'Quote': "'", 'Minus': '-', 'Equal': '=', 'Backquote': '`'
+        };
+
+        // Use e.key first, but fall back to code mapping for punctuation
+        let pressed = e.key.toLowerCase();
+        if (pressed.length > 1 && e.code && CODE_TO_CHAR[e.code]) {
+            pressed = CODE_TO_CHAR[e.code];
+        }
+
         const validSet = new Set(stage.keys.map(k => k.toLowerCase()));
         if (stage.mode === 'words') validSet.add(' ');
         if (!validSet.has(pressed)) return;
