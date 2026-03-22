@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TypePets — Finger Training</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/keyboard.css">
+    <style>
+    .connection-bar { display:flex; align-items:center; justify-content:center; gap:4px; padding:8px 10px; background:var(--bg-primary); border-radius:var(--radius-sm); margin-bottom:12px; font-size:0.68rem; font-weight:700; color:var(--text-secondary); }
+    .conn-step { padding:2px 6px; border-radius:4px; }
+    .conn-active { background:var(--accent-blue); color:white; }
+    .conn-arrow { opacity:0.4; }
+    .pet-nudge { margin-top:10px; padding:8px 12px; background:#FFF8E1; border-radius:var(--radius-sm); font-size:0.78rem; font-weight:600; color:#B45309; text-align:center; }
+    [data-theme="dark"] .pet-nudge { background:#422006; color:#FCD34D; }
+    .pet-nudge.hidden { display:none; }
+    .bubble-unlock-notice { margin-top:14px; padding:10px 14px; background:#E8F4FF; border-radius:var(--radius-sm); font-size:0.82rem; font-weight:600; color:var(--accent-blue); text-align:center; }
+    [data-theme="dark"] .bubble-unlock-notice { background:#1A2A40; }
+    .bubble-unlock-notice.hidden { display:none; }
+    .xp-earned-notice { margin-top:8px; font-size:0.82rem; font-weight:700; color:var(--accent-green); text-align:center; }
+    .xp-earned-notice.hidden { display:none; }
+    </style>
+</head>
+<body>
+    <nav class="main-nav">
+        <a href="../index.html" class="nav-logo"><span>TypePets</span></a>
+        <div class="nav-links">
+            <a href="training.html" class="nav-link">Training</a>
+            <a href="bubbles.html" class="nav-link">Bubbles</a>
+            <a href="articles.html" class="nav-link">Articles</a>
+            <a href="pet.html" class="nav-link">Pet</a>
+            <a href="dashboard.html" class="nav-link">Stats</a>
+        </div>
+        <div class="nav-right">
+            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light theme">🌙</button>
+            <button class="sound-toggle" id="soundToggle" onclick="toggleSound()" title="Toggle sound">🔊</button>
+            <div class="nav-user"><span id="userName">Player</span></div>
+        </div>
+    </nav>
+
+    <main class="content">
+        <div class="training-container">
+            <div class="stage-sidebar">
+                <h3>Stages</h3>
+                <div class="connection-bar" id="connectionBar">
+                    <span class="conn-step conn-active">Training</span>
+                    <span class="conn-arrow">→</span>
+                    <span class="conn-step">Bubbles</span>
+                    <span class="conn-arrow">→</span>
+                    <span class="conn-step">Pet</span>
+                </div>
+                <div class="stage-list" id="stageList"></div>
+                <div class="pet-nudge hidden" id="petNudge"></div>
+            </div>
+
+            <div class="training-area">
+                <div class="training-header" id="trainingHeader">
+                    <h2 id="stageName">Home Row</h2>
+                    <p id="stageDesc">Learn the home row keys — where your fingers rest!</p>
+                    <div class="training-stats-bar">
+                        <div class="stat-item"><div class="stat-value" id="statAccuracy">100%</div><div class="stat-label">Accuracy</div></div>
+                        <div class="stat-item"><div class="stat-value" id="statWpm">0</div><div class="stat-label">WPM</div></div>
+                        <div class="stat-item"><div class="stat-value" id="statKeys">0</div><div class="stat-label">Keys</div></div>
+                        <div class="stat-item"><div class="stat-value" id="statErrors">0</div><div class="stat-label">Errors</div></div>
+                    </div>
+                </div>
+
+                <div class="target-display">
+                    <div class="target-prompt" id="targetPrompt">Press the highlighted key:</div>
+                    <div class="target-chars" id="targetChars"></div>
+                    <div class="finger-hint" id="fingerHint"></div>
+                </div>
+
+                <div class="progress-container">
+                    <div class="progress-bar-outer">
+                        <div class="progress-bar-inner" id="progressBar" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-label">
+                        <span id="progressText">0 / 20</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                </div>
+
+                <div class="keyboard-container" id="keyboardContainer"></div>
+            </div>
+        </div>
+
+        <div class="stage-complete-overlay" id="stageCompleteOverlay">
+            <div class="stage-complete-card">
+                <div class="complete-emoji" id="completeEmoji">✓</div>
+                <h2 class="complete-title" id="completeTitle">Stage Complete!</h2>
+                <div class="complete-stars" id="completeStars">⭐⭐⭐</div>
+                <div class="complete-stats">
+                    <div class="complete-stat"><div class="complete-stat-value" id="completeAccuracy">98%</div><div class="complete-stat-label">Accuracy</div></div>
+                    <div class="complete-stat"><div class="complete-stat-value" id="completeWpm">15</div><div class="complete-stat-label">WPM</div></div>
+                    <div class="complete-stat"><div class="complete-stat-value" id="completeTime">1:23</div><div class="complete-stat-label">Time</div></div>
+                </div>
+                <button class="btn btn-primary" id="nextStageBtn" onclick="nextStage()">Next Stage →</button>
+                <button class="btn btn-secondary" onclick="retryStage()">Try Again</button>
+                <div class="bubble-unlock-notice hidden" id="bubbleUnlockNotice">
+                    <span id="bubbleUnlockText"></span>
+                    <a href="bubbles.html" class="btn btn-secondary" style="margin-left:0; margin-top:8px; display:inline-block; font-size:0.82rem; padding:6px 14px;">Play Bubbles →</a>
+                </div>
+                <div class="xp-earned-notice hidden" id="xpEarnedNotice"></div>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast-container"></div>
+
+    <script src="../js/data.js"></script>
+    <script src="../js/sound.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/achievements.js"></script>
+    <script src="../js/keyboard.js"></script>
+    <script>
+    /**
+     * Finger Training Mode — TypePets
+     * 8 progressive stages with stage locking, accuracy tracking, and star ratings.
+     */
+
+    const STAGE_BUBBLE_MAP = {
+        1: { levels: [1, 3], desc: 'Bubble Levels 1–3' },
+        2: { levels: [4, 5], desc: 'Bubble Levels 4–5' },
+        3: { levels: [6, 8], desc: 'Bubble Levels 6–8' },
+        4: { levels: [9, 11], desc: 'Bubble Levels 9–11' },
+        5: { levels: [12, 14], desc: 'Bubble Levels 12–14' },
+        6: { levels: [15, 17], desc: 'Bubble Levels 15–17' },
+        7: { levels: [18, 20], desc: 'Bubble Levels 18–20' },
+        8: { levels: null, desc: 'Free Play' },
+    };
+
+    const STAGES = [
+        { id:1, name:'Home Row', desc:'Learn the home row — where your fingers rest!', keys:['a','s','d','f','j','k','l',';'], mode:'letters', target:20 },
+        { id:2, name:'Home Row Words', desc:'Type real words using home row keys!', keys:['a','s','d','f','g','h','j','k','l',';',' '], mode:'words', words:['sad','lad','dad','add','ask','all','fall','hall','dash','flash','salad','glass','shall','flask','lads','half','gasp','glad'], target:8 },
+        { id:3, name:'Top Row', desc:'Reach up to the top row!', keys:['q','w','e','r','t','y','u','i','o','p'], mode:'letters', target:20 },
+        { id:4, name:'Top + Home Words', desc:'Mix top row and home row in words!', keys:['a','s','d','f','g','h','j','k','l',';','q','w','e','r','t','y','u','i','o','p',' '], mode:'words', words:['type','hero','quest','like','while','right','write','other','quite','guide','word','help','flip','silk','kite','lite','your','fire','wire','dust'], target:8 },
+        { id:5, name:'Bottom Row', desc:'Reach down to the bottom row!', keys:['z','x','c','v','b','n','m',',','.','/'], mode:'letters', target:20 },
+        { id:6, name:'All Letters', desc:"Combine all rows — you're getting good!", keys:'abcdefghijklmnopqrstuvwxyz '.split(''), mode:'words', words:['quick','brown','fox','jumps','over','lazy','dog','brave','magic','pixel','wizard','zebra','monkey','jungle','planet','rocket','castle','knight','dragon','quest'], target:10 },
+        { id:7, name:'Numbers', desc:'Master the number row!', keys:['1','2','3','4','5','6','7','8','9','0'], mode:'letters', target:20 },
+        { id:8, name:'Full Keyboard', desc:"You're a typing champion! Use everything!", keys:'abcdefghijklmnopqrstuvwxyz1234567890 '.split(''), mode:'words', words:['player1','code42','level99','win2025','jump3','rocket7','quest4','ninja8','hero56','star10','speed','power','focus','energy','mighty','turbo','blaze','storm'], target:10 },
+    ];
+
+    let currentStageIdx = 0;
+    let stageProgress = {};
+    let keyboard = null;
+    let sessionKeys = 0;
+    let sessionErrors = 0;
+    let sessionErrorKeys = {};
+    let sessionStartTime = null;
+    let targetText = '';
+    let typedIndex = 0;
+    let challengeCount = 0;
+
+    function initTraining() {
+        keyboard = new VirtualKeyboard('keyboardContainer');
+
+        // Load progress from data layer
+        const tp = TypePetsData.getTrainingProgress();
+        stageProgress = tp.stages || {};
+        if (!stageProgress[1]) {
+            stageProgress[1] = { bestAccuracy: 0, stars: 0, unlocked: true };
+            TypePetsData.saveTrainingStageProgress(1, 0, 0, true);
+        }
+
+        renderStageList();
+        loadStage(currentStageIdx);
+        document.addEventListener('keydown', handleKeypress);
+        loadPetNudge();
+    }
+
+    function loadPetNudge() {
+        const pet = TypePetsData.getPet();
+        if (pet && pet.happiness < 50) {
+            const nudge = document.getElementById('petNudge');
+            const name = pet.name && pet.name !== 'Unnamed' ? pet.name : 'Your pet';
+            nudge.textContent = name + ' is hungry! Practice to earn food 🍎';
+            nudge.classList.remove('hidden');
+        }
+    }
+
+    function renderStageList() {
+        const list = document.getElementById('stageList');
+        list.innerHTML = '';
+        STAGES.forEach((stage, idx) => {
+            const progress = stageProgress[stage.id] || { bestAccuracy: 0, stars: 0, unlocked: false };
+            const isActive = idx === currentStageIdx;
+            const isLocked = !progress.unlocked;
+            const isCompleted = progress.bestAccuracy >= 85;
+            let cls = 'stage-item';
+            if (isActive) cls += ' stage-active';
+            if (isLocked) cls += ' stage-locked';
+            if (isCompleted) cls += ' stage-completed';
+            const starsHtml = progress.stars > 0 ? '⭐'.repeat(progress.stars) + '☆'.repeat(3 - progress.stars) : '';
+            list.innerHTML += `<div class="${cls}" onclick="selectStage(${idx})" data-stage="${idx}"><div class="stage-num">${isLocked ? '🔒' : stage.id}</div><div class="stage-info"><div class="stage-name">${stage.name}</div><div class="stage-stars">${starsHtml}</div></div></div>`;
+        });
+    }
+
+    function selectStage(idx) {
+        const stage = STAGES[idx];
+        const progress = stageProgress[stage.id] || { unlocked: false };
+        if (!progress.unlocked) { showToast('🔒 Complete the previous stage first.', 'error'); return; }
+        currentStageIdx = idx;
+        loadStage(idx);
+        renderStageList();
+    }
+
+    function loadStage(idx) {
+        const stage = STAGES[idx];
+        currentStageIdx = idx;
+        sessionKeys = 0; sessionErrors = 0; sessionErrorKeys = {}; sessionStartTime = null; challengeCount = 0; typedIndex = 0;
+        document.getElementById('stageName').textContent = `Stage ${stage.id}: ${stage.name}`;
+        document.getElementById('stageDesc').textContent = stage.desc;
+        updateStats();
+        keyboard.setValidKeys(stage.keys);
+        generateChallenge();
+    }
+
+    function generateChallenge() {
+        const stage = STAGES[currentStageIdx];
+        if (challengeCount >= stage.target) { completeStage(); return; }
+        if (stage.mode === 'letters') {
+            targetText = stage.keys[Math.floor(Math.random() * stage.keys.length)];
+        } else {
+            targetText = stage.words[Math.floor(Math.random() * stage.words.length)];
+        }
+        typedIndex = 0;
+        renderTarget();
+        highlightNextKey();
+    }
+
+    function renderTarget() {
+        const container = document.getElementById('targetChars');
+        container.innerHTML = '';
+        const stage = STAGES[currentStageIdx];
+        const prompt = document.getElementById('targetPrompt');
+        prompt.textContent = stage.mode === 'letters' ? `Type this key (${challengeCount + 1} of ${stage.target}):` : `Type this word (${challengeCount + 1} of ${stage.target}):`;
+        for (let i = 0; i < targetText.length; i++) {
+            const char = targetText[i];
+            const span = document.createElement('span');
+            span.className = 'target-char';
+            if (char === ' ') { span.classList.add('space-char'); span.textContent = '␣'; }
+            else { span.textContent = char.toUpperCase(); }
+            if (i < typedIndex) span.classList.add('typed');
+            else if (i === typedIndex) span.classList.add('current');
+            container.appendChild(span);
+        }
+    }
+
+    function highlightNextKey() {
+        if (typedIndex >= targetText.length) return;
+        const nextChar = targetText[typedIndex];
+        keyboard.setActiveKey(nextChar);
+        const info = keyboard.getFingerForKey(nextChar);
+        const hint = document.getElementById('fingerHint');
+        const displayChar = nextChar === ' ' ? 'Space' : nextChar.toUpperCase();
+        hint.textContent = `${displayChar} → ${info.name}`;
+        hint.style.backgroundColor = info.color + '20';
+        hint.style.color = info.color;
+    }
+
+    function handleKeypress(e) {
+        if (['Shift','Control','Alt','Meta','Tab','Escape','CapsLock'].includes(e.key)) return;
+        if (e.key === ' ') e.preventDefault();
+        if (document.getElementById('stageCompleteOverlay').classList.contains('active')) return;
+        const stage = STAGES[currentStageIdx];
+        const pressed = e.key.toLowerCase();
+        const validSet = new Set(stage.keys.map(k => k.toLowerCase()));
+        if (stage.mode === 'words') validSet.add(' ');
+        if (!validSet.has(pressed)) return;
+        if (!sessionStartTime) sessionStartTime = Date.now();
+        sessionKeys++;
+        const expected = targetText[typedIndex];
+        if (pressed === expected.toLowerCase()) {
+            if (window.sound) window.sound.correct();
+            keyboard.flashKey(pressed, true);
+            typedIndex++;
+            renderTarget();
+            if (typedIndex >= targetText.length) {
+                challengeCount++;
+                updateStats();
+                updateProgress();
+                setTimeout(() => generateChallenge(), 300);
+            } else { highlightNextKey(); updateStats(); }
+        } else {
+            if (window.sound) window.sound.wrong();
+            keyboard.flashKey(pressed, false);
+            sessionErrors++;
+            sessionErrorKeys[pressed] = (sessionErrorKeys[pressed] || 0) + 1;
+            const chars = document.querySelectorAll('.target-char');
+            if (chars[typedIndex]) { chars[typedIndex].classList.add('error'); setTimeout(() => chars[typedIndex]?.classList.remove('error'), 300); }
+            updateStats();
+        }
+    }
+
+    function updateStats() {
+        const accuracy = sessionKeys > 0 ? Math.round(((sessionKeys - sessionErrors) / sessionKeys) * 100) : 100;
+        const elapsed = sessionStartTime ? (Date.now() - sessionStartTime) / 1000 / 60 : 0;
+        const wpm = elapsed > 0 ? Math.round((sessionKeys / 5) / elapsed) : 0;
+        document.getElementById('statAccuracy').textContent = accuracy + '%';
+        document.getElementById('statWpm').textContent = wpm;
+        document.getElementById('statKeys').textContent = sessionKeys;
+        document.getElementById('statErrors').textContent = sessionErrors;
+    }
+
+    function updateProgress() {
+        const stage = STAGES[currentStageIdx];
+        const pct = Math.min(100, Math.round((challengeCount / stage.target) * 100));
+        document.getElementById('progressBar').style.width = pct + '%';
+        document.getElementById('progressText').textContent = `${challengeCount} / ${stage.target}`;
+        document.getElementById('progressPercent').textContent = pct + '%';
+    }
+
+    function completeStage() {
+        const stage = STAGES[currentStageIdx];
+        const accuracy = sessionKeys > 0 ? Math.round(((sessionKeys - sessionErrors) / sessionKeys) * 100) : 100;
+        const elapsed = sessionStartTime ? (Date.now() - sessionStartTime) / 1000 : 0;
+        const wpm = elapsed > 0 ? Math.round((sessionKeys / 5) / (elapsed / 60)) : 0;
+
+        let stars = 0;
+        if (accuracy >= 85) stars = 1;
+        if (accuracy >= 92) stars = 2;
+        if (accuracy >= 97) stars = 3;
+
+        // Save progress
+        TypePetsData.saveTrainingStageProgress(stage.id, accuracy, stars, true);
+
+        // Update local cache
+        if (!stageProgress[stage.id]) stageProgress[stage.id] = { bestAccuracy: 0, stars: 0, unlocked: true };
+        if (accuracy > stageProgress[stage.id].bestAccuracy) stageProgress[stage.id].bestAccuracy = accuracy;
+        if (stars > stageProgress[stage.id].stars) stageProgress[stage.id].stars = stars;
+
+        // Unlock next stage
+        const nextStage = STAGES[currentStageIdx + 1];
+        if (nextStage && accuracy >= 85) {
+            if (!stageProgress[nextStage.id]) stageProgress[nextStage.id] = { bestAccuracy: 0, stars: 0, unlocked: true };
+            else stageProgress[nextStage.id].unlocked = true;
+            TypePetsData.saveTrainingStageProgress(nextStage.id, 0, 0, true);
+        }
+
+        // Save session
+        const sessionData = {
+            mode: 'finger_training', level: stage.id, wpm: wpm, accuracy: accuracy,
+            duration_seconds: Math.round(elapsed), keys_pressed: sessionKeys,
+            errors: sessionErrors, error_keys: sessionErrorKeys
+        };
+        TypePetsData.saveSession(sessionData);
+        checkAchievements(sessionData);
+
+        // Show completion overlay
+        const overlay = document.getElementById('stageCompleteOverlay');
+        document.getElementById('completeEmoji').textContent = stars === 3 ? '★' : stars >= 1 ? '✓' : '→';
+        document.getElementById('completeTitle').textContent = accuracy >= 85 ? 'Stage Complete' : 'Try Again';
+        document.getElementById('completeStars').textContent = '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
+        document.getElementById('completeAccuracy').textContent = accuracy + '%';
+        document.getElementById('completeWpm').textContent = wpm;
+        const mins = Math.floor(elapsed / 60);
+        const secs = Math.floor(elapsed % 60);
+        document.getElementById('completeTime').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+        const bubbleNotice = document.getElementById('bubbleUnlockNotice');
+        const bubbleText = document.getElementById('bubbleUnlockText');
+        const xpNotice = document.getElementById('xpEarnedNotice');
+        if (accuracy >= 85) {
+            const mapping = STAGE_BUBBLE_MAP[stage.id];
+            if (mapping) {
+                bubbleText.textContent = mapping.levels ? `🫧 ${mapping.desc} unlocked!` : `🎮 Free Play unlocked!`;
+                bubbleNotice.classList.remove('hidden');
+            }
+            xpNotice.textContent = `+20 XP for your pet!`;
+            xpNotice.classList.remove('hidden');
+        } else { bubbleNotice.classList.add('hidden'); xpNotice.classList.add('hidden'); }
+
+        const nextBtn = document.getElementById('nextStageBtn');
+        if (accuracy >= 85 && nextStage) {
+            nextBtn.style.display = 'inline-block';
+            nextBtn.textContent = `Next: ${nextStage.name} →`;
+        } else if (accuracy < 85) {
+            nextBtn.style.display = 'none';
+        } else {
+            nextBtn.style.display = 'inline-block';
+            nextBtn.textContent = 'All Stages Complete!';
+            nextBtn.onclick = () => { window.location.href = '../index.html'; };
+        }
+
+        overlay.classList.add('active');
+        if (stars >= 2) { spawnConfetti(80); if (window.sound) window.sound.celebration(); }
+        else if (accuracy >= 85) { if (window.sound) window.sound.levelUp(); }
+        renderStageList();
+    }
+
+    function nextStage() {
+        document.getElementById('stageCompleteOverlay').classList.remove('active');
+        if (currentStageIdx < STAGES.length - 1) { currentStageIdx++; loadStage(currentStageIdx); renderStageList(); }
+    }
+
+    function retryStage() {
+        document.getElementById('stageCompleteOverlay').classList.remove('active');
+        loadStage(currentStageIdx);
+    }
+
+    document.addEventListener('DOMContentLoaded', initTraining);
+    </script>
+</body>
+</html>

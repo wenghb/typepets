@@ -1,0 +1,137 @@
+/* ─── Virtual Keyboard ─────────────────────────────────────── */
+.keyboard-container {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+.keyboard-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+/* SVG Keyboard */
+.keyboard-svg-wrap {
+    width: 100%;
+    max-width: 800px;
+}
+
+.keyboard-svg-wrap svg {
+    width: 100%;
+    height: auto;
+}
+
+/* Key styles in SVG */
+.key-bg {
+    rx: 6;
+    ry: 6;
+    stroke: #D4D9E0;
+    stroke-width: 1;
+    transition: all 0.15s ease;
+    cursor: default;
+    opacity: 0.6;
+}
+
+.key-label {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    fill: #4A5568;
+    pointer-events: none;
+    user-select: none;
+    text-anchor: middle;
+    dominant-baseline: central;
+}
+
+/* Finger zone colors — muted pastels with transparency */
+.finger-l-pinky .key-bg { fill: #F0DDE8; }
+.finger-l-ring .key-bg { fill: #E8DEF0; }
+.finger-l-middle .key-bg { fill: #DEE8F0; }
+.finger-l-index .key-bg { fill: #DEF0E4; }
+.finger-r-index .key-bg { fill: #F0ECD8; }
+.finger-r-middle .key-bg { fill: #F0E4D8; }
+.finger-r-ring .key-bg { fill: #F0DCDC; }
+.finger-r-pinky .key-bg { fill: #E8D8F0; }
+.finger-thumb .key-bg { fill: #E8ECF0; }
+
+/* Active key — subtle glow */
+.key-group.active .key-bg {
+    stroke: var(--accent-blue);
+    stroke-width: 2;
+    opacity: 1;
+    filter: drop-shadow(0 0 4px rgba(74, 144, 217, 0.3));
+}
+
+/* Correct/wrong flash */
+.key-group.correct .key-bg {
+    fill: #B2DFCF !important;
+    opacity: 1;
+    transition: fill 0.1s ease;
+}
+
+.key-group.wrong .key-bg {
+    fill: #F0B4B4 !important;
+    opacity: 1;
+    animation: shake-key 0.3s ease;
+}
+
+@keyframes shake-key {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+}
+
+/* Dimmed keys (not in current stage) */
+.key-group.dimmed .key-bg {
+    fill: #F0F2F5 !important;
+    stroke: #E2E8F0;
+    opacity: 0.35;
+}
+
+.key-group.dimmed .key-label {
+    fill: #A0AEC0;
+    opacity: 0.4;
+}
+
+/* Hand overlay — ghostly/subtle */
+.hand-overlay {
+    width: 100%;
+    max-width: 500px;
+    margin-top: 6px;
+    opacity: 0.3;
+}
+
+.hand-overlay svg {
+    width: 100%;
+    height: auto;
+}
+
+.finger-shape {
+    fill: #F0DCA0;
+    stroke: #C4A060;
+    stroke-width: 0.8;
+    transition: all 0.2s ease;
+    opacity: 0.5;
+}
+
+.finger-shape.active {
+    fill: #E8C860;
+    stroke: #B08C30;
+    stroke-width: 1.5;
+    opacity: 0.8;
+    filter: drop-shadow(0 0 3px rgba(200, 160, 60, 0.3));
+}
+
+/* ─── Responsive Keyboard ──────────────────────────────────── */
+@media (max-width: 600px) {
+    .keyboard-container {
+        padding: 10px;
+    }
+
+    .key-label {
+        font-size: 10px;
+    }
+}

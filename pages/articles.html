@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TypePets — Articles</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/articles.css">
+</head>
+<body>
+    <nav class="main-nav">
+        <a href="../index.html" class="nav-logo"><span>TypePets</span></a>
+        <div class="nav-links">
+            <a href="training.html" class="nav-link">Training</a>
+            <a href="bubbles.html" class="nav-link">Bubbles</a>
+            <a href="articles.html" class="nav-link">Articles</a>
+            <a href="pet.html" class="nav-link">Pet</a>
+            <a href="dashboard.html" class="nav-link">Stats</a>
+        </div>
+        <div class="nav-right">
+            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light theme">🌙</button>
+            <button class="sound-toggle" id="soundToggle" onclick="toggleSound()" title="Toggle sound">🔊</button>
+            <div class="nav-user"><span id="userName">Player</span></div>
+        </div>
+    </nav>
+
+    <main class="content">
+        <div class="articles-container">
+            <div id="articleListView">
+                <div class="articles-header">
+                    <h1>Read & Type</h1>
+                    <p>Pick an article, then type it out character by character.</p>
+                </div>
+                <div class="category-tabs" id="categoryTabs">
+                    <button class="cat-tab active" data-category="all" onclick="filterCategory('all')">All</button>
+                    <button class="cat-tab" data-category="animals" onclick="filterCategory('animals')">Animals</button>
+                    <button class="cat-tab" data-category="space" onclick="filterCategory('space')">Space</button>
+                    <button class="cat-tab" data-category="science" onclick="filterCategory('science')">Science</button>
+                    <button class="cat-tab" data-category="history" onclick="filterCategory('history')">History</button>
+                    <button class="cat-tab" data-category="fun-facts" onclick="filterCategory('fun-facts')">Fun Facts</button>
+                </div>
+                <div class="article-grid" id="articleGrid"></div>
+            </div>
+            <div id="typingView" style="display:none">
+                <div class="typing-header">
+                    <button class="btn btn-secondary" onclick="backToList()" style="margin-bottom:12px;">← Back</button>
+                    <h2 id="typingTitle"></h2>
+                    <div class="typing-meta">
+                        <span class="typing-meta-item" id="typingCategory"></span>
+                        <span class="typing-meta-item" id="typingWordCount"></span>
+                    </div>
+                </div>
+                <div class="typing-stats-bar" id="typingStatsBar">
+                    <div class="ts-stat-group">
+                        <span class="ts-stat"><span class="ts-value" id="typingWpm">0</span> <span class="ts-label">WPM</span></span>
+                        <span class="ts-stat"><span class="ts-value" id="typingAccuracy">100</span><span class="ts-label">%</span></span>
+                        <span class="ts-stat"><span class="ts-value" id="typingTime">0:00</span> <span class="ts-label">time</span></span>
+                    </div>
+                    <div class="ts-sparkline-wrap"><svg id="wpmSparkline" width="100" height="28" viewBox="0 0 100 28"></svg></div>
+                    <div class="ts-sound-toggle"><button class="ts-sound-btn" id="typewriterSoundBtn" onclick="toggleTypewriterSound()" title="Toggle typewriter sounds">🔊</button></div>
+                </div>
+                <div class="article-text-display" id="articleTextDisplay" tabindex="0"></div>
+                <div class="typing-result hidden" id="typingResult">
+                    <div class="result-header">
+                        <h3 id="resultTitle">Complete!</h3>
+                        <div class="result-pb-badge hidden" id="resultPbBadge">⭐ Personal Best!</div>
+                    </div>
+                    <div class="result-stats">
+                        <div class="result-stat"><div class="result-stat-value" id="resultWpm">0</div><div class="result-stat-label">WPM</div><div class="result-stat-prev" id="resultWpmPrev"></div></div>
+                        <div class="result-stat"><div class="result-stat-value" id="resultAccuracy">0%</div><div class="result-stat-label">Accuracy</div></div>
+                        <div class="result-stat"><div class="result-stat-value" id="resultTime">0:00</div><div class="result-stat-label">Time</div></div>
+                    </div>
+                    <div class="result-actions">
+                        <button class="btn btn-primary" onclick="retryArticle()">Try Again</button>
+                        <button class="btn btn-secondary" onclick="backToList()">Pick Another</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast-container"></div>
+
+    <script src="../js/data.js"></script>
+    <script src="../js/sound.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/achievements.js"></script>
+    <script src="../js/articles-data.js"></script>
+    <script src="../js/articles.js"></script>
+</body>
+</html>

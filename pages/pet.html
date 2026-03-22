@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TypePets — My Pet</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/pet.css">
+</head>
+<body>
+    <nav class="main-nav">
+        <a href="../index.html" class="nav-logo"><span>TypePets</span></a>
+        <div class="nav-links">
+            <a href="training.html" class="nav-link">Training</a>
+            <a href="bubbles.html" class="nav-link">Bubbles</a>
+            <a href="articles.html" class="nav-link">Articles</a>
+            <a href="pet.html" class="nav-link">Pet</a>
+            <a href="dashboard.html" class="nav-link">Stats</a>
+        </div>
+        <div class="nav-right">
+            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light theme">🌙</button>
+            <button class="sound-toggle" id="soundToggle" onclick="toggleSound()" title="Toggle sound">🔊</button>
+            <div class="nav-user"><span id="userName">Player</span></div>
+        </div>
+    </nav>
+
+    <main class="content">
+        <div class="pet-container">
+            <div class="pet-main">
+                <div class="pet-stage-area">
+                    <div class="pet-scene" id="petScene">
+                        <div class="pet-creature" id="petCreature"></div>
+                        <div class="pet-expression" id="petExpression"></div>
+                        <div class="pet-ground"></div>
+                        <div class="pet-particles" id="petParticles"></div>
+                    </div>
+                    <div class="pet-name-area">
+                        <h2 class="pet-name" id="petName">Loading...</h2>
+                        <button class="pet-rename-btn" id="renameBtn" onclick="renamePet()">✏️</button>
+                    </div>
+                    <div class="pet-species" id="petSpecies">
+                        <span class="species-badge" id="speciesBadge">Egg</span>
+                        <span class="species-level" id="speciesLevel">Level 1</span>
+                    </div>
+                </div>
+                <div class="pet-xp-section">
+                    <div class="xp-bar-outer"><div class="xp-bar-inner" id="xpBar" style="width:0%"></div></div>
+                    <div class="xp-labels"><span id="xpCurrent">0 XP</span><span id="xpNext">Next: 100 XP</span></div>
+                </div>
+                <div class="pet-stats-grid">
+                    <div class="pet-stat-card"><div class="pet-stat-info"><div class="pet-stat-label">Hunger</div><div class="pet-stat-bar"><div class="pet-stat-bar-fill hunger-fill" id="hungerBar" style="width:100%"></div></div><div class="pet-stat-value" id="hungerValue">100%</div></div></div>
+                    <div class="pet-stat-card"><div class="pet-stat-info"><div class="pet-stat-label">Happiness</div><div class="pet-stat-bar"><div class="pet-stat-bar-fill happy-fill" id="happyBar" style="width:100%"></div></div><div class="pet-stat-value" id="happyValue">100%</div></div></div>
+                </div>
+                <div class="pet-actions">
+                    <button class="pet-action-btn feed-btn" id="feedBtn" onclick="feedPet()">Feed Pet</button>
+                    <a href="training.html" class="pet-action-btn practice-btn">Practice to Earn XP</a>
+                    <a href="bubbles.html" class="pet-action-btn play-btn">Play Bubble Pop</a>
+                </div>
+            </div>
+            <div class="pet-sidebar">
+                <h3>Evolution Path</h3>
+                <div class="evolution-timeline" id="evolutionTimeline"></div>
+                <div class="pet-tips" id="petTips">
+                    <h4>Tips</h4>
+                    <ul>
+                        <li>Complete finger training stages for +20 XP</li>
+                        <li>Play Bubble Pop for XP (score / 10)</li>
+                        <li>Faster bubble speed = bonus XP!</li>
+                        <li>Level 5, 10, 15, 20 bubbles give special rewards</li>
+                        <li>Type articles to earn XP</li>
+                        <li>Feed your pet to keep it happy</li>
+                    </ul>
+                </div>
+                <div class="activity-feed" id="activityFeed">
+                    <h4>Recent Activity</h4>
+                    <div class="activity-list" id="activityList">
+                        <div style="text-align:center;color:var(--text-secondary);font-size:0.82rem;padding:12px;">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="rename-modal-overlay hidden" id="renameModal">
+            <div class="rename-modal">
+                <h3>Name Your Pet</h3>
+                <input type="text" id="renameInput" placeholder="Enter a name..." maxlength="20" autocomplete="off">
+                <div class="rename-buttons">
+                    <button class="btn btn-primary" onclick="confirmRename()">Save</button>
+                    <button class="btn btn-secondary" onclick="closeRenameModal()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast-container"></div>
+
+    <script src="../js/data.js"></script>
+    <script src="../js/sound.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/achievements.js"></script>
+    <script>
+    (function() {
+        'use strict';
+
+        const EVOLUTIONS = [
+            {species:'egg',name:'Egg',emoji:'🥚',xp:0,level:1},
+            {species:'baby',name:'Baby',emoji:'🐣',xp:100,level:2},
+            {species:'kid',name:'Kid',emoji:'🐥',xp:500,level:3},
+            {species:'teen',name:'Teen',emoji:'🦊',xp:1500,level:4},
+            {species:'adult',name:'Adult',emoji:'🦅',xp:4000,level:5},
+            {species:'master',name:'Master',emoji:'🐉',xp:10000,level:6}
+        ];
+
+        let petData = null;
+
+        const petCreature = document.getElementById('petCreature');
+        const petExpression = document.getElementById('petExpression');
+        const petParticles = document.getElementById('petParticles');
+        const petNameEl = document.getElementById('petName');
+        const speciesBadge = document.getElementById('speciesBadge');
+        const speciesLevel = document.getElementById('speciesLevel');
+        const xpBar = document.getElementById('xpBar');
+        const xpCurrent = document.getElementById('xpCurrent');
+        const xpNext = document.getElementById('xpNext');
+        const hungerBar = document.getElementById('hungerBar');
+        const hungerValue = document.getElementById('hungerValue');
+        const happyBar = document.getElementById('happyBar');
+        const happyValue = document.getElementById('happyValue');
+        const evolutionTimeline = document.getElementById('evolutionTimeline');
+        const renameModal = document.getElementById('renameModal');
+        const renameInput = document.getElementById('renameInput');
+
+        function loadPet() {
+            petData = TypePetsData.getPet();
+            if (petData) {
+                renderPet();
+                renderEvolutionTimeline();
+                startParticleLoop();
+            }
+        }
+
+        function renderPet() {
+            if (!petData) return;
+            petNameEl.textContent = petData.name || 'Unnamed';
+            const evo = EVOLUTIONS.find(e => e.species === petData.species) || EVOLUTIONS[0];
+            speciesBadge.textContent = `${evo.emoji} ${evo.name}`;
+            speciesLevel.textContent = `Level ${petData.level}`;
+            const currentEvoIdx = EVOLUTIONS.findIndex(e => e.species === petData.species);
+            const nextEvo = EVOLUTIONS[currentEvoIdx + 1];
+            const prevThreshold = evo.xp;
+            const nextThreshold = nextEvo ? nextEvo.xp : evo.xp;
+            if (nextEvo) {
+                const progress = ((petData.xp - prevThreshold) / (nextThreshold - prevThreshold)) * 100;
+                xpBar.style.width = Math.min(100, Math.max(0, progress)) + '%';
+                xpCurrent.textContent = `${petData.xp} XP`;
+                xpNext.textContent = `Next: ${nextThreshold} XP`;
+            } else { xpBar.style.width = '100%'; xpCurrent.textContent = `${petData.xp} XP`; xpNext.textContent = 'MAX LEVEL'; }
+            const hunger = Math.max(0, Math.min(100, petData.hunger));
+            const happiness = Math.max(0, Math.min(100, petData.happiness));
+            hungerBar.style.width = hunger + '%'; hungerValue.textContent = hunger + '%';
+            happyBar.style.width = happiness + '%'; happyValue.textContent = happiness + '%';
+            renderCreature(petData.species, hunger, happiness);
+        }
+
+        function renderCreature(species, hunger, happiness) {
+            let html = '';
+            const isHungry = hunger < 30;
+            const isSleeping = happiness < 20;
+            const expressionClass = isHungry ? 'expression-hungry' : isSleeping ? 'expression-sleeping' : '';
+            switch (species) {
+                case 'egg': html = `<div class="creature-egg ${expressionClass}"><div class="crack"></div></div>`; break;
+                case 'baby': html = `<div class="creature-baby ${expressionClass}"><div class="eye left"></div><div class="eye right"></div><div class="mouth"></div><div class="cheek left"></div><div class="cheek right"></div></div>`; break;
+                case 'kid': html = `<div class="creature-kid ${expressionClass}"><div class="body"><div class="eye left"></div><div class="eye right"></div><div class="mouth"></div></div><div class="foot left"></div><div class="foot right"></div></div>`; break;
+                case 'teen': html = `<div class="creature-teen ${expressionClass}"><div class="body"><div class="eye left"></div><div class="eye right"></div><div class="mouth"></div></div><div class="horn left"></div><div class="horn right"></div><div class="foot left"></div><div class="foot right"></div></div>`; break;
+                case 'adult': html = `<div class="creature-adult ${expressionClass}"><div class="body"><div class="eye left"></div><div class="eye right"></div><div class="mouth"></div></div><div class="wing left"></div><div class="wing right"></div><div class="crown">👑</div><div class="foot left"></div><div class="foot right"></div></div>`; break;
+                case 'master': html = `<div class="creature-master ${expressionClass}"><div class="aura"></div><div class="body"><div class="eye left"></div><div class="eye right"></div><div class="mouth"></div></div><div class="wing left"></div><div class="wing right"></div><div class="crown">👑</div><div class="foot left"></div><div class="foot right"></div></div>`; break;
+            }
+            petCreature.innerHTML = html;
+            petExpression.innerHTML = '';
+        }
+
+        function renderEvolutionTimeline() {
+            if (!petData) return;
+            evolutionTimeline.innerHTML = '';
+            const currentIdx = EVOLUTIONS.findIndex(e => e.species === petData.species);
+            EVOLUTIONS.forEach((evo, i) => {
+                const isCompleted = i < currentIdx;
+                const isCurrent = i === currentIdx;
+                const isLocked = i > currentIdx;
+                const div = document.createElement('div');
+                div.className = `evo-stage ${isCompleted?'evo-completed':''} ${isCurrent?'evo-current':''} ${isLocked?'evo-locked':''}`;
+                div.innerHTML = `<div class="evo-icon">${evo.emoji}</div><div class="evo-info"><div class="evo-name">${evo.name}</div><div class="evo-xp">${evo.xp.toLocaleString()} XP</div></div>${isCompleted?'<div class="evo-check">✓</div>':''}`;
+                evolutionTimeline.appendChild(div);
+            });
+        }
+
+        function startParticleLoop() {
+            setInterval(() => {
+                if (!petData || petData.happiness < 50) return;
+                const heart = document.createElement('div');
+                heart.className = 'floating-heart';
+                heart.textContent = ['✨','⭐'][Math.floor(Math.random()*2)];
+                heart.style.left = (30+Math.random()*40)+'%';
+                heart.style.bottom = (30+Math.random()*20)+'%';
+                petParticles.appendChild(heart);
+                setTimeout(() => heart.remove(), 2000);
+            }, 4000);
+        }
+
+        window.feedPet = function() {
+            petData = TypePetsData.feedPet();
+            renderPet();
+            if (window.sound) window.sound.correct();
+            showToast('Fed!', 'success');
+        };
+
+        window.renamePet = function() {
+            renameInput.value = petData ? petData.name : '';
+            renameModal.classList.remove('hidden');
+            setTimeout(() => renameInput.focus(), 100);
+        };
+
+        window.closeRenameModal = function() { renameModal.classList.add('hidden'); };
+
+        window.confirmRename = function() {
+            const name = renameInput.value.trim();
+            if (!name) { showToast('Enter a name', 'error'); return; }
+            petData = TypePetsData.namePet(name);
+            renderPet(); closeRenameModal();
+            if (window.sound) window.sound.celebration();
+            showToast(`Named: ${name}`, 'success');
+            checkAchievements({ mode: 'pet_name', wpm: 0, accuracy: 0 });
+        };
+
+        renameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') confirmRename();
+            if (e.key === 'Escape') closeRenameModal();
+        });
+
+        function formatTimeAgo(dateStr) {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMin = Math.floor(diffMs / 60000);
+            if (diffMin < 1) return 'now';
+            if (diffMin < 60) return `${diffMin}m`;
+            const diffHr = Math.floor(diffMin / 60);
+            if (diffHr < 24) return `${diffHr}h`;
+            const diffDay = Math.floor(diffHr / 24);
+            return `${diffDay}d`;
+        }
+
+        function loadActivityFeed() {
+            const activities = TypePetsData.getRecentActivities(5);
+            const container = document.getElementById('activityList');
+            if (!activities || activities.length === 0) {
+                container.innerHTML = '<div class="activity-empty">No activity yet. Start practicing!</div>';
+                return;
+            }
+            const ICONS = { training:'⌨️', bubble:'🫧', article:'📖', milestone:'🏆' };
+            container.innerHTML = activities.map(a => {
+                const icon = ICONS[a.type] || '📝';
+                const xpText = a.xp_earned > 0 ? `+${a.xp_earned} XP` : '';
+                const timeAgo = formatTimeAgo(a.timestamp);
+                return `<div class="activity-item"><span class="activity-icon">${icon}</span><span class="activity-text">${a.description}</span><span class="activity-xp">${xpText}</span><span class="activity-time">${timeAgo}</span></div>`;
+            }).join('');
+        }
+
+        loadPet();
+        loadActivityFeed();
+    })();
+    </script>
+</body>
+</html>

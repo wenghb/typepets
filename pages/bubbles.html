@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TypePets — Bubble Pop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+    .bubble-game-layout { display:flex; gap:14px; padding-bottom:20px; align-items:flex-start; }
+    .bubble-game-main { flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:14px; }
+    .level-panel { width:230px; flex-shrink:0; background:var(--bg-card); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:14px; max-height:calc(100vh - 100px); overflow-y:auto; position:sticky; top:76px; }
+    .level-panel-title { font-family:var(--font-display); font-size:0.95rem; font-weight:700; margin-bottom:10px; text-align:center; color:var(--text-primary); }
+    .level-list { display:flex; flex-direction:column; gap:5px; }
+    .level-item { display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:var(--radius-sm); cursor:pointer; transition:all 0.2s ease; border:2px solid transparent; font-size:0.82rem; }
+    .level-item:hover:not(.level-locked) { background:var(--bg-primary); }
+    .level-item.level-active { background:#EBF4FF; border-color:var(--accent-blue); }
+    [data-theme="dark"] .level-item.level-active { background:#2A3B52; }
+    .level-item.level-locked { opacity:0.4; cursor:not-allowed; }
+    .level-item.level-completed { opacity:0.85; }
+    .level-icon { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.7rem; font-weight:700; flex-shrink:0; background:var(--bg-primary); color:var(--text-secondary); }
+    .level-active .level-icon { background:var(--accent-blue); color:white; }
+    .level-completed .level-icon { background:var(--accent-green); color:white; }
+    .level-locked .level-icon { background:var(--border-color); color:var(--text-secondary); }
+    .level-info { flex:1; min-width:0; }
+    .level-name { font-weight:600; font-size:0.78rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .level-desc { font-size:0.62rem; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .level-divider { border:none; border-top:1px solid var(--border-color); margin:6px 0; }
+    .free-play-btn { width:100%; padding:8px; border:2px dashed var(--accent-purple); border-radius:var(--radius-sm); background:transparent; font-family:var(--font-display); font-weight:600; font-size:0.82rem; color:var(--accent-purple); cursor:pointer; transition:all 0.2s ease; margin-top:4px; }
+    .free-play-btn:hover { background:rgba(155,142,196,0.1); }
+    .free-play-btn.active { background:var(--accent-purple); color:white; border-style:solid; }
+    .game-top-bar { display:flex; align-items:center; justify-content:space-between; width:100%; background:var(--bg-card); border-radius:var(--radius-lg); padding:10px 20px; box-shadow:var(--shadow-sm); }
+    .game-stat { text-align:center; }
+    .game-stat-value { font-family:var(--font-display); font-size:1.4rem; font-weight:700; }
+    .game-stat-value.score-value { color:var(--accent-blue); }
+    .game-stat-value.combo-value { color:var(--accent-orange); }
+    .game-stat-value.lives-value { color:var(--accent-red); }
+    .game-stat-value.level-value { color:var(--accent-purple); }
+    .game-stat-value.timer-value { color:var(--accent-teal); }
+    .game-stat-label { font-size:0.68rem; text-transform:uppercase; font-weight:700; color:var(--text-secondary); letter-spacing:0.5px; }
+    .game-canvas-container { position:relative; border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-md); width:100%; }
+    #gameCanvas { display:block; border-radius:var(--radius-lg); width:100%; height:auto; }
+    .game-input-area { display:flex; align-items:center; gap:10px; width:100%; }
+    #gameInput { flex:1; padding:12px 20px; border:2px solid var(--border-color); border-radius:var(--radius-md); font-family:var(--font-display); font-size:1.3rem; font-weight:600; text-align:center; outline:none; transition:all 0.2s ease; background:white; color:var(--text-primary); letter-spacing:2px; }
+    [data-theme="dark"] #gameInput { background:var(--bg-card); color:var(--text-primary); border-color:var(--border-color); }
+    #gameInput:focus { border-color:var(--accent-blue); box-shadow:0 0 12px rgba(74,144,217,0.15); }
+    #gameInput.shake { animation:inputShake 0.3s ease; border-color:var(--accent-red); }
+    @keyframes inputShake { 0%,100%{transform:translateX(0);} 20%{transform:translateX(-4px);} 40%{transform:translateX(4px);} 60%{transform:translateX(-3px);} 80%{transform:translateX(3px);} }
+    .power-ups-bar { display:flex; gap:8px; }
+    .power-up-btn { padding:8px 14px; border:2px solid var(--border-color); border-radius:var(--radius-sm); background:var(--bg-card); font-size:1rem; font-weight:700; cursor:pointer; transition:all 0.2s ease; display:flex; align-items:center; gap:4px; font-family:var(--font-display); }
+    .power-up-btn:hover:not(:disabled) { transform:translateY(-1px); box-shadow:var(--shadow-sm); }
+    .power-up-btn:disabled { opacity:0.35; cursor:not-allowed; }
+    .power-up-btn .pu-count { background:var(--accent-blue); color:white; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-size:0.7rem; }
+    .game-overlay { position:absolute; inset:0; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; border-radius:var(--radius-lg); z-index:10; backdrop-filter:blur(3px); }
+    .game-overlay.hidden { display:none; }
+    .overlay-card { background:white; border-radius:var(--radius-lg); padding:40px; text-align:center; max-width:360px; box-shadow:var(--shadow-lg); animation:popIn 0.35s ease; }
+    [data-theme="dark"] .overlay-card { background:var(--bg-card); }
+    @keyframes popIn { 0%{transform:scale(0.8);opacity:0;} 100%{transform:scale(1);opacity:1;} }
+    .overlay-title { font-family:var(--font-display); font-size:1.8rem; margin-bottom:6px; }
+    .overlay-subtitle { color:var(--text-secondary); margin-bottom:20px; font-size:0.9rem; }
+    .overlay-stats { display:flex; justify-content:center; gap:20px; margin-bottom:20px; }
+    .overlay-stat-value { font-family:var(--font-display); font-size:1.5rem; font-weight:700; color:var(--accent-blue); }
+    .overlay-stat-label { font-size:0.68rem; text-transform:uppercase; color:var(--text-secondary); font-weight:700; }
+    .new-best { color:var(--accent-yellow) !important; }
+    .screen-shake { animation:screenShake 0.3s ease; }
+    @keyframes screenShake { 0%,100%{transform:translate(0,0);} 10%{transform:translate(-2px,-1px);} 30%{transform:translate(2px,1px);} 50%{transform:translate(-2px,1px);} 70%{transform:translate(2px,-1px);} 90%{transform:translate(-1px,1px);} }
+    .level-complete-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:1000; backdrop-filter:blur(3px); }
+    .level-complete-overlay.hidden { display:none; }
+    .level-complete-card { background:white; border-radius:var(--radius-lg); padding:40px; text-align:center; max-width:380px; box-shadow:var(--shadow-lg); animation:popIn 0.4s ease; }
+    [data-theme="dark"] .level-complete-card { background:var(--bg-card); }
+    .level-complete-emoji { font-size:3rem; margin-bottom:8px; }
+    .level-complete-title { font-family:var(--font-display); font-size:1.6rem; margin-bottom:4px; color:var(--accent-green); }
+    .level-complete-sub { color:var(--text-secondary); font-size:0.9rem; margin-bottom:20px; }
+    @media (max-width:900px) { .bubble-game-layout{flex-direction:column-reverse;} .level-panel{width:100%;max-height:200px;position:static;} .level-list{flex-direction:row;flex-wrap:wrap;} .level-item{flex:0 0 auto;} }
+    .conn-bar-bubble { display:flex; align-items:center; justify-content:center; gap:4px; padding:8px 10px; background:var(--bg-primary); border-radius:var(--radius-sm); margin-bottom:10px; font-size:0.68rem; font-weight:700; color:var(--text-secondary); }
+    .conn-bar-bubble .conn-step { padding:2px 6px; border-radius:4px; }
+    .conn-bar-bubble .conn-active { background:var(--accent-cyan); color:white; }
+    .conn-bar-bubble .conn-arrow { opacity:0.4; }
+    .level-lock-reason { font-size:0.58rem; color:var(--accent-orange); font-weight:600; white-space:normal; line-height:1.2; }
+    .level-milestone { font-size:0.62rem; color:var(--accent-yellow); font-weight:700; }
+    .level-xp-preview { font-size:0.58rem; color:var(--accent-green); font-weight:600; }
+    .speed-control { background:var(--bg-card); border-radius:var(--radius-lg); padding:12px 16px; box-shadow:var(--shadow-sm); width:100%; }
+    .speed-label { font-family:var(--font-display); font-size:0.82rem; font-weight:700; margin-bottom:6px; text-align:center; color:var(--text-primary); }
+    .speed-slider-row { display:flex; align-items:center; gap:8px; }
+    .speed-slider { flex:1; -webkit-appearance:none; appearance:none; height:6px; border-radius:3px; background:var(--border-color); outline:none; }
+    .speed-slider::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:var(--accent-blue); cursor:pointer; box-shadow:0 1px 4px rgba(0,0,0,0.2); }
+    .speed-value { font-family:var(--font-display); font-weight:700; font-size:0.95rem; color:var(--accent-blue); min-width:36px; text-align:center; }
+    .speed-wpm { font-size:0.72rem; color:var(--text-secondary); font-weight:600; text-align:center; margin-top:2px; }
+    .speed-bonus { font-size:0.72rem; color:var(--accent-green); font-weight:700; text-align:center; margin-top:2px; }
+    </style>
+</head>
+<body>
+    <nav class="main-nav">
+        <a href="../index.html" class="nav-logo"><span>TypePets</span></a>
+        <div class="nav-links">
+            <a href="training.html" class="nav-link">Training</a>
+            <a href="bubbles.html" class="nav-link">Bubbles</a>
+            <a href="articles.html" class="nav-link">Articles</a>
+            <a href="pet.html" class="nav-link">Pet</a>
+            <a href="dashboard.html" class="nav-link">Stats</a>
+        </div>
+        <div class="nav-right">
+            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light theme">🌙</button>
+            <button class="sound-toggle" id="soundToggle" onclick="toggleSound()" title="Toggle sound">🔊</button>
+            <div class="nav-user"><span id="userName">Player</span></div>
+        </div>
+    </nav>
+
+    <main class="content">
+        <div class="bubble-game-layout">
+            <div class="bubble-game-main">
+                <div class="game-top-bar">
+                    <div class="game-stat"><div class="game-stat-value score-value" id="scoreDisplay">0</div><div class="game-stat-label">Score</div></div>
+                    <div class="game-stat"><div class="game-stat-value combo-value" id="comboDisplay">x1</div><div class="game-stat-label">Combo</div></div>
+                    <div class="game-stat"><div class="game-stat-value level-value" id="levelDisplay">1</div><div class="game-stat-label">Level</div></div>
+                    <div class="game-stat"><div class="game-stat-value timer-value" id="timerDisplay">0:00</div><div class="game-stat-label">Time</div></div>
+                    <div class="game-stat"><div class="game-stat-value lives-value" id="livesDisplay">♥♥♥</div><div class="game-stat-label">Lives</div></div>
+                    <div class="game-stat"><div class="game-stat-value" id="bestDisplay" style="color:var(--accent-yellow);">0</div><div class="game-stat-label">Best</div></div>
+                </div>
+                <div class="game-canvas-container" id="canvasContainer">
+                    <canvas id="gameCanvas" width="700" height="500"></canvas>
+                    <div class="game-overlay" id="startOverlay">
+                        <div class="overlay-card">
+                            <div class="overlay-title">Bubble Pop</div>
+                            <div class="overlay-subtitle">Select a level on the right and pop those bubbles!</div>
+                            <button class="btn btn-primary" onclick="startGame()" style="font-size:1.1rem;padding:12px 36px;">Start Game</button>
+                        </div>
+                    </div>
+                    <div class="game-overlay hidden" id="gameOverOverlay">
+                        <div class="overlay-card">
+                            <div class="overlay-title" id="gameOverTitle">Game Over</div>
+                            <div class="overlay-subtitle" id="gameOverSubtitle"></div>
+                            <div class="overlay-stats">
+                                <div class="game-stat"><div class="overlay-stat-value" id="finalScore">0</div><div class="overlay-stat-label">Score</div></div>
+                                <div class="game-stat"><div class="overlay-stat-value" id="finalCombo">0</div><div class="overlay-stat-label">Best Combo</div></div>
+                                <div class="game-stat"><div class="overlay-stat-value" id="finalAccuracy">0%</div><div class="overlay-stat-label">Accuracy</div></div>
+                            </div>
+                            <button class="btn btn-primary" onclick="startGame()" style="font-size:1rem;padding:10px 32px;">Play Again</button>
+                            <a href="../index.html" class="btn btn-secondary">Home</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="game-input-area">
+                    <div class="power-ups-bar">
+                        <button class="power-up-btn" id="freezeBtn" onclick="usePowerUp('freeze')" disabled>❄️ <span class="pu-count" id="freezeCount">0</span></button>
+                        <button class="power-up-btn" id="bombBtn" onclick="usePowerUp('bomb')" disabled>💣 <span class="pu-count" id="bombCount">0</span></button>
+                    </div>
+                    <input type="text" id="gameInput" placeholder="Type here..." autocomplete="off" autocapitalize="off" spellcheck="false">
+                </div>
+                <div class="speed-control">
+                    <div class="speed-label">Intensity</div>
+                    <div class="speed-slider-row">
+                        <input type="range" class="speed-slider" id="speedSlider" min="0.5" max="10" step="0.1" value="1.0">
+                        <span class="speed-value" id="speedValue">1.0x</span>
+                    </div>
+                    <div class="speed-wpm" id="speedWpm">~20 WPM — Normal</div>
+                    <div class="speed-bonus" id="speedBonus"></div>
+                </div>
+            </div>
+            <div class="level-panel">
+                <div class="conn-bar-bubble">
+                    <span class="conn-step">Training</span><span class="conn-arrow">→</span>
+                    <span class="conn-step conn-active">Bubbles</span><span class="conn-arrow">→</span>
+                    <span class="conn-step">Pet</span>
+                </div>
+                <div class="level-panel-title">Levels</div>
+                <div class="level-list" id="levelList"></div>
+                <hr class="level-divider">
+                <button class="free-play-btn" id="freePlayBtn" onclick="selectFreePlay()">🎮 Free Play</button>
+            </div>
+        </div>
+        <div class="level-complete-overlay hidden" id="levelCompleteOverlay">
+            <div class="level-complete-card">
+                <div class="level-complete-emoji">🎉</div>
+                <div class="level-complete-title" id="lcTitle">Level 1 Complete!</div>
+                <div class="level-complete-sub" id="lcSub">Next level unlocked!</div>
+                <button class="btn btn-primary" onclick="goNextLevel()" style="margin-top:10px;">Next Level →</button>
+                <button class="btn btn-secondary" onclick="closeLevelComplete()">Stay</button>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast-container"></div>
+
+    <script src="../js/data.js"></script>
+    <script src="../js/sound.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/achievements.js"></script>
+    <script src="../js/bubble_pop.js"></script>
+</body>
+</html>

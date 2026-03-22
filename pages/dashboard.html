@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TypePets — Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/keyboard.css">
+    <style>
+    .dashboard-container { display:flex; flex-direction:column; gap:20px; }
+    .dashboard-header { text-align:center; padding:16px 0; }
+    .dashboard-header h1 { font-size:1.8rem; margin-bottom:4px; }
+    .quick-stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:12px; }
+    .quick-stat-card { background:var(--bg-card); border-radius:var(--radius-lg); padding:18px; text-align:center; box-shadow:var(--shadow-sm); }
+    .quick-stat-value { font-family:var(--font-display); font-size:1.6rem; font-weight:700; color:var(--accent-blue); }
+    .quick-stat-label { font-size:0.72rem; text-transform:uppercase; font-weight:700; color:var(--text-secondary); letter-spacing:0.5px; }
+    .streak-section { background:var(--bg-card); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-sm); text-align:center; }
+    .streak-display { display:flex; align-items:center; justify-content:center; gap:12px; margin:12px 0; }
+    .streak-number { font-family:var(--font-display); font-size:2.8rem; font-weight:700; color:var(--accent-orange); }
+    .streak-label { font-size:0.95rem; font-weight:700; color:var(--text-secondary); }
+    .streak-best { font-size:0.82rem; color:var(--text-secondary); margin-top:4px; }
+    .today-stats { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; }
+    .today-stat-card { background:#EDF2F7; border-radius:var(--radius-lg); padding:16px; text-align:center; }
+    [data-theme="dark"] .today-stat-card { background:var(--bg-card); }
+    .today-stat-value { font-family:var(--font-display); font-size:1.6rem; font-weight:700; color:var(--accent-blue); }
+    .today-stat-label { font-size:0.72rem; text-transform:uppercase; font-weight:700; color:var(--text-secondary); letter-spacing:0.5px; }
+    .chart-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .chart-card { background:var(--bg-card); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-sm); }
+    .chart-card h3 { font-size:1rem; margin-bottom:12px; }
+    .chart-canvas-wrap { position:relative; width:100%; height:200px; }
+    .chart-canvas-wrap canvas { width:100%; height:100%; }
+    .chart-empty { display:flex; align-items:center; justify-content:center; height:180px; color:var(--text-secondary); font-weight:600; }
+    .heatmap-section { background:var(--bg-card); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-sm); }
+    .heatmap-section h3 { font-size:1rem; margin-bottom:6px; }
+    .heatmap-legend { display:flex; align-items:center; gap:6px; justify-content:center; margin-bottom:12px; font-size:0.72rem; font-weight:600; color:var(--text-secondary); }
+    .heatmap-gradient { width:100px; height:10px; border-radius:5px; background:linear-gradient(90deg,#C6F6D5,#FEFCBF,#FED7D7,#E07070); }
+    .weakness-section { background:var(--bg-card); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-sm); }
+    .weakness-section h3 { font-size:1rem; margin-bottom:12px; }
+    .weak-keys-list { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
+    .weak-key-item { display:flex; flex-direction:column; align-items:center; gap:3px; padding:10px 14px; background:#FFF5F5; border:1px solid #FED7D7; border-radius:var(--radius-md); min-width:60px; }
+    [data-theme="dark"] .weak-key-item { background:#3B2020; border-color:#5B3030; }
+    .weak-key-letter { font-family:var(--font-display); font-size:1.4rem; font-weight:700; color:var(--accent-red); }
+    .weak-key-count { font-size:0.68rem; font-weight:700; color:var(--accent-red); }
+    .weakness-message { text-align:center; margin-top:12px; font-weight:600; color:var(--text-secondary); font-size:0.88rem; }
+    .weakness-empty { text-align:center; padding:16px; color:var(--text-secondary); font-weight:600; }
+    .badge-section { background:var(--bg-card); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-sm); }
+    .section-title { font-size:1.1rem; margin-bottom:12px; }
+    @media (max-width:768px) { .chart-row { grid-template-columns:1fr; } .today-stats { grid-template-columns:1fr; } }
+    </style>
+</head>
+<body>
+    <nav class="main-nav">
+        <a href="../index.html" class="nav-logo"><span>TypePets</span></a>
+        <div class="nav-links">
+            <a href="training.html" class="nav-link">Training</a>
+            <a href="bubbles.html" class="nav-link">Bubbles</a>
+            <a href="articles.html" class="nav-link">Articles</a>
+            <a href="pet.html" class="nav-link">Pet</a>
+            <a href="dashboard.html" class="nav-link">Stats</a>
+        </div>
+        <div class="nav-right">
+            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light theme">🌙</button>
+            <button class="sound-toggle" id="soundToggle" onclick="toggleSound()" title="Toggle sound">🔊</button>
+            <div class="nav-user"><span id="userName">Player</span></div>
+        </div>
+    </nav>
+
+    <main class="content">
+        <div class="dashboard-container">
+            <div class="dashboard-header"><h1>Your Stats</h1><p style="color:var(--text-secondary);font-weight:600;">Practice more to see your numbers grow.</p></div>
+            <div class="streak-section" id="streakSection"><h3>Practice Streak</h3><div class="streak-display"><span class="streak-number" id="streakNumber">0</span><span class="streak-label">day streak</span></div><div class="streak-best" id="streakBest">Best streak: 0 days</div></div>
+            <div><h3 style="font-size:1rem;margin-bottom:10px;">Today</h3><div class="today-stats"><div class="today-stat-card"><div class="today-stat-value" id="todaySessions">0</div><div class="today-stat-label">Sessions</div></div><div class="today-stat-card"><div class="today-stat-value" id="todayTime">0m</div><div class="today-stat-label">Time Practiced</div></div><div class="today-stat-card"><div class="today-stat-value" id="todayKeys">0</div><div class="today-stat-label">Keys Pressed</div></div></div></div>
+            <div class="quick-stats" id="quickStats"><div class="quick-stat-card"><div class="quick-stat-value" id="statSessions">-</div><div class="quick-stat-label">Sessions</div></div><div class="quick-stat-card"><div class="quick-stat-value" id="statTotalKeys">-</div><div class="quick-stat-label">Keys Pressed</div></div><div class="quick-stat-card"><div class="quick-stat-value" id="statBestWpm">-</div><div class="quick-stat-label">Best WPM</div></div><div class="quick-stat-card"><div class="quick-stat-value" id="statAvgAccuracy">-</div><div class="quick-stat-label">Avg Accuracy</div></div><div class="quick-stat-card"><div class="quick-stat-value" id="statTime">-</div><div class="quick-stat-label">Total Time</div></div></div>
+            <div class="chart-row"><div class="chart-card"><h3>WPM Trend <span style="font-size:0.72rem;color:var(--text-secondary)">(last 30)</span></h3><div class="chart-canvas-wrap"><canvas id="wpmChart"></canvas></div></div><div class="chart-card"><h3>Accuracy Trend <span style="font-size:0.72rem;color:var(--text-secondary)">(last 30)</span></h3><div class="chart-canvas-wrap"><canvas id="accuracyChart"></canvas></div></div></div>
+            <div class="heatmap-section"><h3>Error Heatmap</h3><div class="heatmap-legend"><span>Few errors</span><div class="heatmap-gradient"></div><span>Many errors</span></div><div id="heatmapKeyboard"></div></div>
+            <div class="weakness-section" id="weaknessSection"><h3>Weak Keys</h3><div id="weaknessContent">Loading...</div></div>
+            <div class="badge-section"><h2 class="section-title">Badges</h2><div id="badgeGallery">Loading badges...</div></div>
+        </div>
+    </main>
+
+    <div id="toast-container"></div>
+
+    <script src="../js/data.js"></script>
+    <script src="../js/sound.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/achievements.js"></script>
+    <script src="../js/keyboard.js"></script>
+    <script>
+    (function() {
+        'use strict';
+
+        function init() {
+            const stats = TypePetsData.getStats();
+            const sessions = TypePetsData.getSessions(30);
+            const weakness = TypePetsData.getWeakness();
+
+            renderQuickStats(stats);
+            renderStreak(stats);
+            renderTodayStats(stats.today || {});
+            renderWpmChart(sessions);
+            renderAccuracyChart(sessions);
+            renderHeatmap(weakness);
+            renderWeakness(weakness);
+            renderBadgeGallery(document.getElementById('badgeGallery'));
+        }
+
+        function renderQuickStats(stats) {
+            document.getElementById('statSessions').textContent = stats.total_sessions;
+            document.getElementById('statTotalKeys').textContent = stats.total_keys.toLocaleString();
+            document.getElementById('statBestWpm').textContent = stats.best_wpm;
+            document.getElementById('statAvgAccuracy').textContent = stats.avg_accuracy + '%';
+            const mins = Math.floor(stats.total_time / 60);
+            const hrs = Math.floor(mins / 60);
+            document.getElementById('statTime').textContent = hrs > 0 ? `${hrs}h ${mins%60}m` : `${mins}m`;
+        }
+
+        function renderStreak(stats) {
+            document.getElementById('streakNumber').textContent = stats.current_streak || 0;
+            document.getElementById('streakBest').textContent = `Best: ${stats.longest_streak || 0} days`;
+        }
+
+        function renderTodayStats(today) {
+            document.getElementById('todaySessions').textContent = today.sessions_today || 0;
+            document.getElementById('todayKeys').textContent = (today.keys_today || 0).toLocaleString();
+            const mins = Math.floor((today.time_today || 0) / 60);
+            document.getElementById('todayTime').textContent = mins > 0 ? `${mins}m` : '0m';
+        }
+
+        function drawLineChart(canvasId, dataPoints, label, color, yLabel, maxY) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas || dataPoints.length === 0) {
+                const wrap = canvas ? canvas.parentElement : null;
+                if (wrap) wrap.innerHTML = '<div class="chart-empty">Play some sessions to see trends.</div>';
+                return;
+            }
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+            const W = rect.width, H = rect.height;
+            const padL=42,padR=12,padT=12,padB=28;
+            const chartW=W-padL-padR, chartH=H-padT-padB;
+            const vals = dataPoints.map(d => d.value);
+            const minVal = Math.max(0, Math.min(...vals)-5);
+            const autoMax = maxY || Math.max(...vals)+5;
+            ctx.clearRect(0,0,W,H);
+            ctx.strokeStyle='#E2E8F0';ctx.fillStyle='#A0AEC0';ctx.font='10px Nunito, sans-serif';ctx.textAlign='right';
+            const ySteps = 5;
+            for (let i=0;i<=ySteps;i++) {
+                const y = padT + (chartH/ySteps)*i;
+                const val = autoMax - ((autoMax-minVal)/ySteps)*i;
+                ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.lineWidth=1;ctx.stroke();
+                ctx.fillText(Math.round(val), padL-5, y+3);
+            }
+            if (dataPoints.length === 1) {
+                const x=padL+chartW/2;const yRatio=(dataPoints[0].value-minVal)/(autoMax-minVal);const y=padT+chartH-yRatio*chartH;
+                ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();return;
+            }
+            const points = dataPoints.map((d,i) => {
+                const x=padL+(i/(dataPoints.length-1))*chartW;
+                const yRatio=(d.value-minVal)/(autoMax-minVal);
+                const y=padT+chartH-yRatio*chartH;
+                return {x,y,value:d.value};
+            });
+            ctx.beginPath();ctx.moveTo(points[0].x,padT+chartH);
+            points.forEach(p => ctx.lineTo(p.x,p.y));
+            ctx.lineTo(points[points.length-1].x,padT+chartH);ctx.closePath();
+            const grad = ctx.createLinearGradient(0,padT,0,padT+chartH);
+            grad.addColorStop(0,color+'30');grad.addColorStop(1,color+'05');
+            ctx.fillStyle=grad;ctx.fill();
+            ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);
+            for (let i=1;i<points.length;i++) ctx.lineTo(points[i].x,points[i].y);
+            ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.lineCap='round';ctx.stroke();
+            points.forEach(p => {ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.stroke();});
+            ctx.fillStyle='#A0AEC0';ctx.font='9px Nunito, sans-serif';ctx.textAlign='center';
+            ctx.fillText('older',padL+20,H-4);ctx.fillText('newer',W-padR-20,H-4);
+        }
+
+        function renderWpmChart(sessions) {
+            const data = sessions.filter(s => s.wpm>0).reverse().map(s => ({value:s.wpm}));
+            drawLineChart('wpmChart', data, 'WPM', '#4A90D9', 'WPM');
+        }
+
+        function renderAccuracyChart(sessions) {
+            const data = sessions.filter(s => s.accuracy>0).reverse().map(s => ({value:s.accuracy}));
+            drawLineChart('accuracyChart', data, 'Accuracy', '#68D391', '%', 100);
+        }
+
+        function renderHeatmap(weakness) {
+            const container = document.getElementById('heatmapKeyboard');
+            if (!container) return;
+            const errorMap = {};
+            let maxErrors = 0;
+            if (weakness.weak_keys) {
+                weakness.weak_keys.forEach(([key, count]) => { errorMap[key.toLowerCase()]=count; maxErrors=Math.max(maxErrors,count); });
+            }
+            const kb = new VirtualKeyboard('heatmapKeyboard');
+            if (maxErrors > 0) {
+                Object.entries(kb.keyElements).forEach(([keyChar, el]) => {
+                    const count = errorMap[keyChar] || 0;
+                    const bg = el.querySelector('.key-bg');
+                    if (!bg) return;
+                    if (count > 0) {
+                        const intensity = count/maxErrors;
+                        const r = Math.round(104+intensity*(224-104));
+                        const g = Math.round(211+intensity*(112-211));
+                        const b = Math.round(145+intensity*(112-145));
+                        bg.style.fill = `rgb(${r},${g},${b})`;
+                        bg.style.opacity = '1';
+                        const parent = bg.parentElement;
+                        const rect = bg.getBBox ? bg.getBBox() : {x:0,y:0,width:0,height:0};
+                        if (rect.width > 0) {
+                            const countLabel = document.createElementNS('http://www.w3.org/2000/svg','text');
+                            countLabel.setAttribute('x',rect.x+rect.width-5);countLabel.setAttribute('y',rect.y+9);
+                            countLabel.setAttribute('font-size','7');countLabel.setAttribute('font-weight','700');
+                            countLabel.setAttribute('fill',intensity>0.5?'#fff':'#C04630');
+                            countLabel.setAttribute('text-anchor','end');countLabel.setAttribute('pointer-events','none');
+                            countLabel.textContent = count; parent.appendChild(countLabel);
+                        }
+                    }
+                });
+            }
+            const handOverlay = container.querySelector('.hand-overlay');
+            if (handOverlay) handOverlay.style.display = 'none';
+        }
+
+        function renderWeakness(weakness) {
+            const container = document.getElementById('weaknessContent');
+            if (!container) return;
+            if (!weakness.weak_keys || weakness.weak_keys.length === 0) {
+                container.innerHTML = '<div class="weakness-empty">No weak keys detected yet.</div>';
+                return;
+            }
+            const topKeys = weakness.weak_keys.slice(0,6);
+            let html = '<div class="weak-keys-list">';
+            topKeys.forEach(([key, count]) => { html += `<div class="weak-key-item"><div class="weak-key-letter">${key.toUpperCase()}</div><div class="weak-key-count">${count} errors</div></div>`; });
+            html += '</div>';
+            const keyNames = topKeys.map(([k])=>k.toUpperCase()).join(', ');
+            html += `<div class="weakness-message">Weakest keys: <strong>${keyNames}</strong></div>`;
+            container.innerHTML = html;
+        }
+
+        init();
+    })();
+    </script>
+</body>
+</html>
