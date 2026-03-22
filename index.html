@@ -1,254 +1,325 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TypePets — Type. Play. Grow.</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
-    <style>
-    .home-container { text-align: center; }
-    .hero { padding: 24px 0 16px; }
-    .hero-title { font-size: 2.2rem; margin-bottom: 4px; }
-    .hero-subtitle { font-size: 1rem; color: var(--text-secondary); font-weight: 600; }
-    .journey-map {
-        background: var(--bg-card); border-radius: var(--radius-lg);
-        padding: 24px; box-shadow: var(--shadow-sm); margin-bottom: 20px;
+    <title>TypePets — Learn Typing the Fun Way | Free Kids Typing Practice</title>
+    <meta name="description" content="Free typing practice for kids ages 7-12. Finger training, bubble pop games, article typing, and a pet that grows as you improve. No signup, no ads, no data collection. 100% in your browser.">
+    <meta name="keywords" content="kids typing practice, learn typing for kids, typing games for kids, touch typing kids, free typing tutor, typing practice, keyboard typing game, finger training typing">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="TypePets — Learn Typing the Fun Way">
+    <meta property="og:description" content="Free typing practice for kids with finger training, games, articles, and a virtual pet that evolves as you improve. No signup required.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://typepets.com">
+    <meta property="og:image" content="https://typepets.com/img/og-image.png">
+    <meta property="og:site_name" content="TypePets">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="TypePets — Learn Typing the Fun Way">
+    <meta name="twitter:description" content="Free typing practice for kids with games, training, and a virtual pet. No signup, no ads.">
+    <meta name="twitter:image" content="https://typepets.com/img/og-image.png">
+
+    <link rel="canonical" href="https://typepets.com">
+    <link rel="stylesheet" href="css/landing.css">
+
+    <!-- Schema.org SoftwareApplication -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "TypePets",
+        "url": "https://typepets.com",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Web",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "description": "Free typing practice for kids ages 7-12. Finger training, bubble pop games, article typing, and a virtual pet that evolves as you improve.",
+        "featureList": [
+            "Finger Training — step-by-step home row and full keyboard lessons",
+            "Bubble Pop — type letters and words to pop bubbles before they escape",
+            "Read & Type — practice typing with fun articles about science, animals, and space",
+            "Pet Evolution — grow a virtual pet from egg to master",
+            "Smart Difficulty — auto-adjusts to focus on weak keys",
+            "Progress Dashboard — speed charts, accuracy heatmap, achievements"
+        ],
+        "screenshot": "https://typepets.com/img/og-image.png",
+        "audience": {
+            "@type": "EducationalAudience",
+            "educationalRole": "student",
+            "suggestedMinAge": 7,
+            "suggestedMaxAge": 12
+        }
     }
-    .journey-map-title {
-        font-family: var(--font-display); font-size: 1.1rem; font-weight: 700;
-        margin-bottom: 16px; color: var(--text-primary);
+    </script>
+
+    <!-- Schema.org FAQPage -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "Is TypePets really free?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes, TypePets is 100% free. There is no signup, no premium tier, no ads, and no in-app purchases. Every feature is available immediately."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Does TypePets collect my child's data?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "No. All progress data is stored in the browser's localStorage and never sent anywhere. There are no accounts, no servers storing data, and no analytics tracking your child."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "What age is TypePets for?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "TypePets is designed for kids ages 7-12 who are learning to touch type. The difficulty automatically adjusts, so younger beginners and more advanced typists both get an appropriate challenge."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "What keyboard layout does TypePets support?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "TypePets currently supports the QWERTY keyboard layout, which is the standard layout used on most English-language keyboards."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Can I use TypePets on iPad or tablet?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes, TypePets works on iPads and tablets with a responsive design. However, a physical keyboard is recommended for the best typing practice experience."
+                }
+            }
+        ]
     }
-    .journey-tracks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
-    .journey-track {
-        background: var(--bg-primary); border-radius: var(--radius-md);
-        padding: 16px 14px; text-align: center; transition: all 0.2s ease;
-        cursor: pointer; border: 2px solid transparent; text-decoration: none; color: inherit;
-    }
-    .journey-track:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
-    .journey-track-icon { font-size: 1.8rem; margin-bottom: 6px; }
-    .journey-track-label { font-family: var(--font-display); font-weight: 700; font-size: 0.85rem; margin-bottom: 4px; }
-    .journey-track-progress { font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px; }
-    .journey-dots { display: flex; justify-content: center; gap: 4px; margin-bottom: 4px; }
-    .journey-dot {
-        width: 10px; height: 10px; border-radius: 50%;
-        background: var(--border-color); transition: background 0.3s;
-    }
-    .journey-dot.filled { background: var(--accent-blue); }
-    .journey-dot.filled-green { background: var(--accent-green); }
-    .journey-dot.filled-teal { background: var(--accent-teal); }
-    .journey-dot.filled-purple { background: var(--accent-purple); }
-    .journey-track.track-training:hover { border-color: var(--accent-blue); }
-    .journey-track.track-bubbles:hover { border-color: var(--accent-cyan); }
-    .journey-track.track-pet:hover { border-color: var(--accent-green); }
-    .journey-track.track-articles:hover { border-color: var(--accent-teal); }
-    .pet-mini { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 4px; }
-    .pet-mini-icon { font-size: 1.5rem; }
-    .pet-mini-xp { width: 60px; height: 6px; background: var(--border-color); border-radius: 999px; overflow: hidden; }
-    .pet-mini-xp-fill { height: 100%; background: var(--accent-teal); border-radius: 999px; transition: width 0.5s ease; }
-    .next-action {
-        background: linear-gradient(135deg, #EBF4FF, #F0F7FF); border-radius: var(--radius-md);
-        padding: 14px 20px; margin-bottom: 20px; display: flex; align-items: center;
-        justify-content: center; gap: 10px; font-weight: 600; font-size: 0.9rem;
-        color: var(--accent-blue); border: 1px solid rgba(74, 144, 217, 0.15);
-    }
-    [data-theme="dark"] .next-action { background: linear-gradient(135deg, #1A2A40, #1E3050); border-color: rgba(74, 144, 217, 0.2); }
-    .next-action-icon { font-size: 1.2rem; }
-    .next-action a { color: var(--accent-blue); text-decoration: underline; text-underline-offset: 2px; }
-    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 12px; }
-    @media (max-width: 700px) { .journey-tracks { grid-template-columns: repeat(2, 1fr); } }
-    </style>
+    </script>
 </head>
 <body>
-    <nav class="main-nav">
-        <a href="index.html" class="nav-logo"><span>TypePets</span></a>
-        <div class="nav-links">
-            <a href="pages/training.html" class="nav-link">Training</a>
-            <a href="pages/bubbles.html" class="nav-link">Bubbles</a>
-            <a href="pages/articles.html" class="nav-link">Articles</a>
-            <a href="pages/pet.html" class="nav-link">Pet</a>
-            <a href="pages/dashboard.html" class="nav-link">Stats</a>
-        </div>
-        <div class="nav-right">
-            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light theme">🌙</button>
-            <button class="sound-toggle" id="soundToggle" onclick="toggleSound()" title="Toggle sound">🔊</button>
-            <div class="nav-user" id="currentUser">
-                <span id="userName">Player</span>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="/" class="nav-logo">🐾 TypePets</a>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="#faq">FAQ</a>
+                <a href="/blog">Blog</a>
+                <a href="/pages/home.html" class="nav-cta">Open App →</a>
             </div>
+            <button class="nav-mobile-toggle" id="nav-toggle" aria-label="Menu">☰</button>
         </div>
     </nav>
 
-    <main class="content">
-        <div class="home-container">
-            <div class="hero">
-                <h1 class="hero-title" id="heroTitle">Hey there!</h1>
-                <p class="hero-subtitle" id="heroSubtitle">Pick something to practice.</p>
+    <!-- Hero -->
+    <section class="hero">
+        <div class="hero-inner">
+            <div class="hero-badge">100% Free · No Account · No Data Collection</div>
+            <h1>Learn typing<br><span class="gradient-text">the fun way.</span></h1>
+            <p class="hero-sub">The free typing tutor that teaches kids proper finger placement through games, practice articles, and a virtual pet that grows as they improve. No signup. No ads. Just typing.</p>
+            <div class="hero-actions">
+                <a href="/pages/home.html" class="btn-primary">Start Typing — It's Free →</a>
             </div>
+            <p class="hero-note">Works in any browser. Nothing to install.</p>
+        </div>
+    </section>
 
-            <div class="next-action" id="nextAction" style="display:none">
-                <span class="next-action-icon">💡</span>
-                <span id="nextActionText"></span>
+    <!-- Trust Bar -->
+    <section class="trust">
+        <div class="trust-inner">
+            <div class="trust-item">
+                <span class="trust-icon">🔒</span>
+                <span>Privacy-first — all data stays in your browser</span>
             </div>
-
-            <div class="journey-map">
-                <div class="journey-map-title">Your Journey</div>
-                <div class="journey-tracks">
-                    <a href="pages/training.html" class="journey-track track-training">
-                        <div class="journey-track-icon">⌨️</div>
-                        <div class="journey-track-label">Training</div>
-                        <div class="journey-track-progress" id="trainingProgress">Stage 0 of 8</div>
-                        <div class="journey-dots" id="trainingDots"></div>
-                    </a>
-                    <a href="pages/bubbles.html" class="journey-track track-bubbles">
-                        <div class="journey-track-icon">🫧</div>
-                        <div class="journey-track-label">Bubbles</div>
-                        <div class="journey-track-progress" id="bubblesProgress">Level 1 of 20</div>
-                        <div class="journey-dots" id="bubbleDots"></div>
-                    </a>
-                    <a href="pages/pet.html" class="journey-track track-pet">
-                        <div class="journey-track-icon">🐾</div>
-                        <div class="journey-track-label">Pet</div>
-                        <div class="journey-track-progress" id="petProgress">Loading...</div>
-                        <div class="pet-mini" id="petMini">
-                            <span class="pet-mini-icon" id="petMiniIcon">🥚</span>
-                            <div class="pet-mini-xp"><div class="pet-mini-xp-fill" id="petMiniXp" style="width:0%"></div></div>
-                        </div>
-                    </a>
-                    <a href="pages/articles.html" class="journey-track track-articles">
-                        <div class="journey-track-icon">📖</div>
-                        <div class="journey-track-label">Articles</div>
-                        <div class="journey-track-progress" id="articlesProgress">0 of 10</div>
-                        <div class="journey-dots" id="articleDots"></div>
-                    </a>
-                </div>
+            <div class="trust-item">
+                <span class="trust-icon">🎯</span>
+                <span>Designed for kids 7–12 learning to touch type</span>
             </div>
-
-            <div class="mode-grid">
-                <a href="pages/training.html" class="mode-card mode-training">
-                    <h2>Finger Training</h2>
-                    <p>Learn to type with all 10 fingers. One key at a time.</p>
-                    <div class="mode-badge">8 Stages</div>
-                </a>
-                <a href="pages/bubbles.html" class="mode-card mode-bubbles">
-                    <h2>Bubble Pop</h2>
-                    <p>Pop bubbles by typing letters before they float away.</p>
-                    <div class="mode-badge">Play Now</div>
-                </a>
-                <a href="pages/articles.html" class="mode-card mode-articles">
-                    <h2>Articles</h2>
-                    <p>Read cool articles and type along to practice.</p>
-                    <div class="mode-badge">Read & Type</div>
-                </a>
-                <a href="pages/pet.html" class="mode-card mode-pet">
-                    <h2>My Pet</h2>
-                    <p>Earn XP from practice to grow your virtual pet.</p>
-                    <div class="mode-badge">Visit Pet</div>
-                </a>
-                <a href="pages/dashboard.html" class="mode-card mode-stats">
-                    <h2>Dashboard</h2>
-                    <p>See how much you've improved with charts.</p>
-                    <div class="mode-badge">View Stats</div>
-                </a>
+            <div class="trust-item">
+                <span class="trust-icon">🐾</span>
+                <span>Grow a virtual pet by practicing — fun meets learning</span>
             </div>
         </div>
-    </main>
+    </section>
 
-    <div id="toast-container"></div>
+    <!-- Features -->
+    <section class="features" id="features">
+        <div class="section-inner">
+            <h2 class="section-title">Everything kids need to learn typing</h2>
+            <p class="section-sub">No boring drills. Real games, real progress, real motivation.</p>
 
-    <script src="js/data.js"></script>
-    <script src="js/sound.js"></script>
-    <script src="js/app.js"></script>
-    <script src="js/achievements.js"></script>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">⌨️</div>
+                    <h3>Finger Training</h3>
+                    <p>Learn correct finger positions step by step. Color-coded keys show which finger goes where. Start with the home row and build up to the full keyboard.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🫧</div>
+                    <h3>Bubble Pop</h3>
+                    <p>Pop floating bubbles by typing the letters and words inside them. 20 levels that get progressively harder — from single letters to full words and sentences.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📖</div>
+                    <h3>Read &amp; Type</h3>
+                    <p>Practice with fun articles about science, animals, space, and more. Real content that's interesting to read — not random letter drills.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🐾</div>
+                    <h3>Pet Evolution</h3>
+                    <p>Grow your virtual pet from an egg to a master creature. Every typing session earns XP. Feed it, play with it, and watch it evolve through 6 stages.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Smart Difficulty</h3>
+                    <p>The app tracks which keys are hardest for you and focuses practice there. Difficulty adjusts automatically so kids stay challenged but not frustrated.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Track Progress</h3>
+                    <p>A full dashboard with typing speed charts, accuracy heatmaps, and achievement badges. Kids (and parents) can see improvement over time.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="section-inner">
+            <h2 class="section-title">Up and typing in 30 seconds</h2>
+            <p class="section-sub">No signup. No installation. Just open and start.</p>
+
+            <div class="steps">
+                <div class="step">
+                    <div class="step-num">1</div>
+                    <h3>Choose a mode</h3>
+                    <p>Pick Finger Training to learn proper technique, Bubble Pop for a fast-paced game, or Articles to practice with real stories.</p>
+                </div>
+                <div class="step-arrow">→</div>
+                <div class="step">
+                    <div class="step-num">2</div>
+                    <h3>Type and play</h3>
+                    <p>Practice at your own pace. The color-coded keyboard shows where each finger goes. Speed and accuracy are tracked automatically.</p>
+                </div>
+                <div class="step-arrow">→</div>
+                <div class="step">
+                    <div class="step-num">3</div>
+                    <h3>Watch your pet grow</h3>
+                    <p>Every session earns XP for your virtual pet. It evolves from an egg through six stages. More practice = bigger, cooler pet.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section">
+        <div class="section-inner">
+            <h2>Ready to start typing?</h2>
+            <p>No signup. No download. Open and go.</p>
+            <a href="/pages/home.html" class="btn-primary btn-lg">Open TypePets — Free →</a>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="faq" id="faq">
+        <div class="section-inner">
+            <h2 class="section-title">Frequently Asked Questions</h2>
+
+            <div class="faq-list">
+                <details class="faq-item">
+                    <summary>Is TypePets really free?</summary>
+                    <p>Yes, 100% free. No signup, no premium tier, no ads, no in-app purchases. Every feature is available right now.</p>
+                </details>
+
+                <details class="faq-item">
+                    <summary>Does TypePets collect my child's data?</summary>
+                    <p>No. All progress data is stored in the browser's localStorage and never sent anywhere. There are no accounts, no servers, and no tracking. Your child's data stays on their device.</p>
+                </details>
+
+                <details class="faq-item">
+                    <summary>What age is TypePets for?</summary>
+                    <p>TypePets is designed for kids ages 7–12 who are learning to touch type. The difficulty auto-adjusts, so younger beginners and more advanced typists both get an appropriate challenge.</p>
+                </details>
+
+                <details class="faq-item">
+                    <summary>What keyboard layout does it support?</summary>
+                    <p>TypePets currently supports QWERTY — the standard layout on most English-language keyboards.</p>
+                </details>
+
+                <details class="faq-item">
+                    <summary>Can I use it on iPad or tablet?</summary>
+                    <p>Yes, TypePets is fully responsive and works on iPads and tablets. However, a physical keyboard is recommended for the best typing practice experience.</p>
+                </details>
+
+                <details class="faq-item">
+                    <summary>How does the pet system work?</summary>
+                    <p>Every typing session earns XP. Your pet starts as an egg and evolves through 6 stages: Egg → Baby → Kid → Teen → Adult → Master. You can also feed it and play with it to keep it happy.</p>
+                </details>
+
+                <details class="faq-item">
+                    <summary>Is there a parent dashboard?</summary>
+                    <p>The built-in Dashboard shows typing speed over time, accuracy heatmaps by key, and achievement progress. Parents and kids can review it together to track improvement.</p>
+                </details>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <span class="footer-logo">🐾 TypePets</span>
+                <p>Free typing practice for kids. Type. Play. Grow.</p>
+            </div>
+            <div class="footer-links">
+                <a href="/pages/home.html">Open App</a>
+                <a href="/blog">Blog</a>
+                <a href="#features">Features</a>
+                <a href="#faq">FAQ</a>
+                <a href="/privacy.html">Privacy</a>
+                <a href="/terms.html">Terms</a>
+                <a href="https://ko-fi.com/typepets" target="_blank" rel="noopener">☕ Support on Ko-fi</a>
+            </div>
+            <div class="footer-copy">
+                <p>© 2026 TypePets. Made with 🐾 for young typists everywhere.</p>
+            </div>
+        </div>
+    </footer>
+
     <script>
-    (function() {
-        const EVOS = {egg:'🥚', baby:'🐣', kid:'🐥', teen:'🦊', adult:'🦅', master:'🐉'};
-        const EVO_THRESHOLDS = [
-            {species:'egg', xp:0}, {species:'baby', xp:100}, {species:'kid', xp:500},
-            {species:'teen', xp:1500}, {species:'adult', xp:4000}, {species:'master', xp:10000}
-        ];
-        const STAGE_BUBBLE_MAP = {1:[1,3], 2:[4,5], 3:[6,8], 4:[9,11], 5:[12,14], 6:[15,17], 7:[18,20], 8:['free']};
+        // Mobile nav toggle
+        const toggle = document.getElementById('nav-toggle');
+        const links = document.querySelector('.nav-links');
+        toggle.addEventListener('click', () => links.classList.toggle('open'));
 
-        function makeDots(container, filled, total, colorClass) {
-            container.innerHTML = '';
-            const show = Math.min(total, 10);
-            const step = total > 10 ? total / 10 : 1;
-            for (let i = 0; i < show; i++) {
-                const dot = document.createElement('div');
-                dot.className = 'journey-dot';
-                if (i * step < filled) dot.classList.add(colorClass);
-                container.appendChild(dot);
-            }
-        }
-
-        function loadProgress() {
-            const user = TypePetsData.getUser();
-            document.getElementById('heroTitle').textContent = `Hey ${user.nickname}!`;
-
-            const data = TypePetsData.getIntegratedProgress();
-
-            // Training
-            document.getElementById('trainingProgress').textContent = `Stage ${data.training_stage} of ${data.training_total}`;
-            makeDots(document.getElementById('trainingDots'), data.training_stage, data.training_total, 'filled');
-
-            // Bubbles
-            document.getElementById('bubblesProgress').textContent = `Level ${data.bubble_level} of ${data.bubble_total}`;
-            makeDots(document.getElementById('bubbleDots'), data.bubble_level - 1, data.bubble_total, 'filled-teal');
-
-            // Pet
-            const pet = data.pet;
-            if (pet) {
-                const evo = EVOS[pet.species] || '🥚';
-                const evoName = pet.species.charAt(0).toUpperCase() + pet.species.slice(1);
-                const displayName = pet.name && pet.name !== 'Unnamed' ? pet.name : evoName;
-                document.getElementById('petProgress').textContent = `${displayName} — Lv ${pet.level} ${evoName}`;
-                document.getElementById('petMiniIcon').textContent = evo;
-
-                const currentIdx = EVO_THRESHOLDS.findIndex(e => e.species === pet.species);
-                const next = EVO_THRESHOLDS[currentIdx + 1];
-                if (next) {
-                    const prev = EVO_THRESHOLDS[currentIdx].xp;
-                    const pct = ((pet.xp - prev) / (next.xp - prev)) * 100;
-                    document.getElementById('petMiniXp').style.width = Math.min(100, Math.max(0, pct)) + '%';
-                } else {
-                    document.getElementById('petMiniXp').style.width = '100%';
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(a => {
+            a.addEventListener('click', e => {
+                e.preventDefault();
+                const target = document.querySelector(a.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    links.classList.remove('open');
                 }
-            }
-
-            // Articles
-            document.getElementById('articlesProgress').textContent = `${data.articles_completed} of ${data.articles_total}`;
-            makeDots(document.getElementById('articleDots'), data.articles_completed, data.articles_total, 'filled-purple');
-
-            // Next action suggestion
-            const nudge = document.getElementById('nextAction');
-            const nudgeText = document.getElementById('nextActionText');
-            let suggestion = '';
-
-            if (pet && pet.happiness < 50) {
-                suggestion = `${pet.name || 'Your pet'} is hungry! <a href="pages/bubbles.html">Play a game</a> to earn food.`;
-            } else if (data.training_stage < 8) {
-                const nextStage = data.training_stage + 1;
-                const bubbleRange = STAGE_BUBBLE_MAP[nextStage];
-                if (bubbleRange && bubbleRange[0] !== 'free') {
-                    suggestion = `<a href="pages/training.html">Train Stage ${nextStage}</a> to unlock Bubble Levels ${bubbleRange[0]}–${bubbleRange[1]}`;
-                } else {
-                    suggestion = `<a href="pages/training.html">Train Stage ${nextStage}</a> to unlock Free Play!`;
-                }
-            } else if (data.bubble_level <= 20) {
-                suggestion = `Try <a href="pages/bubbles.html">Bubble Level ${data.bubble_level}</a> next!`;
-            } else if (data.articles_completed < data.articles_total) {
-                suggestion = `<a href="pages/articles.html">Type some articles</a> to earn more XP!`;
-            }
-
-            if (suggestion) {
-                nudgeText.innerHTML = suggestion;
-                nudge.style.display = 'flex';
-            }
-        }
-
-        loadProgress();
-    })();
+            });
+        });
     </script>
 </body>
 </html>
