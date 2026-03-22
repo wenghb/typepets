@@ -295,6 +295,7 @@
         TypePetsData.saveSession(sessionData);
         checkAchievements(sessionData);
         if (window.sound) window.sound.levelUp();
+        if (window.maybeDonatePrompt) window.maybeDonatePrompt();
     }
 
     window.backToList = function() {

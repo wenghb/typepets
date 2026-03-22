@@ -233,6 +233,7 @@
             if (window.sound) window.sound.celebration();
             showToast(`Named: ${name}`, 'success');
             checkAchievements({ mode: 'pet_name', wpm: 0, accuracy: 0 });
+            if (window.maybeDonatePrompt) window.maybeDonatePrompt();
         };
 
         renameInput.addEventListener('keydown', (e) => {
@@ -273,9 +274,6 @@
         loadActivityFeed();
     })();
     </script>
-    <!-- Cloudflare Web Analytics -->
-</body>
-</html>
-cript>
+    <script src="../js/donate-prompt.js"></script>
 </body>
 </html>

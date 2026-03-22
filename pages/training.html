@@ -401,7 +401,7 @@
         }
 
         overlay.classList.add('active');
-        if (stars >= 2) { spawnConfetti(80); if (window.sound) window.sound.celebration(); }
+        if (stars >= 2) { spawnConfetti(80); if (window.sound) window.sound.celebration(); if (window.maybeDonatePrompt) window.maybeDonatePrompt(); }
         else if (accuracy >= 85) { if (window.sound) window.sound.levelUp(); }
         renderStageList();
     }
@@ -418,9 +418,6 @@
 
     document.addEventListener('DOMContentLoaded', initTraining);
     </script>
-    <!-- Cloudflare Web Analytics -->
-</body>
-</html>
-cript>
+    <script src="../js/donate-prompt.js"></script>
 </body>
 </html>

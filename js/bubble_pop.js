@@ -472,6 +472,7 @@
         levelCompleteOverlay.classList.remove('hidden');
         if (window.sound) window.sound.celebration();
         spawnConfetti(60);
+        if (window.maybeDonatePrompt) window.maybeDonatePrompt();
         const duration = Math.round((Date.now()-startTime)/1000);
         const accuracy = totalPops+totalMisses>0 ? Math.round((totalPops/(totalPops+totalMisses))*100) : 0;
         const wpm = duration>0 ? Math.round(totalPops/(duration/60)) : 0;
