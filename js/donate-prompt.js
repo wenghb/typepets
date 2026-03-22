@@ -5,8 +5,8 @@
 (function() {
     const DONATE_URL = 'https://buy.stripe.com/bJecN7fDM1eSeNigYH8EM00';
     const STORAGE_KEY = 'typepets_donate';
-    const SHOW_EVERY_N = 5; // Show after every N achievements
-    const COOLDOWN_HOURS = 24; // Don't show again within this window
+    const SHOW_EVERY_N = 3; // Show after every N achievements
+    const COOLDOWN_HOURS = 12; // Don't show again within this window
 
     function getDonateState() {
         try {
@@ -23,7 +23,10 @@
         state.count++;
         saveDonateState(state);
 
-        // Only show every N achievements
+        // First time — always show (welcome prompt)
+        if (state.count === 1) return true;
+
+        // Then every N achievements
         if (state.count % SHOW_EVERY_N !== 0) return false;
 
         // Cooldown — don't nag
