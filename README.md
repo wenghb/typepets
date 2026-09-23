@@ -62,7 +62,8 @@ typepets/
 │   ├── bubbles.html    # Bubble pop game
 │   ├── articles.html   # Article typing mode
 │   ├── pet.html        # Virtual pet
-│   └── dashboard.html  # Stats & achievements
+│   ├── dashboard.html  # Stats, achievements, Pet Passport backup
+│   └── report.html     # Printable parent/teacher report & certificates
 ├── 404.html            # Friendly not-found page (served with 404 status by Pages)
 ├── favicon.ico
 ├── img/
