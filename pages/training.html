@@ -254,7 +254,7 @@
 
     function loadPetNudge() {
         const pet = TypePetsData.getPet();
-        if (pet && pet.happiness < 50) {
+        if (pet && pet.mood === 'hungry') {
             const nudge = document.getElementById('petNudge');
             const name = pet.name && pet.name !== 'Unnamed' ? pet.name : 'Your pet';
             nudge.textContent = name + ' is hungry! Practice to earn food 🍎';
@@ -723,7 +723,8 @@
         const sessionData = {
             mode: 'finger_training', level: stage.id, wpm: wpm, accuracy: accuracy,
             duration_seconds: Math.round(activeSeconds), keys_pressed: sessionKeys,
-            errors: sessionErrors, error_keys: sessionErrorKeys, chars_correct: sessionCorrect
+            errors: sessionErrors, error_keys: sessionErrorKeys, chars_correct: sessionCorrect,
+            inline_rewards: true
         };
         if (noLookRun) sessionData.no_look = true;
         const result = TypePetsData.saveSession(sessionData) || {};

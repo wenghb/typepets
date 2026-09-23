@@ -534,7 +534,8 @@
         const sessionData = {
             mode: 'article', level: currentArticle.id, wpm, accuracy,
             duration_seconds: Math.round(elapsed), keys_pressed: totalKeystrokes,
-            errors: errorCount, error_keys: errorKeys, chars_correct: correctCount
+            errors: errorCount, error_keys: errorKeys, chars_correct: correctCount,
+            inline_rewards: true
         };
         const result = TypePetsData.saveSession(sessionData) || {};
         checkAchievements(sessionData);

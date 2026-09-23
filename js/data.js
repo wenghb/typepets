@@ -896,7 +896,8 @@ const TypePetsData = (function() {
                 const acc = session.accuracy;
                 if (acc >= 85) {
                     addActivity('training', `Completed Training Stage ${stage}`, xpEarned, { stage, accuracy: acc });
-                    saveTrainingStage(stage);
+                    // A teacher link can open a locked stage; practicing it must not unlock progress
+                    if (d.training.stages[stage] && d.training.stages[stage].unlocked) saveTrainingStage(stage);
                 } else {
                     addActivity('training', `Practiced Training Stage ${stage}`, xpEarned, { stage, accuracy: acc });
                 }
@@ -969,7 +970,10 @@ const TypePetsData = (function() {
         if (result.streak.freeze_used) {
             _notify(`🧊 Streak freeze used — your ${result.streak.current}-day streak is safe!`, 'success', 5000, 1200);
         }
-        if (result.daily_goal.just_completed) {
+        // Pages that show rewards on their own results card pass inline_rewards: true
+        if (sessionData.inline_rewards) {
+            // skip the food/goal toasts
+        } else if (result.daily_goal.just_completed) {
             _notify(`🎯 Daily goal done! +${result.food_earned} 🍎 food for ${petName}`, 'success', 5000, 1600);
         } else if (result.food_earned > 0) {
             _notify(`🍎 +${result.food_earned} food for ${petName}!`, 'success', 3000, 1600);
@@ -1222,7 +1226,7 @@ const TypePetsData = (function() {
             bubble_total: 20,
             pet: getPet(),
             articles_completed: d.articles.completed.length,
-            articles_total: 10,
+            articles_total: typeof ARTICLES !== 'undefined' ? ARTICLES.length : 26,
             recent_activities: getRecentActivities(5),
             milestones: d.milestones.map(m => m.reward_id)
         };
