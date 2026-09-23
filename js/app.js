@@ -300,14 +300,35 @@ document.addEventListener('keydown', () => {
         showParentGate(showDonateLink, { reason: 'This link is for grown-ups. Please ask one to answer:', id: 'donatePrompt' });
     }
 
-    // Every Stripe link on app pages goes through the grown-up gate first.
+    // Every Stripe link on app pages goes through the grown-up gate first. The static links lose their
+    // href so middle-click, "open in new tab" and long-press can't skip the gate.
+    const GATED_LINK = 'a[href*="buy.stripe.com"]:not([data-gate-passed]), a[data-donate-gated]';
+    function gateDonateLinks() {
+        document.querySelectorAll('a[href*="buy.stripe.com"]:not([data-gate-passed])').forEach(a => {
+            a.removeAttribute('href');
+            a.removeAttribute('target');
+            a.setAttribute('data-donate-gated', '');
+            a.setAttribute('role', 'button');
+            a.setAttribute('tabindex', '0');
+            a.style.cursor = 'pointer';
+        });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', gateDonateLinks);
+    else gateDonateLinks();
     document.addEventListener('click', function(e) {
-        const a = e.target && e.target.closest ? e.target.closest('a[href*="buy.stripe.com"]') : null;
-        if (!a || a.hasAttribute('data-gate-passed')) return;
+        const a = e.target && e.target.closest ? e.target.closest(GATED_LINK) : null;
+        if (!a) return;
         e.preventDefault();
         e.stopPropagation();
         openDonate();
     }, true);
+    document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const a = e.target && e.target.closest ? e.target.closest('a[data-donate-gated]') : null;
+        if (!a) return;
+        e.preventDefault();
+        openDonate();
+    });
 
     window.showParentGate = showParentGate;
     window.openDonate = openDonate;

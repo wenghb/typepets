@@ -628,6 +628,7 @@
         classMode.clock.stop();
         clock.hold();
         updateClassTimer();
+        savePartialArticle();
 
         const article = currentArticle || articles.find(a => a.id === classMode.lastArticleId);
         $('classSummarySub').textContent = article ? article.title : '';
@@ -648,8 +649,30 @@
         if (window.speech && speechOn()) window.speech.say("Time's up! Great practice!");
     }
 
+    // The article in progress when the class timer ends still counts as practice (minutes, streak, report)
+    let partialArticleSaved = false;
+    function savePartialArticle() {
+        if (!currentArticle || finished || totalKeystrokes === 0) return;
+        const elapsed = clock.seconds();
+        TypePetsData.saveSession({
+            mode: 'article', level: currentArticle.id,
+            wpm: TypingUtils.calcWpm(correctCount, elapsed),
+            accuracy: TypingUtils.calcAccuracy(correctCount, correctCount + errorCount),
+            duration_seconds: Math.round(elapsed), keys_pressed: totalKeystrokes,
+            errors: errorCount, error_keys: errorKeys, chars_correct: correctCount,
+            partial: true, inline_rewards: true
+        });
+        partialArticleSaved = true;
+    }
+
     window.keepPracticing = function() {
         $('classSummaryOverlay').classList.remove('active');
+        if (partialArticleSaved && currentArticle) {
+            // That attempt is already saved, so start the article fresh rather than counting its keys twice
+            partialArticleSaved = false;
+            window.openArticle(currentArticle.id);
+            return;
+        }
         clock.release();
         if (typingView.style.display !== 'none' && !finished) focusTyping();
     };

@@ -340,6 +340,7 @@
         classMode.clock.stop();
         roundClock.hold();
         updateClassTimer();
+        savePartialRound();
 
         document.getElementById('classSummarySub').textContent = `Stage ${stage.id}: ${stage.name}`;
         document.getElementById('classKeys').textContent = totals.keys;
@@ -359,9 +360,32 @@
         say("Time's up! Great practice!");
     }
 
+    // The round in progress when the class timer ends still counts as practice (minutes, streak, report)
+    let partialRoundSaved = false;
+    function savePartialRound() {
+        if (sessionKeys === 0) return;
+        const stage = STAGES[currentStageIdx];
+        const activeSeconds = roundClock.seconds();
+        TypePetsData.saveSession({
+            mode: 'finger_training', level: stage.id,
+            wpm: TypingUtils.calcWpm(sessionCorrect, activeSeconds),
+            accuracy: TypingUtils.calcAccuracy(sessionKeys - sessionErrors, sessionKeys),
+            duration_seconds: Math.round(activeSeconds), keys_pressed: sessionKeys,
+            errors: sessionErrors, error_keys: sessionErrorKeys, chars_correct: sessionCorrect,
+            partial: true, inline_rewards: true
+        });
+        partialRoundSaved = true;
+    }
+
     function keepPracticing() {
         document.getElementById('classSummaryOverlay').classList.remove('active');
-        roundClock.release();
+        if (partialRoundSaved) {
+            // That round is already saved, so start a fresh one rather than counting its keys twice
+            partialRoundSaved = false;
+            loadStage(currentStageIdx);
+        } else {
+            roundClock.release();
+        }
         refocusTyping();
     }
 

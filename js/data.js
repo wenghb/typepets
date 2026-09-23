@@ -330,6 +330,31 @@ const TypePetsData = (function() {
         d.streaks.freezes_used = d.streaks.freezes_used.filter(f => typeof f === 'string').slice(-20);
         d.goals.completed_dates = d.goals.completed_dates.filter(f => typeof f === 'string').slice(-400);
         if (!GOAL_OPTIONS.includes(d.goals.daily_minutes)) d.goals.daily_minutes = DEFAULT_GOAL_MINUTES;
+        // Pages do math on these (e.g. '☆'.repeat(3 - stars)), so a hand-edited backup must not break them
+        const stages = {};
+        for (const [id, st] of Object.entries(isPlainObject(d.training.stages) ? d.training.stages : {})) {
+            if (!isPlainObject(st)) continue;
+            stages[id] = {
+                bestAccuracy: clamp(num(st.bestAccuracy), 0, 100),
+                stars: clamp(Math.floor(num(st.stars)), 0, 3),
+                unlocked: st.unlocked === true
+            };
+        }
+        d.training.stages = stages;
+        d.training.max_stage = clamp(Math.floor(num(d.training.max_stage)), 0, 8);
+        d.bubbles.max_level = clamp(Math.floor(num(d.bubbles.max_level, 1)), 1, 21);
+        d.bubbles.passed_levels = d.bubbles.passed_levels.filter(l => Number.isInteger(l) && l >= 1 && l <= 20);
+        const bests = {};
+        for (const [id, b] of Object.entries(isPlainObject(d.articles.bests) ? d.articles.bests : {})) {
+            if (!isPlainObject(b)) continue;
+            bests[id] = {
+                best_wpm: clamp(num(b.best_wpm), 0, 300),
+                best_accuracy: clamp(num(b.best_accuracy), 0, 100),
+                best_time: Math.max(0, num(b.best_time)),
+                attempts: Math.max(0, Math.floor(num(b.attempts)))
+            };
+        }
+        d.articles.bests = bests;
         return d;
     }
 
@@ -637,14 +662,12 @@ const TypePetsData = (function() {
     }
 
     /**
-     * Bubble levels passed (1–20). Passing level N unlocks N+1 (max_level reaches 21 after level 20 = Free Play),
-     * so every level below max_level counts, plus any level recorded by a `passed: true` session.
+     * Bubble levels passed (1–20), as recorded by `passed: true` sessions. max_level isn't used here because
+     * training stages also unlock levels the child never played (v1 saves are inferred once, in migrateData).
      */
     function getBubblePassedLevels() {
         const d = _ensure();
         const set = new Set(d.bubbles.passed_levels.filter(l => l >= 1 && l <= 20));
-        const upTo = Math.min(20, Math.floor(num(d.bubbles.max_level, 1)) - 1);
-        for (let l = 1; l <= upTo; l++) set.add(l);
         return Array.from(set).sort((a, b) => a - b);
     }
 
@@ -898,7 +921,8 @@ const TypePetsData = (function() {
                 // but only a stage the child had already unlocked advances their progress.
                 const st = d.training.stages[stage];
                 const wasUnlocked = Number(stage) === 1 || !!(isPlainObject(st) && st.unlocked === true);
-                if (acc >= 85 && wasUnlocked) {
+                // partial: a round cut short by a class timer is practice, not a finished stage
+                if (acc >= 85 && wasUnlocked && !sessionData.partial) {
                     addActivity('training', `Completed Training Stage ${stage}`, xpEarned, { stage, accuracy: acc });
                     saveTrainingStage(stage);
                 } else {
@@ -908,7 +932,7 @@ const TypePetsData = (function() {
                 const verb = session.passed === true ? 'Passed' : 'Played';
                 addActivity('bubble', `${verb} Bubble Level ${session.level}`, xpEarned, { level: session.level, score: session.score, speed: speedMultiplier });
             } else if (session.mode === 'article') {
-                addActivity('article', `Typed article`, xpEarned, { article_id: session.level, wpm: session.wpm });
+                addActivity('article', sessionData.partial ? 'Practiced an article' : 'Typed article', xpEarned, { article_id: session.level, wpm: session.wpm });
             }
 
             // Pet care: real practice cheers the pet up and earns food

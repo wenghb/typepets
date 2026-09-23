@@ -476,10 +476,14 @@ const BubblePopLogic = (function() {
     // Move keyboard focus to an overlay's main button once it has settled (so a key typed
     // right as the round ends doesn't press it), unless a game started meanwhile.
     let focusTimer = null;
+    // The donate prompt or any site dialog (e.g. adding a player) owns the keyboard while it's open
+    function modalOpen() {
+        return !!(document.getElementById('donatePrompt') || document.querySelector('.tp-modal-overlay'));
+    }
     function focusSoon(el, delay) {
         clearTimeout(focusTimer);
         focusTimer = setTimeout(() => {
-            if (!gameRunning && el && !document.getElementById('donatePrompt')) el.focus();
+            if (!gameRunning && el && !modalOpen()) el.focus();
         }, delay || 0);
     }
 
@@ -861,7 +865,7 @@ const BubblePopLogic = (function() {
 
     function resumeGame() {
         if (!gameRunning || !paused) return;
-        if (document.getElementById('donatePrompt')) return;   // let that dialog be closed first
+        if (modalOpen()) return;   // let that dialog be closed first
         paused = false;
         pauseOverlay.classList.add('hidden');
         updateControls();
@@ -880,14 +884,14 @@ const BubblePopLogic = (function() {
     document.addEventListener('keydown', (e) => {
         if (!paused) return;
         if (RESUME_IGNORED_KEYS.indexOf(e.key) !== -1 || e.ctrlKey || e.metaKey || e.altKey) return;
-        if (document.getElementById('donatePrompt')) return;
+        if (modalOpen()) return;
         e.preventDefault(); e.stopPropagation();   // the resume key isn't typed into the game
         resumeGame();
     }, true);
-    // A modal (e.g. the donate prompt) appearing mid-game pauses it.
+    // A modal (the donate prompt, a player dialog) appearing mid-game pauses it.
     if (window.MutationObserver && document.body) {
         new MutationObserver(() => {
-            if (gameRunning && !paused && document.getElementById('donatePrompt')) pauseGame();
+            if (gameRunning && !paused && modalOpen()) pauseGame();
         }).observe(document.body, { childList: true });
     }
 
@@ -930,7 +934,7 @@ const BubblePopLogic = (function() {
         updateSpeedDisplay();
         setTyped('', null);gameInput.focus();
         stopLoop(); startLoop();
-        if (document.getElementById('donatePrompt')) pauseGame();   // started from behind the prompt
+        if (modalOpen()) pauseGame();   // started from behind the prompt
     };
 
     /**
@@ -983,7 +987,7 @@ const BubblePopLogic = (function() {
             earnedMilestones.add(reward.id);
             toast(`${reward.name} earned for your pet! 🎉`, 'achievement', 5000);
         }
-        if (result.daily_goal && result.daily_goal.just_completed) toast('🎯 Daily practice goal reached — great job!', 'achievement', 5000);
+        // data.js already announces food and a completed daily goal
         renderLevelPanel();
         if (typeof window.checkAchievements === 'function') {
             try { window.checkAchievements(sessionData); } catch (e) { console.error('checkAchievements failed:', e); }
@@ -1043,5 +1047,5 @@ const BubblePopLogic = (function() {
     loadProgress();
     updateSpeedDisplay();
     updateControls();
-    document.addEventListener('click', () => { if (gameRunning && !paused) gameInput.focus(); });
+    document.addEventListener('click', () => { if (gameRunning && !paused && !modalOpen()) gameInput.focus(); });
 })();
