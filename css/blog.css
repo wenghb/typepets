@@ -64,3 +64,36 @@
     text-decoration: none;
 }
 .article .cta-box a:hover { text-decoration: none; opacity: 0.9; }
+
+/* Tables (e.g. typing goals by grade) */
+.article .table-wrap {
+    overflow-x: auto;
+    margin: 20px 0 24px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+.article table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.article th, .article td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.article th { font-family: var(--font-display); font-weight: 600; color: var(--text); background: var(--surface-2); white-space: nowrap; }
+.article td { color: var(--text-muted); line-height: 1.6; }
+.article tbody tr:last-child td { border-bottom: none; }
+.article td:first-child { color: var(--text); font-weight: 700; white-space: nowrap; }
+
+/* Inline code (e.g. example URLs) */
+.article code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.85em;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1px 6px;
+    color: var(--text);
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+    .article th { white-space: normal; }
+    .article th, .article td { padding: 8px 10px; }
+    .article table { font-size: 0.85rem; }
+}
