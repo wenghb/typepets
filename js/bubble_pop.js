@@ -156,9 +156,37 @@ const BubblePopLogic = (function() {
         return { status: 'error', typed: t[t.length - 1], expected: expected.length === 1 ? expected[0] : null };
     }
 
+    // ── Frame timing ──────────────────────────────────────────
+    // Speeds are tuned in "pixels per 60 fps frame"; dt scales them to the real frame length
+    // so the game plays the same on 30, 60 and 144 Hz screens.
+    const FRAME_MS = 1000 / 60;
+    const MAX_MOVE_MS = 100;    // clamp hiccups so bubbles never teleport
+    const MAX_CLOCK_MS = 250;   // longest frame counted towards the level clock / timers
+
+    /** How far to advance this frame: clockMs for timers, dt (in 60 fps frames) for motion. */
+    function frameStep(ts, lastTs) {
+        if (lastTs == null || !(ts > lastTs)) return { clockMs: 0, dt: 0 };
+        const raw = ts - lastTs;
+        return { clockMs: Math.min(raw, MAX_CLOCK_MS), dt: Math.min(raw, MAX_MOVE_MS) / FRAME_MS };
+    }
+
+    /** Rise speed (px per 60 fps frame) to cross the playfield in `riseTime` seconds. */
+    function riseSpeed(height, radius, riseTime) {
+        return (height + radius * 2) / (riseTime * 60);
+    }
+
+    /** Move one bubble by dt frames. `slow` < 1 while frozen; `gameMs` drives the wobble. */
+    function stepBubble(b, dt, slow, gameMs, width) {
+        b.y -= b.speed * slow * dt;
+        b.x += Math.sin(gameMs / 1000 + b.wobbleOffset) * b.wobbleAmp * 0.25 * dt;
+        b.x = Math.max(b.radius, Math.min(width - b.radius, b.x));
+        b.scale = Math.min(1, b.scale + 0.04 * dt);
+    }
+
     return {
         HOME_ROW, ALL_LETTERS, WORDS, LEVEL_DEFS, WEAK_KEY_RATE,
         normalizeWord, normalizeTyped, allowedKeysFor, injectableKeys, pickWord, resolveTyped,
+        FRAME_MS, MAX_MOVE_MS, MAX_CLOCK_MS, frameStep, riseSpeed, stepBubble,
     };
 })();
 
@@ -205,15 +233,18 @@ const BubblePopLogic = (function() {
     const W = canvas.width, H = canvas.height;
 
     const LEVEL_PASS_TIME = 60;
+    const FREEZE_MS = 3000;        // ❄️ lasts 3 seconds…
+    const FREEZE_SLOWDOWN = 0.15;  // …at 15% speed
     const LEVEL_DESCS = ['Home row','Home row','Home row','Home + words','Home + words','All letters','All letters','All letters','Short words','Short words','Short words','Medium words','Medium words','Medium words','Long words','Long words','Long words','Phrases','Phrases','Phrases'];
 
-    let gameRunning = false, score = 0, lives = 3, combo = 0, maxCombo = 0;
+    let gameRunning = false, paused = false, score = 0, lives = 3, combo = 0, maxCombo = 0;
     let currentLevel = 1, isFreePlay = false, maxUnlockedLevel = 1, maxTrainingStage = 0;
     let bubbles = [], particles = [], floatingTexts = [];
     let totalPops = 0, totalMisses = 0, errorKeys = {}, weakKeys = {};
     let personalBest = TypePetsData.getBubblePersonalBest();
-    let startTime = 0, frameId = null, lastBubbleTime = 0;
-    let freezeActive = false, freezeTimer = 0, levelTimer = 0, levelTimerInterval = null, levelPassed = false;
+    let frameId = null, lastTs = null;       // rAF handle + timestamp of the previous frame
+    let activeMs = 0;                        // time actually played (excludes pauses / hidden tab)
+    let lastSpawnMs = -Infinity, freezeMs = 0, levelTimer = 0;
     let earnedMilestones = new Set();
     let powerUps = { freeze: 0, bomb: 0 };
     let freePlayLevel = 1;
@@ -251,6 +282,8 @@ const BubblePopLogic = (function() {
     const bombCount = document.getElementById('bombCount');
     const levelList = document.getElementById('levelList');
     const levelCompleteOverlay = document.getElementById('levelCompleteOverlay');
+    const pauseOverlay = document.getElementById('pauseOverlay');
+    const pauseBtn = document.getElementById('pauseBtn');
 
     bestDisplay.textContent = personalBest;
 
@@ -378,10 +411,7 @@ const BubblePopLogic = (function() {
         const actualRadius = word.length > 8 ? Math.max(45, 10 + word.length * 5) : radius;
         const x = actualRadius + Math.random() * (W - actualRadius * 2);
         const colorScheme = BUBBLE_COLORS[Math.floor(Math.random() * BUBBLE_COLORS.length)];
-        const totalDistance = H + actualRadius * 2;
-        const frames = params.riseTime * 60;
-        const speed = totalDistance / frames;
-        const speedVariation = speed * (0.85 + Math.random() * 0.3);
+        const speedVariation = L.riseSpeed(H, actualRadius, params.riseTime) * (0.85 + Math.random() * 0.3);
         bubbles.push({x,y:H+actualRadius,radius:actualRadius,word,color:colorScheme,speed:speedVariation,wobbleOffset:Math.random()*Math.PI*2,wobbleAmp:Math.random()*1.2+0.3,opacity:1,scale:0.3,powerUp:Math.random()<0.06?(Math.random()<0.5?'freeze':'bomb'):null});
     }
 
@@ -490,9 +520,9 @@ const BubblePopLogic = (function() {
     }
 
     window.usePowerUp = function(type) {
-        if (powerUps[type] <= 0 || !gameRunning) return;
+        if (powerUps[type] <= 0 || !gameRunning || paused) return;
         powerUps[type]--; updatePowerUpUI();
-        if (type === 'freeze') { freezeActive=true; freezeTimer=180; if (window.sound) window.sound.correct(); }
+        if (type === 'freeze') { freezeMs = FREEZE_MS; if (window.sound) window.sound.correct(); }
         else if (type === 'bomb') {
             if (window.sound) window.sound.celebration();
             canvasContainer.classList.add('screen-shake');
@@ -507,29 +537,29 @@ const BubblePopLogic = (function() {
         }
     };
 
-    function drawBackground() {
+    function drawBackground(dt) {
         const grad = ctx.createLinearGradient(0,0,0,H);
         grad.addColorStop(0,'#1A2744');grad.addColorStop(0.4,'#1E3A5F');grad.addColorStop(0.8,'#2A5070');grad.addColorStop(1,'#2A6A70');
         ctx.fillStyle = grad; ctx.fillRect(0,0,W,H);
-        if (freezeActive) { ctx.fillStyle='rgba(180,220,240,0.10)'; ctx.fillRect(0,0,W,H); }
+        if (freezeMs > 0) { ctx.fillStyle='rgba(180,220,240,0.10)'; ctx.fillRect(0,0,W,H); }
         ctx.save(); ctx.globalAlpha=0.03;
         for (let i=0;i<4;i++) {const x=100+i*160;const grad2=ctx.createLinearGradient(x,0,x,H);grad2.addColorStop(0,'#ffffff');grad2.addColorStop(1,'transparent');ctx.fillStyle=grad2;ctx.beginPath();ctx.moveTo(x-25,0);ctx.lineTo(x+25,0);ctx.lineTo(x+50+Math.sin(Date.now()/2000+i)*15,H);ctx.lineTo(x-50+Math.sin(Date.now()/2000+i)*15,H);ctx.fill();}
         ctx.restore();
         ctx.save(); ctx.globalAlpha=0.1;
-        for (const bb of bgBubbles) {bb.y-=bb.speed;bb.x+=Math.sin(Date.now()/3000+bb.wobble)*0.15;if(bb.y<-10){bb.y=H+10;bb.x=Math.random()*W;}ctx.beginPath();ctx.arc(bb.x,bb.y,bb.r,0,Math.PI*2);ctx.fillStyle='#88BBDD';ctx.fill();}
+        for (const bb of bgBubbles) {bb.y-=bb.speed*dt;bb.x+=Math.sin(Date.now()/3000+bb.wobble)*0.15*dt;if(bb.y<-10){bb.y=H+10;bb.x=Math.random()*W;}ctx.beginPath();ctx.arc(bb.x,bb.y,bb.r,0,Math.PI*2);ctx.fillStyle='#88BBDD';ctx.fill();}
         ctx.restore();
         ctx.save();ctx.globalAlpha=0.2;ctx.fillStyle='#1A3A50';ctx.beginPath();ctx.moveTo(0,H);
         for(let x=0;x<=W;x+=40){ctx.lineTo(x,H-12-Math.sin(x/60+Date.now()/5000)*6);}
         ctx.lineTo(W,H);ctx.fill();ctx.restore();
-        if (!isFreePlay && gameRunning && !levelPassed) {
-            const progress = Math.min(levelTimer/LEVEL_PASS_TIME,1);
+        if (!isFreePlay && gameRunning) {
+            const progress = Math.min(activeMs/(LEVEL_PASS_TIME*1000),1);
             ctx.save();ctx.globalAlpha=0.5;ctx.fillStyle='rgba(255,255,255,0.1)';ctx.fillRect(20,10,W-40,6);
             ctx.fillStyle=progress>=1?'#68D391':'#4A90D9';ctx.fillRect(20,10,(W-40)*progress,6);ctx.restore();
         }
     }
 
     function drawBubble(b) {
-        ctx.save();const s=Math.min(1,b.scale);b.scale+=0.04;ctx.translate(b.x,b.y);ctx.scale(s,s);const r=b.radius;
+        ctx.save();const s=Math.min(1,b.scale);ctx.translate(b.x,b.y);ctx.scale(s,s);const r=b.radius;
         ctx.shadowColor=b.color.stroke;ctx.shadowBlur=8;ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fillStyle=b.color.fill;ctx.fill();ctx.strokeStyle=b.color.stroke;ctx.lineWidth=1.5;ctx.stroke();ctx.shadowBlur=0;
         ctx.beginPath();ctx.arc(-r*0.25,-r*0.3,r*0.2,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,0.25)';ctx.fill();
         const fontSize=b.word.length===1?r*0.85:Math.min(r*0.55,20);
@@ -569,35 +599,90 @@ const BubblePopLogic = (function() {
         ctx.restore();
     }
 
-    function drawParticles() {
-        for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=p.gravity;p.life-=p.decay;if(p.life<=0){particles.splice(i,1);continue;}ctx.save();ctx.globalAlpha=p.life;ctx.beginPath();ctx.arc(p.x,p.y,p.radius*p.life,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();ctx.restore();}
+    function drawParticles(dt) {
+        for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=p.gravity*dt;p.life-=p.decay*dt;if(p.life<=0){particles.splice(i,1);continue;}ctx.save();ctx.globalAlpha=p.life;ctx.beginPath();ctx.arc(p.x,p.y,p.radius*p.life,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();ctx.restore();}
     }
 
-    function drawFloatingTexts() {
-        for(let i=floatingTexts.length-1;i>=0;i--){const ft=floatingTexts[i];ft.y+=ft.vy;ft.life-=0.015;if(ft.life<=0){floatingTexts.splice(i,1);continue;}ctx.save();ctx.globalAlpha=Math.min(1,ft.life*2);ctx.font=`bold ${ft.size}px Fredoka, sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fillText(ft.text,ft.x+1,ft.y+1);ctx.fillStyle=ft.color;ctx.fillText(ft.text,ft.x,ft.y);ctx.restore();}
+    function drawFloatingTexts(dt) {
+        for(let i=floatingTexts.length-1;i>=0;i--){const ft=floatingTexts[i];ft.y+=ft.vy*dt;ft.life-=0.015*dt;if(ft.life<=0){floatingTexts.splice(i,1);continue;}ctx.save();ctx.globalAlpha=Math.min(1,ft.life*2);ctx.font=`bold ${ft.size}px Fredoka, sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fillText(ft.text,ft.x+1,ft.y+1);ctx.fillStyle=ft.color;ctx.fillText(ft.text,ft.x,ft.y);ctx.restore();}
     }
 
-    function gameLoop(timestamp) {
-        if (!gameRunning) return;
-        ctx.clearRect(0,0,W,H); drawBackground();
-        if (freezeActive) { freezeTimer--; if (freezeTimer<=0) freezeActive=false; }
+    function startLoop() { if (frameId == null) frameId = requestAnimationFrame(gameLoop); }
+    function stopLoop() { if (frameId != null) cancelAnimationFrame(frameId); frameId = null; }
+
+    function gameLoop(ts) {
+        frameId = null;
+        if (!gameRunning || paused) return;
+        const step = L.frameStep(ts, lastTs);
+        lastTs = ts;
+        activeMs += step.clockMs;
+        if (freezeMs > 0) freezeMs = Math.max(0, freezeMs - step.clockMs);
+        const secs = Math.floor(activeMs / 1000);
+        if (secs !== levelTimer) { levelTimer = secs; updateTimerDisplay(); }
+        if (!isFreePlay && activeMs >= LEVEL_PASS_TIME * 1000) { onLevelPassed(); return; }
+
         const params = getLevelParams();
-        const effectiveSpawnInterval = params.spawnInterval / speedMultiplier;
-        if (timestamp - lastBubbleTime > effectiveSpawnInterval) { spawnBubble(); lastBubbleTime = timestamp; }
-        for (let i=bubbles.length-1;i>=0;i--) {
-            const b=bubbles[i]; const speedMult=freezeActive?0.15:1;
-            b.y -= b.speed*speedMult; b.x += Math.sin(Date.now()/1000+b.wobbleOffset)*b.wobbleAmp*0.25;
-            b.x = Math.max(b.radius, Math.min(W-b.radius, b.x));
-            if (b.y+b.radius < -10) { missedBubble(i); continue; }
-            drawBubble(b);
+        if (activeMs - lastSpawnMs >= params.spawnInterval / speedMultiplier) { spawnBubble(); lastSpawnMs = activeMs; }
+        const slow = freezeMs > 0 ? FREEZE_SLOWDOWN : 1;
+        for (let i = bubbles.length - 1; i >= 0; i--) {
+            const b = bubbles[i];
+            L.stepBubble(b, step.dt, slow, activeMs, W);
+            if (b.y + b.radius < -10) {
+                missedBubble(i);
+                if (!gameRunning) return;   // that was the last life
+            }
         }
         if (needsRevalidate) { needsRevalidate = false; processInput(false, true); }
-        drawParticles(); drawFloatingTexts(); drawInputHint();
+
+        ctx.clearRect(0,0,W,H); drawBackground(step.dt);
+        for (let i = bubbles.length - 1; i >= 0; i--) drawBubble(bubbles[i]);
+        drawParticles(step.dt); drawFloatingTexts(step.dt); drawInputHint();
         frameId = requestAnimationFrame(gameLoop);
     }
 
+    // ── Pause / resume ────────────────────────────────────────
+    function pauseGame() {
+        if (!gameRunning || paused) return;
+        paused = true;
+        stopLoop();
+        pauseOverlay.classList.remove('hidden');
+        pauseBtn.disabled = true;
+    }
+
+    function resumeGame() {
+        if (!gameRunning || !paused) return;
+        if (document.getElementById('donatePrompt')) return;   // let that dialog be closed first
+        paused = false;
+        pauseOverlay.classList.add('hidden');
+        pauseBtn.disabled = false;
+        lastTs = null;   // the paused gap never counts as game time
+        startLoop();
+        gameInput.focus();
+    }
+
+    window.pauseGame = pauseGame;
+    window.resumeGame = resumeGame;
+
+    // Switching tab / minimising pauses: the level clock must not run while nobody can play.
+    document.addEventListener('visibilitychange', () => { if (document.hidden) pauseGame(); });
+    pauseOverlay.addEventListener('click', resumeGame);
+    const RESUME_IGNORED_KEYS = ['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab', 'Fn', 'OS'];
+    document.addEventListener('keydown', (e) => {
+        if (!paused) return;
+        if (RESUME_IGNORED_KEYS.indexOf(e.key) !== -1 || e.ctrlKey || e.metaKey || e.altKey) return;
+        if (document.getElementById('donatePrompt')) return;
+        e.preventDefault(); e.stopPropagation();   // the resume key isn't typed into the game
+        resumeGame();
+    }, true);
+    // A modal (e.g. the donate prompt) appearing mid-game pauses it.
+    if (window.MutationObserver && document.body) {
+        new MutationObserver(() => {
+            if (gameRunning && !paused && document.getElementById('donatePrompt')) pauseGame();
+        }).observe(document.body, { childList: true });
+    }
+
     gameInput.addEventListener('input', () => {
-        if (!gameRunning) return;
+        if (!gameRunning || paused) return;
         let value = gameInput.value;
         if (/[12]/.test(value)) {
             // Some (mobile) keyboards don't let keydown block the power-up hotkeys.
@@ -611,30 +696,25 @@ const BubblePopLogic = (function() {
     });
 
     gameInput.addEventListener('keydown', (e) => {
-        if (!gameRunning || e.isComposing) return;
+        if (!gameRunning || paused || e.isComposing) return;
         if (e.key === '1' || e.key === '2') { e.preventDefault(); window.usePowerUp(e.key === '1' ? 'freeze' : 'bomb'); return; }
         if (e.key === 'Enter') { e.preventDefault(); processInput(true, false); return; }
-        if (e.key === 'Escape') { e.preventDefault(); setTyped('', null); }
+        if (e.key === 'Escape') { e.preventDefault(); if (gameInput.value) setTyped('', null); else pauseGame(); }
     });
 
     window.startGame = function() {
         score=0;lives=3;combo=0;maxCombo=0;bubbles=[];particles=[];floatingTexts=[];
         totalPops=0;totalMisses=0;errorKeys={};
-        powerUps={freeze:1,bomb:0};freezeActive=false;freezeTimer=0;
-        levelTimer=0;levelPassed=false;freePlayLevel=1;
-        startTime=Date.now();lastBubbleTime=0;gameRunning=true;
+        powerUps={freeze:1,bomb:0};freezeMs=0;
+        levelTimer=0;freePlayLevel=1;
+        activeMs=0;lastSpawnMs=-Infinity;lastTs=null;gameRunning=true;paused=false;
         speedMultiplier=parseFloat(speedSlider.value);
         loadWeakKeys();
-        startOverlay.classList.add('hidden');gameOverOverlay.classList.add('hidden');levelCompleteOverlay.classList.add('hidden');
+        startOverlay.classList.add('hidden');gameOverOverlay.classList.add('hidden');levelCompleteOverlay.classList.add('hidden');pauseOverlay.classList.add('hidden');
+        pauseBtn.disabled = false;
         updateUI();updateTimerDisplay();updatePowerUpUI();
         setTyped('', null);gameInput.focus();
-        if(levelTimerInterval) clearInterval(levelTimerInterval);
-        levelTimerInterval = setInterval(()=>{
-            if(!gameRunning) return; levelTimer++; updateTimerDisplay();
-            if(!isFreePlay && !levelPassed && levelTimer >= LEVEL_PASS_TIME) { levelPassed=true; onLevelPassed(); }
-        }, 1000);
-        if(frameId) cancelAnimationFrame(frameId);
-        frameId = requestAnimationFrame(gameLoop);
+        stopLoop(); startLoop();
     };
 
     function onLevelPassed() {
@@ -655,14 +735,12 @@ const BubblePopLogic = (function() {
         }
         document.getElementById('lcTitle').textContent = `Level ${currentLevel} Complete!`;
         document.getElementById('lcSub').textContent = subText;
-        gameRunning = false;
-        if(frameId) cancelAnimationFrame(frameId);
-        if(levelTimerInterval) clearInterval(levelTimerInterval);
+        gameRunning = false; paused = false; stopLoop(); pauseBtn.disabled = true;
         levelCompleteOverlay.classList.remove('hidden');
         if (window.sound) window.sound.celebration();
         spawnConfetti(60);
         if (window.maybeDonatePrompt) window.maybeDonatePrompt();
-        const duration = Math.round((Date.now()-startTime)/1000);
+        const duration = Math.round(activeMs/1000);
         const accuracy = totalPops+totalMisses>0 ? Math.round((totalPops/(totalPops+totalMisses))*100) : 0;
         const wpm = duration>0 ? Math.round(totalPops/(duration/60)) : 0;
         const sessionData = {mode:'bubble_pop',level:currentLevel,wpm,accuracy,duration_seconds:duration,keys_pressed:totalPops,errors:totalMisses,error_keys:errorKeys,score,speed_multiplier:speedMultiplier};
@@ -683,10 +761,8 @@ const BubblePopLogic = (function() {
     }
 
     function gameOver() {
-        gameRunning = false;
-        if(frameId) cancelAnimationFrame(frameId);
-        if(levelTimerInterval) clearInterval(levelTimerInterval);
-        const duration = Math.round((Date.now()-startTime)/1000);
+        gameRunning = false; paused = false; stopLoop(); pauseBtn.disabled = true;
+        const duration = Math.round(activeMs/1000);
         const accuracy = totalPops+totalMisses>0 ? Math.round((totalPops/(totalPops+totalMisses))*100) : 0;
         const isNewBest = score > personalBest;
         if (isNewBest) { personalBest=score; TypePetsData.saveBubblePersonalBest(score); bestDisplay.textContent=personalBest; }
@@ -717,7 +793,7 @@ const BubblePopLogic = (function() {
         checkAchievements(sessionData);
     }
 
-    drawBackground();
+    drawBackground(0);
     loadProgress();
-    document.addEventListener('click', () => { if (gameRunning) gameInput.focus(); });
+    document.addEventListener('click', () => { if (gameRunning && !paused) gameInput.focus(); });
 })();
