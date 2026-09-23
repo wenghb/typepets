@@ -22,8 +22,8 @@ const BADGES = {
 function checkAchievements(sessionData) {
     const newBadges = [];
 
-    // First Steps
-    if (!TypePetsData.hasAchievement('first_steps')) {
+    // First Steps — a real practice session (naming the pet doesn't count)
+    if (!TypePetsData.hasAchievement('first_steps') && sessionData.mode !== 'pet_name') {
         newBadges.push('first_steps');
     }
 

@@ -1055,3 +1055,77 @@
     font-weight: 600;
     font-size: 0.82rem;
 }
+
+/* ─── Pet care loop: mood, food, feed ──────────────────────── */
+.pet-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.pet-mood {
+    margin-top: 12px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    padding: 8px 14px;
+    border-radius: 999px;
+    display: inline-block;
+    background: #E6FFFA;
+    color: #276749;
+}
+
+.pet-mood.mood-hungry,
+.pet-mood.mood-peckish {
+    background: #FFF8E1;
+    color: #B45309;
+}
+
+.pet-mood.mood-lonely,
+.pet-mood.mood-sad {
+    background: #EBF4FF;
+    color: #2B6CB0;
+}
+
+[data-theme="dark"] .pet-mood { background: #1C3B34; color: #9AE6B4; }
+[data-theme="dark"] .pet-mood.mood-hungry,
+[data-theme="dark"] .pet-mood.mood-peckish { background: #422006; color: #FCD34D; }
+[data-theme="dark"] .pet-mood.mood-lonely,
+[data-theme="dark"] .pet-mood.mood-sad { background: #1A2A40; color: #90CDF4; }
+
+.pet-stat-bar-fill.low {
+    animation: statPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes statPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+}
+
+.pet-food-count {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--accent-orange);
+}
+
+.feed-btn.feed-empty {
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    border: 2px dashed var(--border-color);
+}
+
+[data-theme="dark"] .pet-stat-bar { background: var(--border-color); }
+[data-theme="dark"] .evo-stage.evo-current { background: #2A3B52; }
+
+@media (max-width: 1000px) and (min-width: 801px) {
+    .pet-stats-grid { grid-template-columns: 1fr 1fr; }
+    .pet-food-card { grid-column: span 2; }
+}
+
+@media (max-width: 800px) {
+    .pet-stats-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+    .pet-scene { width: 100%; max-width: 300px; }
+    .pet-stage-area { padding: 20px 14px; }
+}

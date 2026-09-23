@@ -11,8 +11,24 @@
     <style>
     .home-container { text-align: center; }
     .hero { padding: 24px 0 16px; }
-    .hero-title { font-size: 2.2rem; margin-bottom: 4px; }
+    .hero-title { font-size: 2.2rem; margin-bottom: 4px; overflow-wrap: anywhere; }
     .hero-subtitle { font-size: 1rem; color: var(--text-secondary); font-weight: 600; }
+    .today-card {
+        background: var(--bg-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+        padding: 18px 22px; margin-bottom: 20px; display: flex; align-items: center; gap: 20px; text-align: left;
+    }
+    .today-card.goal-done { border: 2px solid var(--accent-green); }
+    .today-info { flex: 1; min-width: 0; }
+    .today-title { font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; margin-bottom: 2px; }
+    .today-sub { font-size: 0.9rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 10px; }
+    .today-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .today-chip {
+        display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; border-radius: 999px;
+        background: var(--bg-primary); font-size: 0.8rem; font-weight: 700; color: var(--text-primary); text-decoration: none;
+    }
+    a.today-chip:hover { box-shadow: var(--shadow-sm); }
+    .today-chip.chip-freeze { background: #E6F6FF; color: #2B6CB0; }
+    [data-theme="dark"] .today-chip.chip-freeze { background: #1A2A40; color: #90CDF4; }
     .journey-map {
         background: var(--bg-card); border-radius: var(--radius-lg);
         padding: 24px; box-shadow: var(--shadow-sm); margin-bottom: 20px;
@@ -30,7 +46,7 @@
     .journey-track:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
     .journey-track-icon { font-size: 1.8rem; margin-bottom: 6px; }
     .journey-track-label { font-family: var(--font-display); font-weight: 700; font-size: 0.85rem; margin-bottom: 4px; }
-    .journey-track-progress { font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px; }
+    .journey-track-progress { font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px; overflow-wrap: anywhere; }
     .journey-dots { display: flex; justify-content: center; gap: 4px; margin-bottom: 4px; }
     .journey-dot {
         width: 10px; height: 10px; border-radius: 50%;
@@ -54,11 +70,28 @@
         justify-content: center; gap: 10px; font-weight: 600; font-size: 0.9rem;
         color: var(--accent-blue); border: 1px solid rgba(74, 144, 217, 0.15);
     }
+    .next-action.nudge-pet { background: linear-gradient(135deg, #FFF8E1, #FFFBEB); color: #B45309; border-color: rgba(214, 158, 46, 0.25); }
     [data-theme="dark"] .next-action { background: linear-gradient(135deg, #1A2A40, #1E3050); border-color: rgba(74, 144, 217, 0.2); }
+    [data-theme="dark"] .next-action.nudge-pet { background: linear-gradient(135deg, #422006, #3b1d05); color: #FCD34D; }
     .next-action-icon { font-size: 1.2rem; }
-    .next-action a { color: var(--accent-blue); text-decoration: underline; text-underline-offset: 2px; }
+    .next-action a { color: inherit; text-decoration: underline; text-underline-offset: 2px; font-weight: 800; }
+    .backup-reminder {
+        display: flex; align-items: center; gap: 10px; text-align: left;
+        background: var(--bg-card); border: 1px dashed var(--accent-purple); border-radius: var(--radius-md);
+        padding: 12px 16px; margin-bottom: 20px; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);
+    }
+    .backup-reminder[hidden] { display: none; }
+    .backup-reminder-icon { font-size: 1.3rem; }
+    .backup-reminder-text { flex: 1; }
+    .backup-reminder a { color: var(--accent-purple); font-weight: 800; text-decoration: underline; text-underline-offset: 2px; }
+    .backup-reminder-close { background: none; border: none; font-size: 1rem; cursor: pointer; color: var(--text-secondary); padding: 4px 8px; }
     .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 12px; }
     @media (max-width: 700px) { .journey-tracks { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px) {
+        .today-card { flex-direction: column; text-align: center; padding: 18px 14px; }
+        .today-chips { justify-content: center; }
+        .journey-map { padding: 16px 12px; }
+    }
     </style>
 </head>
 <body>
@@ -72,7 +105,7 @@
             <a href="dashboard.html" class="nav-link">Stats</a>
         </div>
         <div class="nav-right">
-            <a href="https://buy.stripe.com/bJecN7fDM1eSeNigYH8EM00" target="_blank" rel="noopener" title="Support TypePets" class="donate-heart" title="Support TypePets">💛 Support</a>
+            <a href="https://buy.stripe.com/bJecN7fDM1eSeNigYH8EM00" target="_blank" rel="noopener" title="Support TypePets" class="donate-heart">💛 Support</a>
             <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light theme">🌙</button>
             <button class="sound-toggle" id="soundToggle" onclick="toggleSound()" title="Toggle sound">🔊</button>
             <div class="nav-user" id="currentUser">
@@ -88,10 +121,21 @@
                 <p class="hero-subtitle" id="heroSubtitle">Pick something to practice.</p>
             </div>
 
+            <section class="today-card" id="todayCard" aria-label="Today's practice">
+                <div id="goalRing"></div>
+                <div class="today-info">
+                    <div class="today-title" id="goalTitle">Today's goal</div>
+                    <div class="today-sub" id="goalSub"></div>
+                    <div class="today-chips" id="todayChips"></div>
+                </div>
+            </section>
+
             <div class="next-action" id="nextAction" style="display:none">
-                <span class="next-action-icon">💡</span>
+                <span class="next-action-icon" id="nextActionIcon">💡</span>
                 <span id="nextActionText"></span>
             </div>
+
+            <div class="backup-reminder" id="backupReminder" hidden></div>
 
             <div class="journey-map">
                 <div class="journey-map-title">Your Journey</div>
@@ -144,7 +188,7 @@
                 </a>
                 <a href="pet.html" class="mode-card mode-pet">
                     <h2>My Pet</h2>
-                    <p>Earn XP from practice to grow your virtual pet.</p>
+                    <p>Practice to earn food and XP, then feed and grow your pet.</p>
                     <div class="mode-badge">Visit Pet</div>
                 </a>
                 <a href="dashboard.html" class="mode-card mode-stats">
@@ -153,6 +197,8 @@
                     <div class="mode-badge">View Stats</div>
                 </a>
             </div>
+
+            <div id="donateSlot"></div>
         </div>
     </main>
 
@@ -162,6 +208,7 @@
     <script src="../js/sound.js"></script>
     <script src="../js/app.js"></script>
     <script src="../js/achievements.js"></script>
+    <script src="../js/donate-prompt.js"></script>
     <script>
     (function() {
         const EVOS = {egg:'🥚', baby:'🐣', kid:'🐥', teen:'🦊', adult:'🦅', master:'🐉'};
@@ -183,6 +230,104 @@
             }
         }
 
+        /** Fill `el` from parts: plain strings become text, {text, href} become links. Never uses innerHTML. */
+        function fillParts(el, parts) {
+            el.textContent = '';
+            parts.forEach(part => {
+                if (typeof part === 'string') {
+                    el.appendChild(document.createTextNode(part));
+                } else {
+                    const a = document.createElement('a');
+                    a.href = part.href;
+                    a.textContent = part.text;
+                    el.appendChild(a);
+                }
+            });
+        }
+
+        function chip(text, extraClass, href) {
+            const el = document.createElement(href ? 'a' : 'span');
+            el.className = 'today-chip' + (extraClass ? ' ' + extraClass : '');
+            el.textContent = text;
+            if (href) el.href = href;
+            return el;
+        }
+
+        function shortDay(dateStr) {
+            const [y, m, d] = dateStr.split('-').map(Number);
+            return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'long' });
+        }
+
+        function renderToday(pet) {
+            const goal = TypePetsData.getDailyGoal();
+            const streaks = TypePetsData.getStreaks();
+            const mins = Math.floor(goal.minutes_today);
+            const ringHost = document.getElementById('goalRing');
+            ringHost.textContent = '';
+            ringHost.appendChild(createGoalRing(goal.progress, `${Math.min(mins, 999)}/${goal.goal_minutes}`, 'min today'));
+
+            const card = document.getElementById('todayCard');
+            const title = document.getElementById('goalTitle');
+            const sub = document.getElementById('goalSub');
+            card.classList.toggle('goal-done', goal.completed);
+            if (goal.completed) {
+                title.textContent = '🎯 Daily goal done!';
+                sub.textContent = `You practiced ${mins} minutes today. Great job!`;
+            } else if (goal.minutes_today > 0) {
+                const left = Math.max(1, Math.ceil(goal.goal_minutes - goal.minutes_today));
+                title.textContent = "Today's goal";
+                sub.textContent = `${left} more minute${left === 1 ? '' : 's'} to reach your ${goal.goal_minutes}-minute goal (+${TypePetsData.PET_RULES.GOAL_BONUS_FOOD} 🍎 bonus)`;
+            } else {
+                title.textContent = "Today's goal";
+                sub.textContent = `Practice ${goal.goal_minutes} minutes today to earn a food bonus 🍎`;
+            }
+
+            const chips = document.getElementById('todayChips');
+            chips.textContent = '';
+            const s = streaks.current_streak;
+            chips.appendChild(chip(s > 0 ? `🔥 ${s}-day streak` : '🔥 Start a streak today', null, 'dashboard.html'));
+            if (streaks.freeze_pending) {
+                chips.appendChild(chip('🧊 Practice today — a freeze will save your streak!', 'chip-freeze'));
+            } else if (streaks.freeze_used_recently && streaks.last_freeze_date) {
+                chips.appendChild(chip(`🧊 Freeze used on ${shortDay(streaks.last_freeze_date)}`, 'chip-freeze'));
+            } else if (s > 0 && streaks.freeze_ready) {
+                chips.appendChild(chip('🧊 Streak freeze ready', 'chip-freeze'));
+            }
+            chips.appendChild(chip(`🍎 ${pet.food} food`, null, 'pet.html'));
+        }
+
+        function renderBackupReminder(pet) {
+            const status = TypePetsData.getBackupStatus();
+            const box = document.getElementById('backupReminder');
+            if (!status.should_remind) { box.hidden = true; return; }
+            box.textContent = '';
+            const icon = document.createElement('span');
+            icon.className = 'backup-reminder-icon';
+            icon.textContent = '💾';
+            const text = document.createElement('span');
+            text.className = 'backup-reminder-text';
+            const petName = pet.name && pet.name !== 'Unnamed' ? pet.name : 'your pet';
+            fillParts(text, [
+                `Grown-ups: keep ${petName} safe — `,
+                { text: 'save a backup', href: 'dashboard.html#passport' },
+                '. School Chromebooks and Safari can wipe browser data.'
+            ]);
+            const close = document.createElement('button');
+            close.type = 'button';
+            close.className = 'backup-reminder-close';
+            close.textContent = '✕';
+            close.setAttribute('aria-label', 'Remind me later');
+            close.title = 'Remind me later';
+            close.addEventListener('click', () => {
+                TypePetsData.snoozeBackupReminder();
+                box.hidden = true;
+            });
+            box.appendChild(icon);
+            box.appendChild(text);
+            box.appendChild(close);
+            box.hidden = false;
+        }
+
         function loadProgress() {
             const user = TypePetsData.getUser();
             document.getElementById('heroTitle').textContent = `Hey ${user.nickname}!`;
@@ -199,56 +344,73 @@
 
             // Pet
             const pet = data.pet;
-            if (pet) {
-                const evo = EVOS[pet.species] || '🥚';
-                const evoName = pet.species.charAt(0).toUpperCase() + pet.species.slice(1);
-                const displayName = pet.name && pet.name !== 'Unnamed' ? pet.name : evoName;
-                document.getElementById('petProgress').textContent = `${displayName} — Lv ${pet.level} ${evoName}`;
-                document.getElementById('petMiniIcon').textContent = evo;
+            const evo = EVOS[pet.species] || '🥚';
+            const evoName = pet.species.charAt(0).toUpperCase() + pet.species.slice(1);
+            const hasName = pet.name && pet.name !== 'Unnamed';
+            const displayName = hasName ? pet.name : evoName;
+            document.getElementById('petProgress').textContent = `${displayName} — Lv ${pet.level} ${evoName}`;
+            document.getElementById('petMiniIcon').textContent = evo;
 
-                const currentIdx = EVO_THRESHOLDS.findIndex(e => e.species === pet.species);
-                const next = EVO_THRESHOLDS[currentIdx + 1];
-                if (next) {
-                    const prev = EVO_THRESHOLDS[currentIdx].xp;
-                    const pct = ((pet.xp - prev) / (next.xp - prev)) * 100;
-                    document.getElementById('petMiniXp').style.width = Math.min(100, Math.max(0, pct)) + '%';
-                } else {
-                    document.getElementById('petMiniXp').style.width = '100%';
-                }
+            const currentIdx = EVO_THRESHOLDS.findIndex(e => e.species === pet.species);
+            const next = EVO_THRESHOLDS[currentIdx + 1];
+            if (next) {
+                const prev = EVO_THRESHOLDS[currentIdx].xp;
+                const pct = ((pet.xp - prev) / (next.xp - prev)) * 100;
+                document.getElementById('petMiniXp').style.width = Math.min(100, Math.max(0, pct)) + '%';
+            } else {
+                document.getElementById('petMiniXp').style.width = '100%';
             }
 
             // Articles
             document.getElementById('articlesProgress').textContent = `${data.articles_completed} of ${data.articles_total}`;
             makeDots(document.getElementById('articleDots'), data.articles_completed, data.articles_total, 'filled-purple');
 
-            // Next action suggestion
+            renderToday(pet);
+            renderBackupReminder(pet);
+
+            // Next action suggestion — pet care first, then the learning path
             const nudge = document.getElementById('nextAction');
             const nudgeText = document.getElementById('nextActionText');
-            let suggestion = '';
+            const nudgeIcon = document.getElementById('nextActionIcon');
+            const petName = hasName ? pet.name : 'Your pet';
+            let parts = null;
+            let petNudge = false;
 
-            if (pet && pet.happiness < 50) {
-                suggestion = `${pet.name || 'Your pet'} is hungry! <a href="bubbles.html">Play a game</a> to earn food.`;
+            if (pet.mood === 'hungry') {
+                petNudge = true;
+                parts = pet.food > 0
+                    ? [`${petName} is hungry! You have ${pet.food} 🍎 — `, { text: 'go feed them', href: 'pet.html' }, '.']
+                    : [`${petName} is hungry! `, { text: 'Play a game', href: 'bubbles.html' }, ' or ', { text: 'train', href: 'training.html' }, ' to earn food 🍎'];
+            } else if (pet.mood === 'lonely') {
+                petNudge = true;
+                parts = [`${petName} misses you! `, { text: 'Practice a little', href: 'training.html' }, ' to cheer them up.'];
+            } else if ((pet.mood === 'sad' || pet.mood === 'peckish') && pet.food > 0) {
+                petNudge = true;
+                parts = [`${petName} would love a snack — `, { text: 'visit your pet', href: 'pet.html' }, '.'];
             } else if (data.training_stage < 8) {
                 const nextStage = data.training_stage + 1;
                 const bubbleRange = STAGE_BUBBLE_MAP[nextStage];
                 if (bubbleRange && bubbleRange[0] !== 'free') {
-                    suggestion = `<a href="training.html">Train Stage ${nextStage}</a> to unlock Bubble Levels ${bubbleRange[0]}–${bubbleRange[1]}`;
+                    parts = [{ text: `Train Stage ${nextStage}`, href: 'training.html' }, ` to unlock Bubble Levels ${bubbleRange[0]}–${bubbleRange[1]}`];
                 } else {
-                    suggestion = `<a href="training.html">Train Stage ${nextStage}</a> to unlock Free Play!`;
+                    parts = [{ text: `Train Stage ${nextStage}`, href: 'training.html' }, ' to unlock Free Play!'];
                 }
             } else if (data.bubble_level <= 20) {
-                suggestion = `Try <a href="bubbles.html">Bubble Level ${data.bubble_level}</a> next!`;
+                parts = ['Try ', { text: `Bubble Level ${data.bubble_level}`, href: 'bubbles.html' }, ' next!'];
             } else if (data.articles_completed < data.articles_total) {
-                suggestion = `<a href="articles.html">Type some articles</a> to earn more XP!`;
+                parts = [{ text: 'Type some articles', href: 'articles.html' }, ' to earn more XP!'];
             }
 
-            if (suggestion) {
-                nudgeText.innerHTML = suggestion;
+            if (parts) {
+                fillParts(nudgeText, parts);
+                nudgeIcon.textContent = petNudge ? (pet.mood === 'hungry' ? '🍎' : '💭') : '💡';
+                nudge.classList.toggle('nudge-pet', petNudge);
                 nudge.style.display = 'flex';
             }
         }
 
         loadProgress();
+        if (window.maybeDonatePrompt) window.maybeDonatePrompt();
     })();
     </script>
 </body>
