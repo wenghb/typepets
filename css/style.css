@@ -131,6 +131,31 @@ a {
     color: var(--text-primary);
 }
 
+.nav-link.active {
+    background: var(--bg-primary);
+    color: var(--accent-blue);
+}
+
+/* Injected by app.js: hamburger (phones only) + Support link inside the phone menu */
+.nav-burger {
+    display: none;
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    width: 38px;
+    height: 34px;
+    font-size: 1.05rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.nav-link-support {
+    display: none;
+}
+
 .nav-right {
     display: flex;
     align-items: center;
@@ -165,6 +190,382 @@ a {
     border-radius: 999px;
     font-weight: 600;
     font-size: 0.88rem;
+}
+
+.nav-user-switcher {
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: border-color 0.2s ease, background 0.2s ease;
+    user-select: none;
+    max-width: 200px;
+}
+
+.nav-user-switcher:hover,
+.nav-user-switcher:focus-visible,
+.nav-user-switcher[aria-expanded="true"] {
+    border-color: var(--accent-blue);
+    outline: none;
+}
+
+.nav-user-avatar {
+    font-size: 1.05rem;
+    line-height: 1;
+}
+
+.nav-user-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.nav-user-caret {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+/* ─── Profile menu (injected by app.js) ────────────────────── */
+.profile-menu {
+    position: fixed;
+    z-index: 1500;
+    width: 250px;
+    max-width: calc(100vw - 16px);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    padding: 10px;
+    animation: pageIn 0.15s ease-out;
+}
+
+.profile-menu-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 2px 6px 8px;
+}
+
+.profile-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border-radius: var(--radius-sm);
+}
+
+.profile-row.active {
+    background: var(--bg-primary);
+}
+
+.profile-pick {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+}
+
+.profile-pick:hover,
+.profile-edit:hover {
+    background: var(--bg-card-hover);
+}
+
+.profile-avatar {
+    font-size: 1.3rem;
+}
+
+.profile-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.profile-check {
+    color: var(--accent-green);
+}
+
+.profile-edit {
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.profile-add {
+    width: 100%;
+    margin-top: 8px;
+    padding: 9px;
+    border: 2px dashed var(--border-color);
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--accent-blue);
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.profile-add:disabled {
+    color: var(--text-secondary);
+    cursor: default;
+}
+
+.profile-menu-note {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    padding: 8px 6px 0;
+    line-height: 1.4;
+}
+
+/* ─── Modal (profiles, grown-up gate) ──────────────────────── */
+.tp-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 2500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    animation: pageIn 0.2s ease-out;
+}
+
+.tp-modal {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 28px;
+    width: 100%;
+    max-width: 380px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    text-align: center;
+}
+
+.tp-modal h3 {
+    font-size: 1.3rem;
+    margin-bottom: 10px;
+}
+
+.tp-modal-emoji {
+    font-size: 2.4rem;
+    margin-bottom: 6px;
+}
+
+.tp-modal-text {
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+    line-height: 1.5;
+    margin-bottom: 12px;
+}
+
+.tp-modal-hint {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--accent-orange);
+    margin-bottom: 12px;
+}
+
+.tp-modal-error {
+    min-height: 1.2em;
+    color: var(--accent-red);
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin: 6px 0;
+}
+
+.tp-modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.tp-modal-actions .btn-secondary {
+    margin-left: 0;
+}
+
+.tp-field-label {
+    display: block;
+    text-align: left;
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin: 10px 0 6px;
+}
+
+.tp-input {
+    display: block;
+    width: 100%;
+    margin-top: 6px;
+    padding: 11px 14px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 600;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    outline: none;
+    text-align: center;
+}
+
+.tp-input:focus {
+    border-color: var(--accent-blue);
+}
+
+.parent-gate-question {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-blue);
+}
+
+.avatar-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+}
+
+.avatar-choice {
+    font-size: 1.5rem;
+    padding: 6px 0;
+    background: var(--bg-primary);
+    border: 2px solid transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.avatar-choice.selected {
+    border-color: var(--accent-blue);
+    background: var(--bg-card);
+}
+
+.profile-delete-link {
+    margin-top: 16px;
+    background: none;
+    border: none;
+    color: var(--accent-red);
+    font-weight: 700;
+    font-size: 0.82rem;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.btn-danger {
+    background: var(--accent-red);
+    color: white;
+}
+
+/* ─── Donate note for grown-ups (home + dashboard only) ────── */
+.donate-card {
+    margin-top: 24px;
+    background: var(--bg-card);
+    border: 1px dashed var(--accent-yellow);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    text-align: left;
+}
+
+.donate-card-label {
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--accent-yellow);
+    margin-bottom: 4px;
+}
+
+.donate-card-title {
+    font-size: 1rem;
+    margin-bottom: 4px;
+}
+
+.donate-card-text {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 12px;
+}
+
+.donate-card-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.donate-card-actions .btn-secondary {
+    margin-left: 0;
+}
+
+/* ─── Daily goal ring (home + dashboard) ───────────────────── */
+.goal-ring {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    flex-shrink: 0;
+}
+
+.goal-ring svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.goal-ring-track {
+    fill: none;
+    stroke: var(--border-color);
+    stroke-width: 10;
+}
+
+.goal-ring-fill {
+    fill: none;
+    stroke: var(--accent-green);
+    stroke-width: 10;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.8s ease;
+}
+
+.goal-ring-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    line-height: 1.1;
+}
+
+.goal-ring-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.goal-ring-unit {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .btn-secondary:hover {
+    background: var(--bg-card-hover);
 }
 
 /* ─── Content ──────────────────────────────────────────────── */
@@ -856,8 +1257,60 @@ button:not(:disabled):active, .btn:active {
 }
 
 @media (max-width: 600px) {
+    .main-nav {
+        padding: 10px 12px;
+        gap: 8px;
+    }
+    .nav-logo {
+        font-size: 1.1rem;
+        margin-right: auto;
+    }
+    .nav-right {
+        gap: 6px;
+    }
+    .nav-burger {
+        display: inline-flex;
+    }
     .nav-links {
         display: none;
+    }
+    .main-nav.nav-open .nav-links {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        padding: 8px 12px 14px;
+        background: var(--nav-bg);
+        border-bottom: 1px solid var(--border-color);
+        box-shadow: var(--shadow-md);
+    }
+    .main-nav.nav-open .nav-link {
+        padding: 12px 14px;
+        font-size: 1rem;
+    }
+    .main-nav.nav-open .nav-link-support {
+        display: block;
+        color: #B7791F;
+    }
+    .donate-heart {
+        display: none;
+    }
+    .nav-user {
+        padding: 6px 10px;
+    }
+    .nav-user-name {
+        max-width: 64px;
+    }
+    #toast-container {
+        left: 12px;
+        right: 12px;
+        top: 70px;
+    }
+    .content {
+        padding: 16px;
     }
     .hero-title {
         font-size: 1.8rem;
@@ -918,4 +1371,27 @@ button:not(:disabled):active, .btn:active {
 .donate-heart::before {
     content: '';
     display: none;
+}
+
+/* ─── Print ────────────────────────────────────────────────── */
+@media print {
+    .main-nav,
+    .nav-burger,
+    .profile-menu,
+    .tp-modal-overlay,
+    #toast-container,
+    .confetti-container,
+    .donate-card,
+    .no-print {
+        display: none !important;
+    }
+    body {
+        background: #fff !important;
+        color: #1a202c !important;
+    }
+    .content {
+        animation: none;
+        padding: 0;
+        max-width: none;
+    }
 }
