@@ -4,8 +4,169 @@
  * All data via TypePetsData (localStorage).
  */
 
+/**
+ * Pure game logic (no DOM access): word lists, level table, text normalisation and
+ * input matching. Kept apart from the game so it can be unit-tested with node.
+ */
+const BubblePopLogic = (function() {
+    'use strict';
+
+    const HOME_ROW = 'asdfjkl'.split('');
+    const ALL_LETTERS = 'abcdefghijklmnopqrstuvwxyz'.split('');
+    const WORDS = {
+        home_words: ['sad','lad','ask','dad','fall','flask','dash','lash','salad','add','all'],
+        short_words: ['the','and','for','are','but','not','you','all','can','her','was','one','our','out','has','his','how','its','may','new','now','old','see','way','who','boy','did','get','let','say','she','too','use','dad','mom','run','fun','big','dog','cat','hat','sun','red','top','hot','cup','map','bed','sit','pen','win','bus','leg','arm','eye'],
+        medium_words: ['apple','brave','cloud','dream','every','flame','green','heart','jolly','kites','lemon','music','night','ocean','piano','queen','river','smile','tiger','under','water','about','after','again','began','black','bring','carry','dance','earth','final','ghost','happy','light','magic','never','often','paint','quick','round','sleep','tower','video','world','young'],
+        long_words: ['amazing','because','captain','dolphin','excited','fantasy','growing','helpful','imagine','journey','kitchen','library','monster','nothing','outside','penguin','quickly','rainbow','special','trouble','unicorn','volcano','weather','explore','awesome','balloon','camping','dancing'],
+        phrases: ['the big dog','run and play','look at that','I can type','good morning','come with me','lets go home','nice to meet','how are you','well done now','the sun is up','try your best','keep it going','you did great'],
+    };
+
+    const LEVEL_DEFS = [
+        {content:'home_letters',riseTime:10,maxBubbles:3,spawnInterval:3500},
+        {content:'home_letters',riseTime:10,maxBubbles:3,spawnInterval:3500},
+        {content:'home_letters',riseTime:10,maxBubbles:3,spawnInterval:3500},
+        {content:'home_words',riseTime:8,maxBubbles:4,spawnInterval:3000},
+        {content:'home_words',riseTime:8,maxBubbles:4,spawnInterval:3000},
+        {content:'all_letters',riseTime:7,maxBubbles:4,spawnInterval:2500},
+        {content:'all_letters',riseTime:7,maxBubbles:4,spawnInterval:2500},
+        {content:'all_letters',riseTime:7,maxBubbles:4,spawnInterval:2500},
+        {content:'short_words',riseTime:6,maxBubbles:5,spawnInterval:2200},
+        {content:'short_words',riseTime:6,maxBubbles:5,spawnInterval:2200},
+        {content:'short_words',riseTime:6,maxBubbles:5,spawnInterval:2200},
+        {content:'medium_words',riseTime:5,maxBubbles:5,spawnInterval:2000},
+        {content:'medium_words',riseTime:5,maxBubbles:5,spawnInterval:2000},
+        {content:'medium_words',riseTime:5,maxBubbles:5,spawnInterval:2000},
+        {content:'long_words',riseTime:4.5,maxBubbles:6,spawnInterval:1800},
+        {content:'long_words',riseTime:4.5,maxBubbles:6,spawnInterval:1800},
+        {content:'long_words',riseTime:4.5,maxBubbles:6,spawnInterval:1800},
+        {content:'phrases',riseTime:4,maxBubbles:7,spawnInterval:1500},
+        {content:'phrases',riseTime:4,maxBubbles:7,spawnInterval:1500},
+        {content:'phrases',riseTime:4,maxBubbles:7,spawnInterval:1500},
+    ];
+
+    const WEAK_KEY_RATE = 0.2;          // share of bubbles that practise a past error key
+    const HOME_WORD_LETTER_RATE = 0.4;  // home-word levels still mix in single letters
+
+    /** Bubble text: lowercase letters and single spaces only (everything the input can match). */
+    function normalizeWord(text) {
+        return String(text == null ? '' : text).toLowerCase()
+            .replace(/\s+/g, ' ').replace(/[^a-z ]+/g, '').replace(/ +/g, ' ').trim();
+    }
+
+    /** What the player typed: lowercase, no leading space, runs of spaces collapsed (a trailing space is kept). */
+    function normalizeTyped(raw) {
+        return String(raw == null ? '' : raw).toLowerCase().replace(/\s+/g, ' ').replace(/^ /, '');
+    }
+
+    /** Keys a level may practise: home-row levels stay on the home row. */
+    function allowedKeysFor(content) {
+        return (content === 'home_letters' || content === 'home_words') ? HOME_ROW : ALL_LETTERS;
+    }
+
+    /**
+     * Past error keys that are safe to spawn as bubbles: single a–z letters within the level's
+     * key set. Drops spaces, digits (1/2 are power-up hotkeys), punctuation and so on.
+     */
+    function injectableKeys(weakKeys, allowed) {
+        const out = [];
+        for (const raw of Object.keys(weakKeys || {})) {
+            const k = String(raw).toLowerCase();
+            if (/^[a-z]$/.test(k) && allowed.indexOf(k) !== -1 && out.indexOf(k) === -1) out.push(k);
+        }
+        return out;
+    }
+
+    function pick(list, rng) { return list[Math.floor(rng() * list.length)]; }
+
+    /** Choose the text for a new bubble. Always returns a normalised, typeable string. */
+    function pickWord(content, weakKeys, rng) {
+        rng = rng || Math.random;
+        const allowed = allowedKeysFor(content);
+        const weak = injectableKeys(weakKeys, allowed);
+        let word;
+        if (weak.length > 0 && rng() < WEAK_KEY_RATE) {
+            word = pick(weak, rng);
+        } else {
+            switch (content) {
+                case 'home_letters': word = pick(HOME_ROW, rng); break;
+                case 'home_words': word = rng() < HOME_WORD_LETTER_RATE ? pick(HOME_ROW, rng) : pick(WORDS.home_words, rng); break;
+                case 'short_words': case 'medium_words': case 'long_words': case 'phrases': word = pick(WORDS[content], rng); break;
+                default: word = pick(ALL_LETTERS, rng);
+            }
+        }
+        return normalizeWord(word) || pick(allowed, rng);
+    }
+
+    /**
+     * Decide what the current input means, given the words on screen.
+     *   pop   → pop a bubble showing `word`, then keep resolving `rest`
+     *   wait  → valid start of at least one bubble; keep `text` in the box
+     *           (`exact` = it already matches a bubble that is also the start of a longer one)
+     *   error → matches nothing on screen
+     *   empty → nothing typed
+     * Exact matches pop straight away unless another bubble starts with the same text
+     * ("s" while "sad" is up); then Space/Enter, or typing on past it, pops the short one.
+     * `submit` = Enter was pressed.
+     */
+    function resolveTyped(raw, words, submit) {
+        const t = normalizeTyped(raw);
+        if (!t) return { status: 'empty', text: '' };
+        const core = t.replace(/ $/, '');
+        const endsWithSpace = core.length !== t.length;
+        const isExact = (s) => words.indexOf(s) !== -1;
+        const isPrefix = (s) => words.some(w => w.startsWith(s));
+        const hasLonger = (s) => words.some(w => w.length > s.length && w.startsWith(s));
+        const waiting = () => ({
+            status: 'wait', text: t, exact: isExact(core),
+            spacePops: !endsWithSpace && isExact(core) && !isPrefix(core + ' '),
+        });
+
+        if (submit) {
+            if (isExact(core)) return { status: 'pop', word: core, rest: '' };
+            if (isPrefix(t)) return waiting();
+        } else if (endsWithSpace) {
+            if (isPrefix(t)) return waiting();          // a phrase continues after this space
+            if (isExact(core)) return { status: 'pop', word: core, rest: '' };
+        } else {
+            if (isExact(t) && !hasLonger(t)) return { status: 'pop', word: t, rest: '' };
+            if (isPrefix(t)) return waiting();
+        }
+
+        // Not the start of any bubble. If it begins with a complete bubble word, pop that one
+        // and carry the remainder over (prefer the longest word whose remainder still fits a bubble).
+        let fallback = null;
+        for (let k = t.length - 1; k >= 1; k--) {
+            const head = t.slice(0, k).replace(/ $/, '');
+            if (!head || !isExact(head)) continue;
+            const tail = t.slice(k).replace(/^ /, '');
+            const others = words.slice();
+            others.splice(others.indexOf(head), 1);
+            if (tail === '' || others.some(w => w.startsWith(tail) || w === tail.replace(/ $/, ''))) {
+                return { status: 'pop', word: head, rest: tail };
+            }
+            if (!fallback) fallback = { status: 'pop', word: head, rest: tail };
+        }
+        if (fallback) return fallback;
+
+        const prev = t.slice(0, -1);
+        const expected = [];
+        for (const w of words) {
+            if (w.length > prev.length && w.startsWith(prev) && expected.indexOf(w[prev.length]) === -1) expected.push(w[prev.length]);
+        }
+        return { status: 'error', typed: t[t.length - 1], expected: expected.length === 1 ? expected[0] : null };
+    }
+
+    return {
+        HOME_ROW, ALL_LETTERS, WORDS, LEVEL_DEFS, WEAK_KEY_RATE,
+        normalizeWord, normalizeTyped, allowedKeysFor, injectableKeys, pickWord, resolveTyped,
+    };
+})();
+
 (function() {
     'use strict';
+
+    const L = BubblePopLogic;
+    const LEVEL_DEFS = L.LEVEL_DEFS;
 
     const STAGE_BUBBLE_MAP = {1:[1,3],2:[4,5],3:[6,8],4:[9,11],5:[12,14],6:[15,17],7:[18,20],8:null};
 
@@ -43,37 +204,6 @@
     const ctx = canvas.getContext('2d');
     const W = canvas.width, H = canvas.height;
 
-    const HOME_ROW = 'asdfjkl'.split('');
-    const HOME_WORDS = ['sad','lad','ask','dad','fall','flask','dash','lash','salad','add','all'];
-    const ALL_LETTERS = 'abcdefghijklmnopqrstuvwxyz'.split('');
-    const SHORT_WORDS = ['the','and','for','are','but','not','you','all','can','her','was','one','our','out','has','his','how','its','may','new','now','old','see','way','who','boy','did','get','let','say','she','too','use','dad','mom','run','fun','big','dog','cat','hat','sun','red','top','hot','cup','map','bed','sit','pen','win','bus','leg','arm','eye'];
-    const MEDIUM_WORDS = ['apple','brave','cloud','dream','every','flame','green','heart','jolly','kites','lemon','music','night','ocean','piano','queen','river','smile','tiger','under','water','about','after','again','began','black','bring','carry','dance','earth','final','ghost','happy','light','magic','never','often','paint','quick','round','sleep','tower','video','world','young'];
-    const LONG_WORDS = ['amazing','because','captain','dolphin','excited','fantasy','growing','helpful','imagine','journey','kitchen','library','monster','nothing','outside','penguin','quickly','rainbow','special','trouble','unicorn','volcano','weather','explore','awesome','balloon','camping','dancing'];
-    const PHRASES = ['the big dog','run and play','look at that','I can type','good morning','come with me','lets go home','nice to meet','how are you','well done now','the sun is up','try your best','keep it going','you did great'];
-
-    const LEVEL_DEFS = [
-        {content:'home_letters',riseTime:10,maxBubbles:3,spawnInterval:3500},
-        {content:'home_letters',riseTime:10,maxBubbles:3,spawnInterval:3500},
-        {content:'home_letters',riseTime:10,maxBubbles:3,spawnInterval:3500},
-        {content:'home_words',riseTime:8,maxBubbles:4,spawnInterval:3000},
-        {content:'home_words',riseTime:8,maxBubbles:4,spawnInterval:3000},
-        {content:'all_letters',riseTime:7,maxBubbles:4,spawnInterval:2500},
-        {content:'all_letters',riseTime:7,maxBubbles:4,spawnInterval:2500},
-        {content:'all_letters',riseTime:7,maxBubbles:4,spawnInterval:2500},
-        {content:'short_words',riseTime:6,maxBubbles:5,spawnInterval:2200},
-        {content:'short_words',riseTime:6,maxBubbles:5,spawnInterval:2200},
-        {content:'short_words',riseTime:6,maxBubbles:5,spawnInterval:2200},
-        {content:'medium_words',riseTime:5,maxBubbles:5,spawnInterval:2000},
-        {content:'medium_words',riseTime:5,maxBubbles:5,spawnInterval:2000},
-        {content:'medium_words',riseTime:5,maxBubbles:5,spawnInterval:2000},
-        {content:'long_words',riseTime:4.5,maxBubbles:6,spawnInterval:1800},
-        {content:'long_words',riseTime:4.5,maxBubbles:6,spawnInterval:1800},
-        {content:'long_words',riseTime:4.5,maxBubbles:6,spawnInterval:1800},
-        {content:'phrases',riseTime:4,maxBubbles:7,spawnInterval:1500},
-        {content:'phrases',riseTime:4,maxBubbles:7,spawnInterval:1500},
-        {content:'phrases',riseTime:4,maxBubbles:7,spawnInterval:1500},
-    ];
-
     const LEVEL_PASS_TIME = 60;
     const LEVEL_DESCS = ['Home row','Home row','Home row','Home + words','Home + words','All letters','All letters','All letters','Short words','Short words','Short words','Medium words','Medium words','Medium words','Long words','Long words','Long words','Phrases','Phrases','Phrases'];
 
@@ -87,6 +217,8 @@
     let earnedMilestones = new Set();
     let powerUps = { freeze: 0, bomb: 0 };
     let freePlayLevel = 1;
+    let typedText = '', typedState = null;   // current partial input + its resolveTyped() result
+    let needsRevalidate = false;             // a bubble vanished: re-check what's in the input box
 
     const BUBBLE_COLORS = [
         {fill:'rgba(74,144,217,0.75)',stroke:'rgba(44,114,187,0.9)',text:'#FFFFFF'},
@@ -232,26 +364,6 @@
 
     window.closeLevelComplete = function() { levelCompleteOverlay.classList.add('hidden'); };
 
-    function getWord() {
-        let def;
-        if (isFreePlay) { const idx = Math.min(freePlayLevel-1, LEVEL_DEFS.length-1); def = LEVEL_DEFS[idx]; }
-        else { def = LEVEL_DEFS[currentLevel-1]; }
-        if (Object.keys(weakKeys).length > 0 && Math.random() < 0.2) {
-            const wk = Object.keys(weakKeys);
-            return wk[Math.floor(Math.random() * wk.length)];
-        }
-        switch (def.content) {
-            case 'home_letters': return HOME_ROW[Math.floor(Math.random() * HOME_ROW.length)];
-            case 'home_words': return Math.random()<0.4 ? HOME_ROW[Math.floor(Math.random()*HOME_ROW.length)] : HOME_WORDS[Math.floor(Math.random()*HOME_WORDS.length)];
-            case 'all_letters': return ALL_LETTERS[Math.floor(Math.random() * ALL_LETTERS.length)];
-            case 'short_words': return SHORT_WORDS[Math.floor(Math.random()*SHORT_WORDS.length)];
-            case 'medium_words': return MEDIUM_WORDS[Math.floor(Math.random()*MEDIUM_WORDS.length)];
-            case 'long_words': return LONG_WORDS[Math.floor(Math.random()*LONG_WORDS.length)];
-            case 'phrases': return PHRASES[Math.floor(Math.random()*PHRASES.length)];
-            default: return ALL_LETTERS[Math.floor(Math.random()*ALL_LETTERS.length)];
-        }
-    }
-
     function getLevelParams() {
         if (isFreePlay) { const idx = Math.min(freePlayLevel-1, LEVEL_DEFS.length-1); return LEVEL_DEFS[idx]; }
         return LEVEL_DEFS[currentLevel-1];
@@ -261,7 +373,7 @@
         const params = getLevelParams();
         const effectiveMaxBubbles = Math.round(params.maxBubbles * speedMultiplier);
         if (bubbles.length >= effectiveMaxBubbles) return;
-        const word = getWord();
+        const word = L.pickWord(params.content, weakKeys, Math.random);
         const radius = Math.max(28, 16 + word.length * 8);
         const actualRadius = word.length > 8 ? Math.max(45, 10 + word.length * 5) : radius;
         const x = actualRadius + Math.random() * (W - actualRadius * 2);
@@ -295,12 +407,66 @@
         updateUI();
     }
 
+    /** Remember a key the player struggled with (a–z only, so it can be practised as a bubble later). */
+    function recordErrorKey(key) {
+        if (!/^[a-z]$/.test(key || '')) return;
+        errorKeys[key] = (errorKeys[key] || 0) + 1;
+        weakKeys[key] = (weakKeys[key] || 0) + 1;
+    }
+
     function missedBubble(index) {
         const b = bubbles[index]; lives--; combo = 0; totalMisses++;
-        for (const ch of b.word) { errorKeys[ch]=(errorKeys[ch]||0)+1; weakKeys[ch]=(weakKeys[ch]||0)+1; }
+        // A missed single letter says "hard to find this key"; a missed word doesn't pin down a key.
+        if (b.word.length === 1) recordErrorKey(b.word);
         if (window.sound) window.sound.wrong();
-        bubbles.splice(index, 1); updateUI();
+        bubbles.splice(index, 1); needsRevalidate = true; updateUI();
         if (lives <= 0) gameOver();
+    }
+
+    /** The bubble with this text that is closest to escaping. */
+    function findBubbleIndex(word) {
+        let idx = -1;
+        for (let i = 0; i < bubbles.length; i++) {
+            if (bubbles[i].word === word && (idx < 0 || bubbles[i].y < bubbles[idx].y)) idx = i;
+        }
+        return idx;
+    }
+
+    function setTyped(text, state) {
+        typedText = text; typedState = state;
+        if (gameInput.value !== text) gameInput.value = text;
+    }
+
+    function typingError(r) {
+        combo = 0; totalMisses++;
+        recordErrorKey(r.expected != null ? r.expected : r.typed);
+        gameInput.classList.add('shake'); setTimeout(() => gameInput.classList.remove('shake'), 300);
+        if (window.sound) window.sound.wrong();
+        updateUI();
+    }
+
+    /**
+     * Match the input box against the bubbles on screen: pop what's complete, keep a valid
+     * partial word, and flash + clear anything that can't become a bubble.
+     * `submit` = Enter pressed; `silent` = re-check after a bubble vanished (no error penalty).
+     */
+    function processInput(submit, silent) {
+        let text = gameInput.value;
+        for (let guard = 0; guard < 50; guard++) {
+            const r = L.resolveTyped(text, bubbles.map(b => b.word), submit);
+            submit = false;
+            if (r.status === 'pop') {
+                const idx = findBubbleIndex(r.word);
+                if (idx < 0) break;
+                popBubble(idx);
+                text = r.rest;
+                continue;
+            }
+            if (r.status === 'wait') { setTyped(r.text, r); return; }
+            if (r.status === 'error' && !silent && bubbles.length > 0) typingError(r);
+            break;
+        }
+        setTyped('', null);
     }
 
     function updateUI() {
@@ -336,6 +502,7 @@
                 for (let i=0;i<6;i++) {const a=Math.random()*Math.PI*2;particles.push({x:b.x,y:b.y,vx:Math.cos(a)*2.5,vy:Math.sin(a)*2.5,radius:1.5+Math.random()*2.5,color:b.color.stroke,life:1,decay:0.025,gravity:0.04});}
                 score += b.word.length * 5; totalPops++; bubbles.splice(0,1);
             }
+            needsRevalidate = true;
             updateUI();
         }
     };
@@ -372,6 +539,34 @@
         if(b.powerUp){ctx.font=`${r*0.35}px sans-serif`;ctx.fillText(b.powerUp==='freeze'?'❄️':'💣',0,-r*0.5);}
         if(b.y<50){ctx.globalAlpha=0.4+Math.sin(Date.now()/100)*0.4;ctx.strokeStyle='#E07070';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,r+4,0,Math.PI*2);ctx.stroke();}
         ctx.restore();
+        drawTypedRing(b);
+    }
+
+    /** Ring the bubbles the current input is heading for (green = complete, press Space/Enter). */
+    function drawTypedRing(b) {
+        if (!typedText || !b.word.startsWith(typedText)) return;
+        const exact = !!(typedState && typedState.exact && b.word === typedText.replace(/ $/, ''));
+        const s = Math.min(1, b.scale);
+        ctx.save();
+        ctx.strokeStyle = exact ? '#68D391' : 'rgba(255,255,255,0.85)';
+        ctx.lineWidth = exact ? 3 : 2;
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.radius * s + 3, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+    }
+
+    /** "Press Space or Enter" hint when a short word is typed that also starts a longer one. */
+    function drawInputHint() {
+        if (!typedState || !typedState.exact) return;
+        const word = typedText.replace(/ $/, '');
+        const msg = `Press ${typedState.spacePops ? 'Space or Enter' : 'Enter'} ↵ to pop “${word}”`;
+        ctx.save();
+        ctx.font = 'bold 16px Fredoka, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const w = ctx.measureText(msg).width + 28;
+        ctx.globalAlpha = 0.85; ctx.fillStyle = '#1A2744';
+        ctx.fillRect(W / 2 - w / 2, H - 46, w, 30);
+        ctx.globalAlpha = 1; ctx.fillStyle = '#FFFFFF';
+        ctx.fillText(msg, W / 2, H - 31);
+        ctx.restore();
     }
 
     function drawParticles() {
@@ -396,36 +591,30 @@
             if (b.y+b.radius < -10) { missedBubble(i); continue; }
             drawBubble(b);
         }
-        drawParticles(); drawFloatingTexts();
+        if (needsRevalidate) { needsRevalidate = false; processInput(false, true); }
+        drawParticles(); drawFloatingTexts(); drawInputHint();
         frameId = requestAnimationFrame(gameLoop);
     }
 
     gameInput.addEventListener('input', () => {
         if (!gameRunning) return;
-        const typed = gameInput.value.toLowerCase().trim();
-        if (!typed) return;
-        let matchIndex = -1, bestY = -Infinity;
-        for (let i=0;i<bubbles.length;i++) { if (bubbles[i].word===typed && bubbles[i].y>bestY) { matchIndex=i; bestY=bubbles[i].y; } }
-        if (matchIndex >= 0) { popBubble(matchIndex); gameInput.value=''; }
-        else {
-            const isPartial = bubbles.some(b => b.word.startsWith(typed));
-            if (!isPartial && typed.length === 1) {
-                const anyMatch = bubbles.some(b => b.word.includes(typed));
-                if (!anyMatch) {
-                    combo=0; errorKeys[typed]=(errorKeys[typed]||0)+1; weakKeys[typed]=(weakKeys[typed]||0)+1; totalMisses++;
-                    gameInput.classList.add('shake'); setTimeout(()=>gameInput.classList.remove('shake'),300);
-                    if (window.sound) window.sound.wrong(); updateUI();
-                }
-                gameInput.value='';
+        let value = gameInput.value;
+        if (/[12]/.test(value)) {
+            // Some (mobile) keyboards don't let keydown block the power-up hotkeys.
+            for (const ch of value) {
+                if (ch === '1') window.usePowerUp('freeze');
+                else if (ch === '2') window.usePowerUp('bomb');
             }
+            gameInput.value = value.replace(/[12]/g, '');
         }
+        processInput(false, false);
     });
 
     gameInput.addEventListener('keydown', (e) => {
-        if (!gameRunning) return;
-        if (e.key==='Escape') gameInput.value='';
-        if (e.key==='1') { window.usePowerUp('freeze'); e.preventDefault(); }
-        if (e.key==='2') { window.usePowerUp('bomb'); e.preventDefault(); }
+        if (!gameRunning || e.isComposing) return;
+        if (e.key === '1' || e.key === '2') { e.preventDefault(); window.usePowerUp(e.key === '1' ? 'freeze' : 'bomb'); return; }
+        if (e.key === 'Enter') { e.preventDefault(); processInput(true, false); return; }
+        if (e.key === 'Escape') { e.preventDefault(); setTyped('', null); }
     });
 
     window.startGame = function() {
@@ -438,7 +627,7 @@
         loadWeakKeys();
         startOverlay.classList.add('hidden');gameOverOverlay.classList.add('hidden');levelCompleteOverlay.classList.add('hidden');
         updateUI();updateTimerDisplay();updatePowerUpUI();
-        gameInput.value='';gameInput.focus();
+        setTyped('', null);gameInput.focus();
         if(levelTimerInterval) clearInterval(levelTimerInterval);
         levelTimerInterval = setInterval(()=>{
             if(!gameRunning) return; levelTimer++; updateTimerDisplay();
