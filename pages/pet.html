@@ -46,18 +46,20 @@
                         <span class="species-badge" id="speciesBadge">Egg</span>
                         <span class="species-level" id="speciesLevel">Level 1</span>
                     </div>
+                    <p class="pet-mood" id="petMood" role="status"></p>
                 </div>
                 <div class="pet-xp-section">
                     <div class="xp-bar-outer"><div class="xp-bar-inner" id="xpBar" style="width:0%"></div></div>
                     <div class="xp-labels"><span id="xpCurrent">0 XP</span><span id="xpNext">Next: 100 XP</span></div>
                 </div>
                 <div class="pet-stats-grid">
-                    <div class="pet-stat-card"><div class="pet-stat-info"><div class="pet-stat-label">Hunger</div><div class="pet-stat-bar"><div class="pet-stat-bar-fill hunger-fill" id="hungerBar" style="width:100%"></div></div><div class="pet-stat-value" id="hungerValue">100%</div></div></div>
-                    <div class="pet-stat-card"><div class="pet-stat-info"><div class="pet-stat-label">Happiness</div><div class="pet-stat-bar"><div class="pet-stat-bar-fill happy-fill" id="happyBar" style="width:100%"></div></div><div class="pet-stat-value" id="happyValue">100%</div></div></div>
+                    <div class="pet-stat-card"><div class="pet-stat-icon" aria-hidden="true">🍽️</div><div class="pet-stat-info"><div class="pet-stat-label">Fullness</div><div class="pet-stat-bar" role="progressbar" aria-label="Fullness" aria-valuemin="0" aria-valuemax="100" id="hungerMeter"><div class="pet-stat-bar-fill hunger-fill" id="hungerBar" style="width:100%"></div></div><div class="pet-stat-value" id="hungerValue">100%</div></div></div>
+                    <div class="pet-stat-card"><div class="pet-stat-icon" aria-hidden="true">💖</div><div class="pet-stat-info"><div class="pet-stat-label">Happiness</div><div class="pet-stat-bar" role="progressbar" aria-label="Happiness" aria-valuemin="0" aria-valuemax="100" id="happyMeter"><div class="pet-stat-bar-fill happy-fill" id="happyBar" style="width:100%"></div></div><div class="pet-stat-value" id="happyValue">100%</div></div></div>
+                    <div class="pet-stat-card pet-food-card"><div class="pet-stat-icon" aria-hidden="true">🍎</div><div class="pet-stat-info"><div class="pet-stat-label">Food</div><div class="pet-food-count" id="foodCount">0</div><div class="pet-stat-value">+1 per practice, +2 for your daily goal</div></div></div>
                 </div>
                 <div class="pet-actions">
-                    <button class="pet-action-btn feed-btn" id="feedBtn" onclick="feedPet()">Feed Pet</button>
-                    <a href="training.html" class="pet-action-btn practice-btn">Practice to Earn XP</a>
+                    <button class="pet-action-btn feed-btn" id="feedBtn" onclick="feedPet()">Feed 🍎</button>
+                    <a href="training.html" class="pet-action-btn practice-btn">Practice to Earn Food &amp; XP</a>
                     <a href="bubbles.html" class="pet-action-btn play-btn">Play Bubble Pop</a>
                 </div>
             </div>
@@ -67,12 +69,13 @@
                 <div class="pet-tips" id="petTips">
                     <h4>Tips</h4>
                     <ul>
-                        <li>Complete finger training stages for +20 XP</li>
-                        <li>Play Bubble Pop for XP (score / 10)</li>
-                        <li>Faster bubble speed = bonus XP!</li>
-                        <li>Level 5, 10, 15, 20 bubbles give special rewards</li>
-                        <li>Type articles to earn XP</li>
-                        <li>Feed your pet to keep it happy</li>
+                        <li>Finger training: +20 XP each time you finish a stage</li>
+                        <li>Bubble Pop: XP = score ÷ 10 (faster speed = bonus XP)</li>
+                        <li>Articles: XP = half your WPM (at least 5)</li>
+                        <li>Hide the keyboard hints (no-peek): +50% XP</li>
+                        <li>Every practice earns 1 🍎; finishing your daily goal earns 2 more</li>
+                        <li>Pass Bubble Levels 5, 10 and 15 for special treats</li>
+                        <li>Your pet gets hungry and misses you when you don't practice — but it never runs away</li>
                     </ul>
                 </div>
                 <div class="activity-feed" id="activityFeed">
@@ -158,11 +161,55 @@
                 xpCurrent.textContent = `${petData.xp} XP`;
                 xpNext.textContent = `Next: ${nextThreshold} XP`;
             } else { xpBar.style.width = '100%'; xpCurrent.textContent = `${petData.xp} XP`; xpNext.textContent = 'MAX LEVEL'; }
-            const hunger = Math.max(0, Math.min(100, petData.hunger));
-            const happiness = Math.max(0, Math.min(100, petData.happiness));
+            const hunger = Math.round(Math.max(0, Math.min(100, petData.hunger)));
+            const happiness = Math.round(Math.max(0, Math.min(100, petData.happiness)));
             hungerBar.style.width = hunger + '%'; hungerValue.textContent = hunger + '%';
             happyBar.style.width = happiness + '%'; happyValue.textContent = happiness + '%';
+            document.getElementById('hungerMeter').setAttribute('aria-valuenow', hunger);
+            document.getElementById('happyMeter').setAttribute('aria-valuenow', happiness);
+            hungerBar.classList.toggle('low', hunger < 30);
+            happyBar.classList.toggle('low', happiness < 30);
+            renderFood();
+            renderMood();
             renderCreature(petData.species, hunger, happiness);
+        }
+
+        function petDisplayName() {
+            return petData && petData.name && petData.name !== 'Unnamed' ? petData.name : 'Your pet';
+        }
+
+        function renderFood() {
+            const food = petData.food || 0;
+            document.getElementById('foodCount').textContent = food;
+            const btn = document.getElementById('feedBtn');
+            btn.textContent = food > 0 ? `Feed 🍎 (${food} left)` : 'No food yet 🍎';
+            btn.classList.toggle('feed-empty', food <= 0);
+            btn.setAttribute('aria-label', food > 0 ? `Feed your pet. ${food} food left` : 'No food yet. Practice to earn food');
+        }
+
+        function renderMood() {
+            const name = petDisplayName();
+            const food = petData.food || 0;
+            const moodEl = document.getElementById('petMood');
+            let text;
+            switch (petData.mood) {
+                case 'hungry':
+                    text = food > 0 ? `${name} is hungry! Give them a snack 🍎` : `${name} is hungry! Practice to earn food 🍎`;
+                    break;
+                case 'lonely':
+                    text = `${name} misses you! A little practice will cheer them up 💭`;
+                    break;
+                case 'sad':
+                    text = `${name} feels a bit sad. Practice or a snack will help!`;
+                    break;
+                case 'peckish':
+                    text = `${name} could use a snack soon.`;
+                    break;
+                default:
+                    text = `${name} is happy and full! 💚`;
+            }
+            moodEl.textContent = text;
+            moodEl.className = 'pet-mood mood-' + (petData.mood || 'happy');
         }
 
         function renderCreature(species, hunger, happiness) {
@@ -197,24 +244,41 @@
             });
         }
 
+        function spawnParticle(symbol) {
+            const p = document.createElement('div');
+            p.className = 'floating-heart';
+            p.textContent = symbol;
+            p.style.left = (30+Math.random()*40)+'%';
+            p.style.bottom = (30+Math.random()*20)+'%';
+            petParticles.appendChild(p);
+            setTimeout(() => p.remove(), 2000);
+        }
+
         function startParticleLoop() {
             setInterval(() => {
-                if (!petData || petData.happiness < 50) return;
-                const heart = document.createElement('div');
-                heart.className = 'floating-heart';
-                heart.textContent = ['✨','⭐'][Math.floor(Math.random()*2)];
-                heart.style.left = (30+Math.random()*40)+'%';
-                heart.style.bottom = (30+Math.random()*20)+'%';
-                petParticles.appendChild(heart);
-                setTimeout(() => heart.remove(), 2000);
+                if (!petData) return;
+                // refresh slowly-changing stats (decay happens with real time)
+                petData = TypePetsData.getPet();
+                if (petData.mood === 'hungry') spawnParticle('🍎');
+                else if (petData.mood === 'lonely' || petData.mood === 'sad') spawnParticle('💭');
+                else if (petData.happiness >= 50) spawnParticle(['✨','⭐'][Math.floor(Math.random()*2)]);
             }, 4000);
         }
 
         window.feedPet = function() {
-            petData = TypePetsData.feedPet();
+            const result = TypePetsData.feedPet();
+            petData = result;
             renderPet();
-            if (window.sound) window.sound.correct();
-            showToast('Fed!', 'success');
+            const name = petDisplayName();
+            if (result.fed) {
+                if (window.sound) window.sound.correct();
+                for (let i = 0; i < 3; i++) setTimeout(() => spawnParticle(i === 0 ? '🍎' : '💖'), i * 200);
+                showToast(`Yum! ${name} loved that 🍎`, 'success');
+            } else if (result.reason === 'full') {
+                showToast(`${name} is full and happy — save the food for later!`, 'info');
+            } else {
+                showToast('No food yet — practice to earn 🍎', 'info', 4000);
+            }
         };
 
         window.renamePet = function() {
@@ -231,9 +295,8 @@
             petData = TypePetsData.namePet(name);
             renderPet(); closeRenameModal();
             if (window.sound) window.sound.celebration();
-            showToast(`Named: ${name}`, 'success');
+            showToast(`Named: ${petData.name}`, 'success');
             checkAchievements({ mode: 'pet_name', wpm: 0, accuracy: 0 });
-            if (window.maybeDonatePrompt) window.maybeDonatePrompt();
         };
 
         renameInput.addEventListener('keydown', (e) => {
@@ -261,19 +324,30 @@
                 container.innerHTML = '<div class="activity-empty">No activity yet. Start practicing!</div>';
                 return;
             }
-            const ICONS = { training:'⌨️', bubble:'🫧', article:'📖', milestone:'🏆' };
-            container.innerHTML = activities.map(a => {
-                const icon = ICONS[a.type] || '📝';
-                const xpText = a.xp_earned > 0 ? `+${a.xp_earned} XP` : '';
-                const timeAgo = formatTimeAgo(a.timestamp);
-                return `<div class="activity-item"><span class="activity-icon">${icon}</span><span class="activity-text">${a.description}</span><span class="activity-xp">${xpText}</span><span class="activity-time">${timeAgo}</span></div>`;
-            }).join('');
+            const ICONS = { training:'⌨️', bubble:'🫧', article:'📖', milestone:'🏆', goal:'🎯' };
+            container.textContent = '';
+            activities.forEach(a => {
+                const row = document.createElement('div');
+                row.className = 'activity-item';
+                const parts = [
+                    ['activity-icon', ICONS[a.type] || '📝'],
+                    ['activity-text', String(a.description || '')],
+                    ['activity-xp', a.xp_earned > 0 ? `+${a.xp_earned} XP` : ''],
+                    ['activity-time', formatTimeAgo(a.timestamp)]
+                ];
+                parts.forEach(([cls, text]) => {
+                    const span = document.createElement('span');
+                    span.className = cls;
+                    span.textContent = text;
+                    row.appendChild(span);
+                });
+                container.appendChild(row);
+            });
         }
 
         loadPet();
         loadActivityFeed();
     })();
     </script>
-    <script src="../js/donate-prompt.js"></script>
 </body>
 </html>
