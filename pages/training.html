@@ -22,6 +22,20 @@
     .bubble-unlock-notice.hidden { display:none; }
     .xp-earned-notice { margin-top:8px; font-size:0.82rem; font-weight:700; color:var(--accent-green); text-align:center; }
     .xp-earned-notice.hidden { display:none; }
+    .training-tools { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .target-display { position:relative; }
+    .complete-actions { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
+    .complete-actions .btn-secondary { margin-left:0; }
+    .complete-line { margin-top:8px; font-size:0.82rem; font-weight:700; text-align:center; }
+    .complete-line.hidden { display:none; }
+    .nolook-bonus { color:var(--accent-purple); font-size:0.95rem; }
+    .daily-goal-notice { color:var(--accent-orange); }
+    .nolook-suggest { margin-top:14px; padding:10px 14px; background:#F3F0FA; border-radius:var(--radius-sm); font-size:0.82rem; font-weight:600; color:#6B5CA5; text-align:center; }
+    [data-theme="dark"] .nolook-suggest { background:#2E2745; color:#C9BFEA; }
+    .nolook-suggest.hidden { display:none; }
+    .nolook-suggest .btn { margin:8px 0 0; font-size:0.82rem; padding:6px 14px; }
+    .class-summary-sub { color:var(--text-secondary); font-weight:600; font-size:0.9rem; }
+    .complete-stats.four .complete-stat-value { font-size:1.1rem; }
     </style>
 </head>
 <body>
@@ -43,6 +57,7 @@
     </nav>
 
     <main class="content">
+        <div class="class-banner hidden" id="classBanner" role="status"></div>
         <div class="training-container">
             <div class="stage-sidebar">
                 <h3>Stages</h3>
@@ -57,7 +72,7 @@
                 <div class="pet-nudge hidden" id="petNudge"></div>
             </div>
 
-            <div class="training-area">
+            <div class="training-area" id="trainingArea">
                 <div class="training-header" id="trainingHeader">
                     <h2 id="stageName">Home Row</h2>
                     <p id="stageDesc">Learn the home row keys — where your fingers rest!</p>
@@ -67,12 +82,22 @@
                         <div class="stat-item"><div class="stat-value" id="statKeys">0</div><div class="stat-label">Keys</div></div>
                         <div class="stat-item"><div class="stat-value" id="statErrors">0</div><div class="stat-label">Errors</div></div>
                     </div>
+                    <div class="training-tools">
+                        <button type="button" class="tool-toggle hidden" id="speechToggle" onclick="toggleSpeech(this)" aria-pressed="false" title="Say each key and finger out loud">🗣️ Voice</button>
+                        <button type="button" class="tool-toggle" id="noLookToggle" onclick="toggleNoLook(undefined, this)" aria-pressed="false" title="Hide the keyboard hints and type from memory (+50% XP)">🙈 No-look</button>
+                        <span class="class-timer hidden" id="classTimer" role="timer"></span>
+                    </div>
                 </div>
 
-                <div class="target-display">
+                <div class="target-display" id="targetDisplay">
+                    <div class="typing-banner caps-banner hidden" id="capsBanner" role="alert">⇪ Caps Lock is on! Press the <b>Caps Lock</b> key to turn it off.</div>
+                    <div class="typing-banner ime-banner hidden" id="imeBanner" role="alert">🌐 Your keyboard is in another language mode. Switch it to English (ABC) to type here.</div>
                     <div class="target-prompt" id="targetPrompt">Press the highlighted key:</div>
                     <div class="target-chars" id="targetChars"></div>
                     <div class="finger-hint" id="fingerHint"></div>
+                    <div class="tap-to-type hidden" id="tapHint">👆 Tap here to open the keyboard</div>
+                    <input type="text" class="touch-type-input" id="touchInput" tabindex="-1" aria-label="Type here"
+                           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text" enterkeyhint="next">
                 </div>
 
                 <div class="progress-container">
@@ -94,18 +119,46 @@
                 <div class="complete-emoji" id="completeEmoji">✓</div>
                 <h2 class="complete-title" id="completeTitle">Stage Complete!</h2>
                 <div class="complete-stars" id="completeStars">⭐⭐⭐</div>
+                <div class="complete-line nolook-bonus hidden" id="noLookBonus">🙈 No-look bonus!</div>
                 <div class="complete-stats">
                     <div class="complete-stat"><div class="complete-stat-value" id="completeAccuracy">98%</div><div class="complete-stat-label">Accuracy</div></div>
                     <div class="complete-stat"><div class="complete-stat-value" id="completeWpm">15</div><div class="complete-stat-label">WPM</div></div>
                     <div class="complete-stat"><div class="complete-stat-value" id="completeTime">1:23</div><div class="complete-stat-label">Time</div></div>
                 </div>
-                <button class="btn btn-primary" id="nextStageBtn" onclick="nextStage()">Next Stage →</button>
-                <button class="btn btn-secondary" onclick="retryStage()">Try Again</button>
+                <div class="complete-actions">
+                    <button class="btn btn-primary" id="nextStageBtn">Next Stage →</button>
+                    <button class="btn btn-secondary" id="retryStageBtn" onclick="retryStage()">Try Again</button>
+                    <a class="btn btn-secondary hidden" id="certLink" href="report.html">🎓 Certificate</a>
+                </div>
+                <div class="nolook-suggest hidden" id="noLookSuggest">
+                    🙈 3 stars! Ready to type without looking? No-look mode hides the keyboard hints and gives +50% XP.
+                    <br><button class="btn btn-secondary" onclick="acceptNoLookSuggestion()">Turn on No-look</button>
+                </div>
                 <div class="bubble-unlock-notice hidden" id="bubbleUnlockNotice">
                     <span id="bubbleUnlockText"></span>
                     <a href="bubbles.html" class="btn btn-secondary" style="margin-left:0; margin-top:8px; display:inline-block; font-size:0.82rem; padding:6px 14px;">Play Bubbles →</a>
                 </div>
                 <div class="xp-earned-notice hidden" id="xpEarnedNotice"></div>
+                <div class="complete-line daily-goal-notice hidden" id="dailyGoalNotice"></div>
+            </div>
+        </div>
+
+        <div class="stage-complete-overlay" id="classSummaryOverlay">
+            <div class="stage-complete-card">
+                <div class="complete-emoji">⏰</div>
+                <h2 class="complete-title">Time's up — great practice!</h2>
+                <p class="class-summary-sub" id="classSummarySub"></p>
+                <div class="complete-stats four">
+                    <div class="complete-stat"><div class="complete-stat-value" id="classKeys">0</div><div class="complete-stat-label">Keys</div></div>
+                    <div class="complete-stat"><div class="complete-stat-value" id="classWpm">0</div><div class="complete-stat-label">WPM</div></div>
+                    <div class="complete-stat"><div class="complete-stat-value" id="classAccuracy">100%</div><div class="complete-stat-label">Accuracy</div></div>
+                    <div class="complete-stat"><div class="complete-stat-value" id="classTime">0:00</div><div class="complete-stat-label">Time</div></div>
+                </div>
+                <div class="complete-actions">
+                    <a class="btn btn-primary hidden" id="classCertLink" href="report.html">🎓 Certificate</a>
+                    <button class="btn btn-secondary" onclick="keepPracticing()">Keep practicing</button>
+                </div>
+                <div class="complete-line class-cert-note hidden" id="classCertNote">Finish a round with 85% accuracy to earn a certificate for this stage.</div>
             </div>
         </div>
     </main>
@@ -117,10 +170,12 @@
     <script src="../js/app.js"></script>
     <script src="../js/achievements.js"></script>
     <script src="../js/keyboard.js"></script>
+    <script src="../js/speech.js"></script>
     <script>
     /**
      * Finger Training Mode — TypePets
      * 8 progressive stages with stage locking, accuracy tracking, and star ratings.
+     * Extras: spoken guidance, No-look mode, classroom links (?stage=N&min=M), touch keyboards.
      */
 
     const STAGE_BUBBLE_MAP = {
@@ -145,20 +200,39 @@
         { id:8, name:'Full Keyboard', desc:"You're a typing champion! Use everything!", keys:'abcdefghijklmnopqrstuvwxyz1234567890 '.split(''), mode:'words', words:['player1','code42','level99','win2025','jump3','rocket7','quest4','ninja8','hero56','star10','speed','power','focus','energy','mighty','turbo','blaze','storm'], target:10 },
     ];
 
+    // Map physical key codes to characters for punctuation keys whose e.key isn't a single char
+    const CODE_TO_CHAR = {
+        'Semicolon': ';', 'Comma': ',', 'Period': '.', 'Slash': '/',
+        'BracketLeft': '[', 'BracketRight': ']', 'Backslash': '\\',
+        'Quote': "'", 'Minus': '-', 'Equal': '=', 'Backquote': '`'
+    };
+
+    const PASS_ACCURACY = 85;
+    const IDLE_LIMIT_MS = 30000; // a pause longer than this doesn't count as practice time
+
     let currentStageIdx = 0;
     let stageProgress = {};
     let keyboard = null;
     let sessionKeys = 0;
     let sessionErrors = 0;
+    let sessionCorrect = 0;       // correctly typed characters (spaces included) → WPM
     let sessionErrorKeys = {};
-    let sessionStartTime = null;
+    let roundClock = null;        // active practice time for this round
     let targetText = '';
     let typedIndex = 0;
     let challengeCount = 0;
     let nextChallengeTimer = null;
+    let touchCtl = null;
+    let touchUsed = false;        // the on-screen (phone/tablet) keyboard has been opened
+    let noLook = false;
+    let runNoLook = false;        // No-look was on for this whole round
+    let pendingIntro = '';
+    let teacherStageId = null;    // stage opened by a class link (may still be locked)
+    let classMode = null;         // { minutes, clock, keys, correct, errors, activeSeconds, rounds, ended }
 
     function initTraining() {
         keyboard = new VirtualKeyboard('keyboardContainer');
+        roundClock = new ActiveClock({ idleMs: IDLE_LIMIT_MS });
 
         // Load progress from data layer
         const tp = TypePetsData.getTrainingProgress();
@@ -168,9 +242,13 @@
             TypePetsData.saveTrainingStageProgress(1, 0, 0, true);
         }
 
+        applyClassLink();
         renderStageList();
+        setupTouchInput();
         loadStage(currentStageIdx);
-        document.addEventListener('keydown', handleKeypress);
+        document.addEventListener('keydown', handleKeydown);
+        document.addEventListener('keyup', updateCapsBanner);
+        setInterval(tickTimers, 250);
         loadPetNudge();
     }
 
@@ -184,6 +262,113 @@
         }
     }
 
+    // ─── Classroom links: training.html?stage=N&min=M ─────────
+
+    function applyClassLink() {
+        const params = TypingUtils.parseClassParams(window.location.search, {
+            idParam: 'stage',
+            isValidId: n => STAGES.some(s => s.id === n),
+        });
+        if (params.invalid.length) {
+            showToast('🤔 Part of that class link didn’t work, so we skipped it.', 'error', 4000);
+        }
+        if (params.id !== null) {
+            teacherStageId = params.id;
+            currentStageIdx = STAGES.findIndex(s => s.id === params.id);
+        }
+        if (params.minutes !== null) {
+            classMode = {
+                minutes: params.minutes,
+                clock: new ActiveClock(),
+                keys: 0, correct: 0, errors: 0, activeSeconds: 0, rounds: 0,
+                ended: false,
+            };
+        }
+        if (params.id === null && params.minutes === null) return;
+
+        const stage = STAGES[currentStageIdx];
+        const banner = document.getElementById('classBanner');
+        banner.textContent = classMode
+            ? `🎓 Class practice: Stage ${stage.id} (${stage.name}) for ${classMode.minutes} minute${classMode.minutes === 1 ? '' : 's'}. The timer starts when you type!`
+            : `🎓 Your teacher picked Stage ${stage.id}: ${stage.name}.`;
+        banner.classList.remove('hidden');
+        updateClassTimer();
+    }
+
+    // Finished rounds plus the round in progress
+    function classTotals() {
+        const cm = classMode;
+        const keys = cm.keys + sessionKeys;
+        const correct = cm.correct + sessionCorrect;
+        const errors = cm.errors + sessionErrors;
+        const active = cm.activeSeconds + roundClock.seconds();
+        return {
+            keys,
+            wpm: TypingUtils.calcWpm(correct, active),
+            accuracy: TypingUtils.calcAccuracy(keys - errors, keys),
+        };
+    }
+
+    function updateClassTimer() {
+        const el = document.getElementById('classTimer');
+        if (!classMode) { el.classList.add('hidden'); return; }
+        el.classList.remove('hidden');
+        if (classMode.ended) {
+            el.textContent = '✅ Class time done';
+            el.classList.remove('urgent');
+            return;
+        }
+        const total = classMode.minutes * 60;
+        if (!classMode.clock.started) {
+            el.textContent = `⏱ ${TypingUtils.formatTime(total)} · starts when you type`;
+            return;
+        }
+        const left = Math.max(0, total - classMode.clock.seconds());
+        el.textContent = `⏱ ${TypingUtils.formatTime(Math.ceil(left))} left`;
+        el.classList.toggle('urgent', left <= 30);
+        if (left <= 0) endClassSession();
+    }
+
+    function endClassSession() {
+        if (!classMode || classMode.ended) return;
+        const stage = STAGES[currentStageIdx];
+        const totals = classTotals();
+        classMode.ended = true;
+        classMode.clock.stop();
+        roundClock.hold();
+        updateClassTimer();
+
+        document.getElementById('classSummarySub').textContent = `Stage ${stage.id}: ${stage.name}`;
+        document.getElementById('classKeys').textContent = totals.keys;
+        document.getElementById('classWpm').textContent = totals.wpm;
+        document.getElementById('classAccuracy').textContent = totals.accuracy + '%';
+        document.getElementById('classTime').textContent = TypingUtils.formatTime(classMode.minutes * 60);
+
+        const hasStar = !!(stageProgress[stage.id] && stageProgress[stage.id].stars >= 1);
+        const cert = document.getElementById('classCertLink');
+        cert.href = `report.html?cert=training&stage=${stage.id}`;
+        cert.classList.toggle('hidden', !hasStar);
+        document.getElementById('classCertNote').classList.toggle('hidden', hasStar);
+
+        document.getElementById('stageCompleteOverlay').classList.remove('active');
+        document.getElementById('classSummaryOverlay').classList.add('active');
+        if (window.sound) window.sound.celebration();
+        say("Time's up! Great practice!");
+    }
+
+    function keepPracticing() {
+        document.getElementById('classSummaryOverlay').classList.remove('active');
+        roundClock.release();
+        refocusTyping();
+    }
+
+    // ─── Stage list ───────────────────────────────────────────
+
+    function isStageOpen(stage) {
+        const progress = stageProgress[stage.id];
+        return !!(progress && progress.unlocked) || stage.id === teacherStageId;
+    }
+
     function renderStageList() {
         const list = document.getElementById('stageList');
         list.innerHTML = '';
@@ -191,34 +376,40 @@
             const progress = stageProgress[stage.id] || { bestAccuracy: 0, stars: 0, unlocked: false };
             const isActive = idx === currentStageIdx;
             const isLocked = !progress.unlocked;
-            const isCompleted = progress.bestAccuracy >= 85;
+            const isCompleted = progress.bestAccuracy >= PASS_ACCURACY;
             let cls = 'stage-item';
             if (isActive) cls += ' stage-active';
-            if (isLocked) cls += ' stage-locked';
+            if (isLocked && stage.id !== teacherStageId) cls += ' stage-locked';
             if (isCompleted) cls += ' stage-completed';
             const starsHtml = progress.stars > 0 ? '⭐'.repeat(progress.stars) + '☆'.repeat(3 - progress.stars) : '';
-            list.innerHTML += `<div class="${cls}" onclick="selectStage(${idx})" data-stage="${idx}"><div class="stage-num">${isLocked ? '🔒' : stage.id}</div><div class="stage-info"><div class="stage-name">${stage.name}</div><div class="stage-stars">${starsHtml}</div></div></div>`;
+            const badge = isLocked ? (stage.id === teacherStageId ? '🎓' : '🔒') : stage.id;
+            list.innerHTML += `<div class="${cls}" onclick="selectStage(${idx})" data-stage="${idx}"><div class="stage-num">${badge}</div><div class="stage-info"><div class="stage-name">${stage.name}</div><div class="stage-stars">${starsHtml}</div></div></div>`;
         });
     }
 
     function selectStage(idx) {
         const stage = STAGES[idx];
-        const progress = stageProgress[stage.id] || { unlocked: false };
-        if (!progress.unlocked) { showToast('🔒 Complete the previous stage first.', 'error'); return; }
+        if (!isStageOpen(stage)) { showToast('🔒 Complete the previous stage first.', 'error'); return; }
         currentStageIdx = idx;
         loadStage(idx);
         renderStageList();
+        refocusTyping();
     }
 
-    function loadStage(idx) {
+    function loadStage(idx, opts) {
         const stage = STAGES[idx];
         currentStageIdx = idx;
         clearTimeout(nextChallengeTimer);
-        sessionKeys = 0; sessionErrors = 0; sessionErrorKeys = {}; sessionStartTime = null; challengeCount = 0; typedIndex = 0;
+        sessionKeys = 0; sessionErrors = 0; sessionCorrect = 0; sessionErrorKeys = {}; challengeCount = 0; typedIndex = 0;
+        roundClock.reset();
+        runNoLook = noLook;
         document.getElementById('stageName').textContent = `Stage ${stage.id}: ${stage.name}`;
         document.getElementById('stageDesc').textContent = stage.desc;
         updateStats();
+        updateProgress();
         keyboard.setValidKeys(stage.keys);
+        updateToolButtons();
+        pendingIntro = opts && typeof opts.intro === 'string' ? opts.intro : `Stage ${stage.id}: ${stage.name}.`;
         generateChallenge();
     }
 
@@ -263,36 +454,161 @@
         hint.textContent = `${displayChar} → ${info.name}`;
         hint.style.backgroundColor = info.color + '20';
         hint.style.color = info.color;
+        speakKey(nextChar, info);
     }
 
-    function handleKeypress(e) {
-        if (['Shift','Control','Alt','Meta','Tab','Escape','CapsLock'].includes(e.key)) return;
-        if (e.key === ' ') e.preventDefault();
-        if (document.getElementById('stageCompleteOverlay').classList.contains('active')) return;
+    // ─── Spoken guidance ──────────────────────────────────────
+
+    function speechAvailable() {
+        return !!(window.speech && window.speech.supported);
+    }
+
+    // Default: on for stages 1–2 until the kid chooses
+    function speechActive() {
+        return speechAvailable() && window.speech.isOn(STAGES[currentStageIdx].id <= 2);
+    }
+
+    function say(text) {
+        if (speechActive()) window.speech.say(text);
+    }
+
+    function speakKey(ch, info) {
         const stage = STAGES[currentStageIdx];
+        let text = pendingIntro ? pendingIntro + ' ' : '';
+        pendingIntro = '';
+        if (stage.mode === 'words' && typedIndex === 0) text += `${targetText}. `;
+        text += window.speech ? window.speech.keyName(ch) + '.' : '';
+        // In No-look mode the finger is part of the challenge, so only the key is said
+        if (!noLook) text += ` ${info.name}.`;
+        say(text);
+    }
 
-        // Map physical key codes to characters for special keys
-        const CODE_TO_CHAR = {
-            'Semicolon': ';', 'Comma': ',', 'Period': '.', 'Slash': '/',
-            'BracketLeft': '[', 'BracketRight': ']', 'Backslash': '\\',
-            'Quote': "'", 'Minus': '-', 'Equal': '=', 'Backquote': '`'
-        };
-
-        // Use e.key first, but fall back to code mapping for punctuation
-        let pressed = e.key.toLowerCase();
-        if (pressed.length > 1 && e.code && CODE_TO_CHAR[e.code]) {
-            pressed = CODE_TO_CHAR[e.code];
+    function toggleSpeech(btn) {
+        if (btn && btn.blur) btn.blur();
+        if (!speechAvailable()) return;
+        const on = !speechActive();
+        window.speech.setOn(on);
+        updateToolButtons();
+        if (!on) return;
+        if (window.sound && window.sound.enabled === false) {
+            showToast('🔇 Sound is off. Turn it on (🔊) to hear the voice.', 'info');
+        } else if (typedIndex < targetText.length) {
+            speakKey(targetText[typedIndex], keyboard.getFingerForKey(targetText[typedIndex]));
         }
+    }
 
+    function updateToolButtons() {
+        const sBtn = document.getElementById('speechToggle');
+        if (speechAvailable()) {
+            const on = speechActive();
+            sBtn.classList.remove('hidden');
+            sBtn.classList.toggle('on', on);
+            sBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            sBtn.textContent = on ? '🗣️ Voice on' : '🗣️ Voice off';
+        } else {
+            sBtn.classList.add('hidden');
+        }
+        const nBtn = document.getElementById('noLookToggle');
+        nBtn.classList.toggle('on', noLook);
+        nBtn.setAttribute('aria-pressed', noLook ? 'true' : 'false');
+        nBtn.textContent = noLook ? '🙈 No-look on' : '🙈 No-look';
+        document.getElementById('trainingArea').classList.toggle('no-look', noLook);
+    }
+
+    // ─── No-look mode ─────────────────────────────────────────
+
+    function toggleNoLook(force, btn) {
+        if (btn && btn.blur) btn.blur();
+        noLook = typeof force === 'boolean' ? force : !noLook;
+        if (!noLook) {
+            runNoLook = false;
+        } else if (sessionKeys === 0) {
+            runNoLook = true;
+            showToast('🙈 No-look on! Keep your eyes on the letters, not the keyboard.', 'info');
+        } else {
+            showToast('🙈 No-look on! The bonus starts with your next round.', 'info');
+        }
+        updateToolButtons();
+    }
+
+    function acceptNoLookSuggestion() {
+        document.getElementById('noLookSuggest').classList.add('hidden');
+        noLook = true;
+        updateToolButtons();
+        showToast('🙈 No-look is on for your next round. You can do it!', 'success');
+    }
+
+    // ─── Typing input ─────────────────────────────────────────
+
+    function isOverlayOpen(id) {
+        if (id) return document.getElementById(id).classList.contains('active');
+        return isOverlayOpen('stageCompleteOverlay') || isOverlayOpen('classSummaryOverlay');
+    }
+
+    function updateCapsBanner(e) {
+        if (!e || typeof e.getModifierState !== 'function') return;
+        document.getElementById('capsBanner').classList.toggle('hidden', !TypingUtils.isCapsLockOn(e));
+    }
+
+    function handleKeydown(e) {
+        const touchInput = document.getElementById('touchInput');
+        if (TypingUtils.isEditableTarget(e.target) && e.target !== touchInput) return;
+        updateCapsBanner(e);
+        const k = TypingUtils.classifyKey(e, { codeFallback: CODE_TO_CHAR });
+
+        if (k.kind === 'ime') {
+            // Phone keyboards send these too — their letters arrive through the hidden input instead
+            if (e.target !== touchInput) document.getElementById('imeBanner').classList.remove('hidden');
+            return;
+        }
+        if (k.kind === 'shortcut' || k.kind === 'ignore' || k.kind === 'capslock' || k.kind === 'enter') return;
+        if (k.char === ' ') e.preventDefault(); // never scroll the page with Space
+        if (isOverlayOpen()) return;
+        e.preventDefault();
+        if (k.kind === 'repeat') return; // held keys don't count
+        if (k.kind === 'capslock-letter') {
+            document.getElementById('capsBanner').classList.remove('hidden');
+            return;
+        }
+        document.getElementById('imeBanner').classList.add('hidden');
+        if (touchCtl) touchCtl.noteHandled(k.char);
+        processChar(k.char.toLowerCase());
+    }
+
+    function setupTouchInput() {
+        const input = document.getElementById('touchInput');
+        const tapHint = document.getElementById('tapHint');
+        const showHint = (focused) => tapHint.classList.toggle('hidden', focused || !TypingUtils.prefersTouch());
+        touchCtl = TypingUtils.attachTouchInput(input, {
+            onChar: (ch) => { if (ch !== '\n') processChar(ch.toLowerCase()); },
+            tapTargets: [document.getElementById('targetDisplay'), document.getElementById('keyboardContainer')],
+            onFocusChange: (focused) => { if (focused) touchUsed = true; showHint(focused); },
+        });
+        showHint(false);
+    }
+
+    // Buttons steal focus; put it back on the hidden input so a phone keyboard stays open
+    function refocusTyping() {
+        if (document.activeElement && document.activeElement.blur && document.activeElement !== document.body) {
+            document.activeElement.blur();
+        }
+        if (touchCtl && touchUsed) touchCtl.focus();
+    }
+
+    function processChar(pressed) {
+        if (isOverlayOpen()) return;
+        const stage = STAGES[currentStageIdx];
         const validSet = new Set(stage.keys.map(k => k.toLowerCase()));
         if (stage.mode === 'words') validSet.add(' ');
         if (!validSet.has(pressed)) return;
         // Ignore keys during the short pause before the next challenge appears
         if (typedIndex >= targetText.length) return;
-        if (!sessionStartTime) sessionStartTime = Date.now();
+        roundClock.tick();
+        if (classMode && !classMode.ended) classMode.clock.tick();
         sessionKeys++;
         const expected = targetText[typedIndex];
         if (pressed === expected.toLowerCase()) {
+            sessionCorrect++;
             if (window.sound) window.sound.correct();
             keyboard.flashKey(pressed, true);
             typedIndex++;
@@ -307,21 +623,36 @@
             if (window.sound) window.sound.wrong();
             keyboard.flashKey(pressed, false);
             sessionErrors++;
-            sessionErrorKeys[pressed] = (sessionErrorKeys[pressed] || 0) + 1;
+            // Remember the key the kid was aiming for — that's the one to practice
+            const missed = expected.toLowerCase();
+            sessionErrorKeys[missed] = (sessionErrorKeys[missed] || 0) + 1;
             const chars = document.querySelectorAll('.target-char');
             if (chars[typedIndex]) { chars[typedIndex].classList.add('error'); setTimeout(() => chars[typedIndex]?.classList.remove('error'), 300); }
             updateStats();
         }
     }
 
+    // ─── Stats ────────────────────────────────────────────────
+
+    function currentWpm() {
+        const secs = roundClock.seconds();
+        // Wait a few seconds so the very first keys don't show silly numbers
+        return secs >= 3 ? TypingUtils.calcWpm(sessionCorrect, secs) : 0;
+    }
+
     function updateStats() {
-        const accuracy = sessionKeys > 0 ? Math.round(((sessionKeys - sessionErrors) / sessionKeys) * 100) : 100;
-        const elapsed = sessionStartTime ? (Date.now() - sessionStartTime) / 1000 / 60 : 0;
-        const wpm = elapsed > 0 ? Math.round((sessionKeys / 5) / elapsed) : 0;
+        const accuracy = TypingUtils.calcAccuracy(sessionKeys - sessionErrors, sessionKeys);
         document.getElementById('statAccuracy').textContent = accuracy + '%';
-        document.getElementById('statWpm').textContent = wpm;
+        document.getElementById('statWpm').textContent = currentWpm();
         document.getElementById('statKeys').textContent = sessionKeys;
         document.getElementById('statErrors').textContent = sessionErrors;
+    }
+
+    function tickTimers() {
+        if (roundClock.started && !isOverlayOpen()) {
+            document.getElementById('statWpm').textContent = currentWpm();
+        }
+        if (classMode) updateClassTimer();
     }
 
     function updateProgress() {
@@ -332,92 +663,148 @@
         document.getElementById('progressPercent').textContent = pct + '%';
     }
 
+    function showRewardLines(result) {
+        const xpNotice = document.getElementById('xpEarnedNotice');
+        const xp = result && typeof result.xp_earned === 'number' ? result.xp_earned : 20;
+        const food = result && typeof result.food_earned === 'number' ? result.food_earned : 0;
+        if (xp > 0) {
+            xpNotice.textContent = `+${xp} XP for your pet!` + (food > 0 ? ` 🍎 +${food} food` : '');
+            xpNotice.classList.remove('hidden');
+        } else {
+            xpNotice.classList.add('hidden');
+        }
+        const goalEl = document.getElementById('dailyGoalNotice');
+        const goal = result && result.daily_goal;
+        if (goal && typeof goal.goal_minutes === 'number' && goal.goal_minutes > 0) {
+            const mins = Math.floor(goal.minutes_today || 0);
+            goalEl.textContent = goal.just_completed
+                ? '🎯 Daily goal complete! Awesome!'
+                : `🎯 Daily goal: ${Math.min(mins, goal.goal_minutes)} of ${goal.goal_minutes} minutes`;
+            goalEl.classList.remove('hidden');
+        } else {
+            goalEl.classList.add('hidden');
+        }
+    }
+
     function completeStage() {
         const stage = STAGES[currentStageIdx];
-        const accuracy = sessionKeys > 0 ? Math.round(((sessionKeys - sessionErrors) / sessionKeys) * 100) : 100;
-        const elapsed = sessionStartTime ? (Date.now() - sessionStartTime) / 1000 : 0;
-        const wpm = elapsed > 0 ? Math.round((sessionKeys / 5) / (elapsed / 60)) : 0;
+        const accuracy = TypingUtils.calcAccuracy(sessionKeys - sessionErrors, sessionKeys);
+        const activeSeconds = roundClock.seconds();
+        roundClock.stop();
+        const wpm = TypingUtils.calcWpm(sessionCorrect, activeSeconds);
+        const passed = accuracy >= PASS_ACCURACY;
 
         let stars = 0;
         if (accuracy >= 85) stars = 1;
         if (accuracy >= 92) stars = 2;
         if (accuracy >= 97) stars = 3;
 
+        // A class link can open a locked stage; finishing it records stars but doesn't unlock anything
+        const wasUnlocked = !!(stageProgress[stage.id] && stageProgress[stage.id].unlocked);
+
         // Save progress
-        TypePetsData.saveTrainingStageProgress(stage.id, accuracy, stars, true);
+        TypePetsData.saveTrainingStageProgress(stage.id, accuracy, stars, wasUnlocked);
 
         // Update local cache
-        if (!stageProgress[stage.id]) stageProgress[stage.id] = { bestAccuracy: 0, stars: 0, unlocked: true };
+        if (!stageProgress[stage.id]) stageProgress[stage.id] = { bestAccuracy: 0, stars: 0, unlocked: wasUnlocked };
         if (accuracy > stageProgress[stage.id].bestAccuracy) stageProgress[stage.id].bestAccuracy = accuracy;
         if (stars > stageProgress[stage.id].stars) stageProgress[stage.id].stars = stars;
 
         // Unlock next stage
-        const nextStage = STAGES[currentStageIdx + 1];
-        if (nextStage && accuracy >= 85) {
-            if (!stageProgress[nextStage.id]) stageProgress[nextStage.id] = { bestAccuracy: 0, stars: 0, unlocked: true };
-            else stageProgress[nextStage.id].unlocked = true;
-            TypePetsData.saveTrainingStageProgress(nextStage.id, 0, 0, true);
+        const upcoming = STAGES[currentStageIdx + 1];
+        if (upcoming && passed && wasUnlocked) {
+            if (!stageProgress[upcoming.id]) stageProgress[upcoming.id] = { bestAccuracy: 0, stars: 0, unlocked: true };
+            else stageProgress[upcoming.id].unlocked = true;
+            TypePetsData.saveTrainingStageProgress(upcoming.id, 0, 0, true);
         }
 
         // Save session
+        const noLookRun = runNoLook && noLook;
         const sessionData = {
             mode: 'finger_training', level: stage.id, wpm: wpm, accuracy: accuracy,
-            duration_seconds: Math.round(elapsed), keys_pressed: sessionKeys,
-            errors: sessionErrors, error_keys: sessionErrorKeys
+            duration_seconds: Math.round(activeSeconds), keys_pressed: sessionKeys,
+            errors: sessionErrors, error_keys: sessionErrorKeys, chars_correct: sessionCorrect
         };
-        TypePetsData.saveSession(sessionData);
+        if (noLookRun) sessionData.no_look = true;
+        const result = TypePetsData.saveSession(sessionData) || {};
         checkAchievements(sessionData);
+        renderStageList();
+
+        // Class practice: keep rounds going until the timer runs out
+        if (classMode && !classMode.ended) {
+            classMode.keys += sessionKeys;
+            classMode.correct += sessionCorrect;
+            classMode.errors += sessionErrors;
+            classMode.activeSeconds += activeSeconds;
+            classMode.rounds++;
+            const starText = stars > 0 ? '⭐'.repeat(stars) : '💪';
+            showToast(`${starText} Round ${classMode.rounds} done! Keep going!`, 'success', 2000);
+            if (window.sound) (passed ? window.sound.levelUp() : window.sound.correct());
+            loadStage(currentStageIdx, { intro: passed ? 'Great job! Keep going!' : 'Nice try! Keep going!' });
+            return;
+        }
 
         // Show completion overlay
         const overlay = document.getElementById('stageCompleteOverlay');
         document.getElementById('completeEmoji').textContent = stars === 3 ? '★' : stars >= 1 ? '✓' : '→';
-        document.getElementById('completeTitle').textContent = accuracy >= 85 ? 'Stage Complete' : 'Try Again';
+        document.getElementById('completeTitle').textContent = passed ? 'Stage Complete' : 'Try Again';
         document.getElementById('completeStars').textContent = '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
         document.getElementById('completeAccuracy').textContent = accuracy + '%';
         document.getElementById('completeWpm').textContent = wpm;
-        const mins = Math.floor(elapsed / 60);
-        const secs = Math.floor(elapsed % 60);
-        document.getElementById('completeTime').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+        document.getElementById('completeTime').textContent = TypingUtils.formatTime(activeSeconds);
+        document.getElementById('noLookBonus').classList.toggle('hidden', !noLookRun);
 
         const bubbleNotice = document.getElementById('bubbleUnlockNotice');
         const bubbleText = document.getElementById('bubbleUnlockText');
-        const xpNotice = document.getElementById('xpEarnedNotice');
-        if (accuracy >= 85) {
+        if (passed && wasUnlocked) {
             const mapping = STAGE_BUBBLE_MAP[stage.id];
             if (mapping) {
                 bubbleText.textContent = mapping.levels ? `🫧 ${mapping.desc} unlocked!` : `🎮 Free Play unlocked!`;
                 bubbleNotice.classList.remove('hidden');
             }
-            xpNotice.textContent = `+20 XP for your pet!`;
-            xpNotice.classList.remove('hidden');
-        } else { bubbleNotice.classList.add('hidden'); xpNotice.classList.add('hidden'); }
+        } else { bubbleNotice.classList.add('hidden'); }
+        showRewardLines(result);
 
+        const certLink = document.getElementById('certLink');
+        certLink.href = `report.html?cert=training&stage=${stage.id}`;
+        certLink.classList.toggle('hidden', stars < 1);
+
+        // Suggest No-look after a 3-star run from stage 3 onward
+        document.getElementById('noLookSuggest').classList.toggle('hidden', !(stars === 3 && stage.id >= 3 && !noLook));
+
+        // The handler is set every time, so finishing stage 8 never breaks "Next" for other stages
         const nextBtn = document.getElementById('nextStageBtn');
-        if (accuracy >= 85 && nextStage) {
+        const nextOpen = upcoming && isStageOpen(upcoming);
+        if (passed && upcoming && nextOpen) {
             nextBtn.style.display = 'inline-block';
-            nextBtn.textContent = `Next: ${nextStage.name} →`;
-        } else if (accuracy < 85) {
-            nextBtn.style.display = 'none';
-        } else {
+            nextBtn.textContent = `Next: ${upcoming.name} →`;
+            nextBtn.onclick = nextStage;
+        } else if (passed && !upcoming && wasUnlocked) {
             nextBtn.style.display = 'inline-block';
             nextBtn.textContent = 'All Stages Complete!';
-            nextBtn.onclick = () => { window.location.href = '../index.html'; };
+            nextBtn.onclick = () => { window.location.href = 'home.html'; };
+        } else {
+            nextBtn.style.display = 'none';
+            nextBtn.onclick = null;
         }
 
         overlay.classList.add('active');
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
         if (stars >= 2) { spawnConfetti(80); if (window.sound) window.sound.celebration(); if (window.maybeDonatePrompt) window.maybeDonatePrompt(); }
-        else if (accuracy >= 85) { if (window.sound) window.sound.levelUp(); }
-        renderStageList();
+        else if (passed) { if (window.sound) window.sound.levelUp(); }
+        say(passed ? (noLookRun ? 'Great job! No-look bonus!' : 'Great job!') : "Nice try! Let's try again.");
     }
 
     function nextStage() {
         document.getElementById('stageCompleteOverlay').classList.remove('active');
         if (currentStageIdx < STAGES.length - 1) { currentStageIdx++; loadStage(currentStageIdx); renderStageList(); }
+        refocusTyping();
     }
 
     function retryStage() {
         document.getElementById('stageCompleteOverlay').classList.remove('active');
         loadStage(currentStageIdx);
+        refocusTyping();
     }
 
     document.addEventListener('DOMContentLoaded', initTraining);

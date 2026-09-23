@@ -135,3 +135,146 @@
         font-size: 10px;
     }
 }
+
+/* ─── No-look mode: hide the "where is it" hints ──────────── */
+.no-look .key-group.active .key-bg {
+    stroke: #D4D9E0;
+    stroke-width: 1;
+    opacity: 0.6;
+    filter: none;
+}
+
+.no-look .finger-shape.active {
+    fill: #F0DCA0;
+    stroke: #C4A060;
+    stroke-width: 0.8;
+    opacity: 0.5;
+    filter: none;
+}
+
+.no-look .finger-hint {
+    visibility: hidden;
+}
+
+/* ─── Typing helpers (shared by Training + Articles) ──────── */
+.hidden {
+    display: none !important;
+}
+
+.typing-banner {
+    margin: 0 auto 12px;
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-align: center;
+    max-width: 520px;
+}
+
+.caps-banner {
+    background: #FFF3E0;
+    color: #B45309;
+    border: 1px solid #F6C27A;
+}
+
+.ime-banner {
+    background: #E8F4FF;
+    color: #2B6CB0;
+    border: 1px solid #A7CBEF;
+}
+
+[data-theme="dark"] .caps-banner { background: #422006; color: #FCD34D; border-color: #7A4A12; }
+[data-theme="dark"] .ime-banner { background: #1A2A40; color: #90CDF4; border-color: #2C4A6E; }
+
+.tap-to-type {
+    margin-top: 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--accent-blue);
+    animation: tapPulse 1.6s ease-in-out infinite;
+    cursor: pointer;
+}
+
+@keyframes tapPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Hidden but focusable, so phones/tablets open their on-screen keyboard */
+.touch-type-input {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 2px;
+    height: 2px;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    opacity: 0;
+    background: transparent;
+    color: transparent;
+    caret-color: transparent;
+    font-size: 16px; /* 16px stops iOS from zooming in on focus */
+    pointer-events: none;
+    outline: none;
+}
+
+.tool-toggle {
+    padding: 5px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.tool-toggle:hover {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+.tool-toggle.on {
+    background: var(--accent-purple);
+    border-color: var(--accent-purple);
+    color: white;
+}
+
+.class-banner {
+    max-width: 900px;
+    margin: 0 auto 14px;
+    padding: 10px 16px;
+    background: #EEF7EE;
+    color: #2F7A3A;
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+[data-theme="dark"] .class-banner { background: #1A3A1A; color: #9AE6B4; }
+
+.class-timer {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.class-timer.urgent {
+    background: #FEECE8;
+    color: #C04630;
+}
+
+[data-theme="dark"] .class-timer.urgent { background: #3A1A18; color: #FEB2B2; }
+
+.stage-complete-card {
+    max-width: min(420px, calc(100vw - 32px));
+}

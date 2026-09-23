@@ -230,6 +230,8 @@
 
 .ts-sound-toggle {
     flex-shrink: 0;
+    display: flex;
+    gap: 6px;
 }
 
 .ts-sound-btn {
@@ -249,6 +251,10 @@
 .ts-sound-btn:hover {
     background: var(--bg-primary);
     border-color: var(--accent-blue);
+}
+
+.ts-sound-btn.off {
+    opacity: 0.45;
 }
 
 /* ─── Article Text Display ─────────────────────────────────── */
@@ -422,6 +428,121 @@
     display: flex;
     gap: 8px;
     justify-content: center;
+}
+
+/* ─── Typing area (text + hidden touch input + banners) ────── */
+.article-typing-area {
+    position: relative;
+}
+
+.article-typing-area .tap-to-type {
+    text-align: center;
+    margin: -4px 0 12px;
+}
+
+/* ─── Ghost: race your past self ───────────────────────────── */
+.ghost-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: #F3F0FA;
+    color: #6B5CA5;
+    border-radius: var(--radius-md);
+    padding: 6px 14px;
+    margin-bottom: 12px;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+[data-theme="dark"] .ghost-bar {
+    background: #2E2745;
+    color: #C9BFEA;
+}
+
+.ghost-label {
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+}
+
+.ghost-status {
+    flex: 1;
+    min-width: 140px;
+    font-weight: 600;
+}
+
+.ghost-toggle {
+    background: none;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    color: inherit;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.72rem;
+    padding: 2px 10px;
+    cursor: pointer;
+    opacity: 0.8;
+}
+
+.char-ghost {
+    position: relative;
+    background: rgba(155, 142, 196, 0.28);
+    border-radius: 3px;
+}
+
+.char-ghost::after {
+    content: '👻';
+    position: absolute;
+    left: 50%;
+    top: -1.05em;
+    transform: translateX(-50%);
+    font-size: 0.7em;
+    line-height: 1;
+    pointer-events: none;
+}
+
+/* ─── Result extras ────────────────────────────────────────── */
+.ghost-result {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: var(--accent-purple);
+    margin-bottom: 14px;
+}
+
+.result-line {
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin: -6px 0 14px;
+}
+
+.result-reward { color: var(--accent-green); }
+.result-goal { color: var(--accent-orange); }
+.result-class { color: var(--text-secondary); }
+
+.result-actions {
+    flex-wrap: wrap;
+}
+
+.result-actions .btn-secondary {
+    margin-left: 0;
+}
+
+.class-summary-sub {
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.article-card-marks {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.article-best-mark {
+    color: var(--accent-purple);
+    font-weight: 700;
 }
 
 /* ─── Responsive ───────────────────────────────────────────── */
