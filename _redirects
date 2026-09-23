@@ -1,1 +1,12 @@
-/*  /index.html   200
+# Cloudflare Pages redirects: https://developers.cloudflare.com/pages/configuration/redirects/
+#
+# There is deliberately NO single-page-app catch-all (`/*  /index.html  200`).
+# Every page on this site is a real file, so an unknown URL should get a real
+# 404 (Pages serves /404.html with a 404 status) instead of the homepage with a
+# 200. The catch-all created "soft 404s" for search engines and hid missing files.
+#
+# Short, friendly entry points (handy to read out loud in a classroom):
+/app      /pages/home.html  302
+/play     /pages/home.html  302
+/pages    /pages/home.html  302
+/pages/   /pages/home.html  302

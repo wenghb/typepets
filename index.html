@@ -4,24 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TypePets — Learn Typing the Fun Way | Free Kids Typing Practice</title>
-    <meta name="description" content="Free typing practice for kids ages 7-12. Finger training, bubble pop games, article typing, and a pet that grows as you improve. No signup, no ads, no data collection. 100% in your browser.">
-    <meta name="keywords" content="kids typing practice, learn typing for kids, typing games for kids, touch typing kids, free typing tutor, typing practice, keyboard typing game, finger training typing">
+    <meta name="description" content="Free typing practice for kids ages 7-12: finger-technique lessons, Bubble Pop, reading practice, and a pet that grows only when kids practice. No login, no ads, nothing to install. Works on Chromebooks and iPads.">
+    <meta name="keywords" content="kids typing practice, learn typing for kids, typing games for kids, touch typing kids, free typing tutor, typing practice no login, classroom typing, chromebook typing practice">
+    <meta name="theme-color" content="#4A90D9">
+
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
 
     <!-- Open Graph -->
     <meta property="og:title" content="TypePets — Learn Typing the Fun Way">
-    <meta property="og:description" content="Free typing practice for kids with finger training, games, articles, and a virtual pet that evolves as you improve. No signup required.">
+    <meta property="og:description" content="Free typing practice for kids 7–12 with finger training, games, reading practice, and a virtual pet that grows as they improve. No login, no ads.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://typepets.com">
+    <meta property="og:url" content="https://typepets.com/">
     <meta property="og:image" content="https://typepets.com/img/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="TypePets: Learn typing the fun way. A color-coded keyboard with word bubbles and a hatching chick.">
     <meta property="og:site_name" content="TypePets">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="TypePets — Learn Typing the Fun Way">
-    <meta name="twitter:description" content="Free typing practice for kids with games, training, and a virtual pet. No signup, no ads.">
+    <meta name="twitter:description" content="Free typing practice for kids with games, finger training, and a virtual pet. No login, no ads.">
     <meta name="twitter:image" content="https://typepets.com/img/og-image.png">
+    <meta name="twitter:image:alt" content="TypePets: Learn typing the fun way. A color-coded keyboard with word bubbles and a hatching chick.">
 
-    <link rel="canonical" href="https://typepets.com">
+    <link rel="canonical" href="https://typepets.com/">
     <link rel="stylesheet" href="css/landing.css">
 
     <!-- Schema.org SoftwareApplication -->
@@ -30,24 +39,35 @@
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
         "name": "TypePets",
-        "url": "https://typepets.com",
+        "url": "https://typepets.com/",
         "applicationCategory": "EducationalApplication",
-        "operatingSystem": "Web",
+        "operatingSystem": "Web browser (Chrome, Edge, Safari, Firefox); Chromebook, Windows, macOS, iPadOS",
+        "inLanguage": "en",
+        "isAccessibleForFree": true,
         "offers": {
             "@type": "Offer",
             "price": "0",
             "priceCurrency": "USD"
         },
-        "description": "Free typing practice for kids ages 7-12. Finger training, bubble pop games, article typing, and a virtual pet that evolves as you improve.",
+        "description": "Free typing practice for kids ages 7-12. Finger-technique lessons, Bubble Pop, reading practice, and a virtual pet that grows only from real practice. No accounts, no ads, progress stays on the device.",
         "featureList": [
-            "Finger Training — step-by-step home row and full keyboard lessons",
-            "Bubble Pop — type letters and words to pop bubbles before they escape",
-            "Read & Type — practice typing with fun articles about science, animals, and space",
-            "Pet Evolution — grow a virtual pet from egg to master",
-            "Smart Difficulty — auto-adjusts to focus on weak keys",
-            "Progress Dashboard — speed charts, accuracy heatmap, achievements"
+            "Finger Training: 8 stages from the home row to the full keyboard, with color-coded keys and a finger guide",
+            "Spoken finger hints and a no-look mode",
+            "Bubble Pop: 20 levels from single letters to full phrases",
+            "Read & Type: 26 kid-friendly reading passages, with a ghost of your best run to race",
+            "Virtual pet that evolves through 6 stages and is fed with food earned by practicing",
+            "Daily practice goal and streaks with a streak freeze",
+            "Up to 4 child profiles per device and a Pet Passport backup code",
+            "Classroom links that open a specific lesson with a countdown timer",
+            "Progress dashboard, printable certificates, and a parent/teacher report"
         ],
-        "screenshot": "https://typepets.com/img/og-image.png",
+        "image": "https://typepets.com/img/og-image.png",
+        "screenshot": [
+            "https://typepets.com/img/screens/training.webp",
+            "https://typepets.com/img/screens/bubbles.webp",
+            "https://typepets.com/img/screens/pet.webp",
+            "https://typepets.com/img/screens/dashboard.webp"
+        ],
         "audience": {
             "@type": "EducationalAudience",
             "educationalRole": "student",
@@ -57,7 +77,7 @@
     }
     </script>
 
-    <!-- Schema.org FAQPage -->
+    <!-- Schema.org FAQPage (keep in sync with the visible FAQ below) -->
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
@@ -68,7 +88,7 @@
                 "name": "Is TypePets really free?",
                 "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "Yes, TypePets is 100% free. There is no signup, no premium tier, no ads, and no in-app purchases. Every feature is available immediately."
+                    "text": "Yes, 100% free. No signup, no premium tier, no ads, and no in-app purchases. Every feature is available right away. TypePets is kept running by optional donations."
                 }
             },
             {
@@ -76,7 +96,7 @@
                 "name": "Does TypePets collect my child's data?",
                 "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "No. All progress data is stored in the browser's localStorage and never sent anywhere. There are no accounts and no servers storing data. We use Cloudflare Web Analytics, a privacy-first tool that does not use cookies, does not track individuals, and does not collect personal information."
+                    "text": "No. Progress is saved in your browser's local storage on your own device and is never uploaded. There are no accounts, no ads, and no tracking cookies. We use Cloudflare Web Analytics, a privacy-first tool that doesn't use cookies or track individuals, to count page visits. See our privacy policy."
                 }
             },
             {
@@ -84,23 +104,79 @@
                 "name": "What age is TypePets for?",
                 "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "TypePets is designed for kids ages 7-12 who are learning to touch type. The difficulty automatically adjusts, so younger beginners and more advanced typists both get an appropriate challenge."
+                    "text": "TypePets is designed for kids ages 7–12 who are learning to touch type. Lessons start with just a few home-row keys, so younger beginners can keep up, and later stages and games give more confident typists a real challenge."
                 }
             },
             {
                 "@type": "Question",
-                "name": "What keyboard layout does TypePets support?",
+                "name": "Can more than one child use TypePets on the same device?",
                 "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "TypePets currently supports the QWERTY keyboard layout, which is the standard layout used on most English-language keyboards."
+                    "text": "Yes. Up to four kids can each have their own profile on the same browser, with their own pet, progress, and stats. Switch profiles inside the app. No emails or passwords are needed."
                 }
             },
             {
                 "@type": "Question",
-                "name": "Can I use TypePets on iPad or tablet?",
+                "name": "What happens to progress if we clear the browser or switch computers?",
                 "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "Yes, TypePets works on iPads and tablets with a responsive design. However, a physical keyboard is recommended for the best typing practice experience."
+                    "text": "Progress is stored in the browser on that device, so clearing browsing data or moving to a different computer starts fresh. To keep it safe, make a Pet Passport: a save code you can copy and keep somewhere safe, then paste into TypePets on any browser to restore your progress. Making a new one every week or so is a good habit."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Does TypePets work on Chromebooks?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes. TypePets runs in Chrome with nothing to install, so it works on home and school Chromebooks. Chromebook keyboards have a Search or Launcher key where Caps Lock usually is and a row of shortcut keys instead of F1–F12, which doesn't get in the way of letter practice. If a school Chromebook clears data when students sign out, use a Pet Passport code to carry progress between sessions. More in our Chromebook typing guide."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Can I use TypePets on an iPad or tablet?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes. TypePets works on iPads and other tablets: tap the typing area to bring up the on-screen keyboard. For learning touch typing, a physical keyboard is best (a keyboard case or an inexpensive Bluetooth keyboard works well), because kids need to feel the keys and the bumps on F and J."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Is there a report for parents or teachers?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes. The Stats dashboard shows speed and accuracy over time, which keys are trickiest, and badges earned. You can also print a one-page progress report with practice minutes, speed and accuracy trends, weakest keys, and completed lessons, plus certificates for finished training stages, Bubble Pop levels, and articles."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Do students need accounts to use TypePets in class?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "No. There are no student accounts and no student data leaves the device, so there is nothing to roster. Teachers can share a classroom link that opens a specific lesson with a timer, for example https://typepets.com/pages/training.html?stage=1&min=10 opens Stage 1 with a 10-minute countdown. See For teachers to build one."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Which keyboard layouts and languages does TypePets support?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "For now, TypePets supports the QWERTY keyboard layout and English practice text only. Other layouts such as AZERTY, QWERTZ, or Dvorak, and other languages, aren't supported yet."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How does the pet system work?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Every practice session earns XP. Your pet starts as an egg and evolves through 6 stages: Egg, Baby, Kid, Teen, Adult, and Master. Pets also get hungry, and the food to feed them is earned by practicing, so the pet only grows when your child actually types. There is nothing to buy."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How long should my child practice each day?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "10–15 minutes a day is plenty for most kids aged 7–12. Short daily sessions build muscle memory faster than one long session a week. You can set a daily goal in the app, and a streak freeze keeps one off day from breaking a streak. See typing goals by grade for realistic targets."
                 }
             }
         ]
@@ -114,9 +190,10 @@
             <a href="/" class="nav-logo">🐾 TypePets</a>
             <div class="nav-links">
                 <a href="#features">Features</a>
-                <a href="#how-it-works">How It Works</a>
+                <a href="#teachers">Teachers</a>
+                <a href="#families">Families</a>
                 <a href="#faq">FAQ</a>
-                <a href="/blog">Blog</a>
+                <a href="/blog/">Blog</a>
                 <a href="https://buy.stripe.com/bJecN7fDM1eSeNigYH8EM00" target="_blank" rel="noopener" style="color:#F6C255;font-weight:600;">💛 Support</a>
                 <a href="/pages/home.html" class="nav-cta">Open App →</a>
             </div>
@@ -127,13 +204,14 @@
     <!-- Hero -->
     <section class="hero">
         <div class="hero-inner">
-            <div class="hero-badge">100% Free · No Account · No Data Collection</div>
+            <div class="hero-badge">100% Free · No Login · No Ads</div>
             <h1>Learn typing<br><span class="gradient-text">the fun way.</span></h1>
-            <p class="hero-sub">The free typing tutor that teaches kids proper finger placement through games, practice articles, and a virtual pet that grows as they improve. No signup. No ads. Just typing.</p>
+            <p class="hero-sub">The free typing tutor that teaches kids proper finger placement through step-by-step lessons, games, reading practice, and a virtual pet that grows as they improve. No signup. No ads. Nothing to install.</p>
             <div class="hero-actions">
                 <a href="/pages/home.html" class="btn-primary">Start Typing — It's Free →</a>
+                <a href="#teachers" class="btn-secondary">For teachers</a>
             </div>
-            <p class="hero-note">Works in any browser. Nothing to install.</p>
+            <p class="hero-note">Works in any modern browser: Chromebooks, laptops, desktops, and iPads.</p>
         </div>
     </section>
 
@@ -142,15 +220,15 @@
         <div class="trust-inner">
             <div class="trust-item">
                 <span class="trust-icon">🔒</span>
-                <span>Privacy-first — all data stays in your browser</span>
+                <span>No accounts, no ads, no tracking cookies</span>
             </div>
             <div class="trust-item">
                 <span class="trust-icon">🎯</span>
-                <span>Designed for kids 7–12 learning to touch type</span>
+                <span>Made for kids 7–12 learning to touch type</span>
             </div>
             <div class="trust-item">
-                <span class="trust-icon">🐾</span>
-                <span>Grow a virtual pet by practicing — fun meets learning</span>
+                <span class="trust-icon">🏫</span>
+                <span>Classroom-ready: no student logins</span>
             </div>
         </div>
     </section>
@@ -165,37 +243,268 @@
                 <div class="feature-card">
                     <div class="feature-icon">⌨️</div>
                     <h3>Finger Training</h3>
-                    <p>Learn correct finger positions step by step. Color-coded keys show which finger goes where. Start with the home row and build up to the full keyboard.</p>
+                    <p>Learn correct finger positions in 8 short stages. Color-coded keys show which finger goes where, starting with the home row and building up to the full keyboard.</p>
                 </div>
 
                 <div class="feature-card">
                     <div class="feature-icon">🫧</div>
                     <h3>Bubble Pop</h3>
-                    <p>Pop floating bubbles by typing the letters and words inside them. 20 levels that get progressively harder — from single letters to full words and sentences.</p>
+                    <p>Pop floating bubbles by typing the letters and words inside them. 20 levels that get progressively harder, from single letters to words and whole phrases.</p>
                 </div>
 
                 <div class="feature-card">
                     <div class="feature-icon">📖</div>
                     <h3>Read &amp; Type</h3>
-                    <p>Practice with fun articles about science, animals, space, and more. Real content that's interesting to read — not random letter drills.</p>
+                    <p>Type 26 kid-friendly articles about science, animals, space, history, and sports, then race a ghost of your own best run to beat your time. Real reading, not random letter drills.</p>
                 </div>
 
                 <div class="feature-card">
                     <div class="feature-icon">🐾</div>
                     <h3>Pet Evolution</h3>
-                    <p>Grow your virtual pet from an egg to a master creature. Every typing session earns XP. Feed it, play with it, and watch it evolve through 6 stages.</p>
+                    <p>Grow a virtual pet from an egg to a master creature. Practice earns XP and the food that keeps your pet happy, so it only grows when you type.</p>
                 </div>
 
                 <div class="feature-card">
                     <div class="feature-icon">🎯</div>
                     <h3>Smart Difficulty</h3>
-                    <p>The app tracks which keys are hardest for you and focuses practice there. Difficulty adjusts automatically so kids stay challenged but not frustrated.</p>
+                    <p>The app notices which keys are hardest for you and brings them up more often. New levels unlock as skills grow, so kids stay challenged but not frustrated.</p>
                 </div>
 
                 <div class="feature-card">
                     <div class="feature-icon">📊</div>
                     <h3>Track Progress</h3>
-                    <p>A full dashboard with typing speed charts, accuracy heatmaps, and achievement badges. Kids (and parents) can see improvement over time.</p>
+                    <p>Speed and accuracy charts, a tricky-keys heatmap, badges, printable certificates, and a one-page report for parents and teachers.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Showcase: real screenshots -->
+    <section class="showcase section-alt" id="tour">
+        <div class="section-inner">
+            <h2 class="section-title">See TypePets in action</h2>
+            <p class="section-sub">Real screens from the app, exactly what your child will see.</p>
+
+            <div class="showcase-row">
+                <figure class="shot">
+                    <div class="shot-bar" aria-hidden="true"><span></span><span></span><span></span></div>
+                    <img src="img/screens/training.webp" width="1200" height="994" loading="lazy" decoding="async"
+                         alt="TypePets Finger Training: a practice word with the next letter highlighted, a color-coded on-screen keyboard and hand guide showing which finger to use, and live accuracy and speed stats">
+                </figure>
+                <div class="showcase-text">
+                    <span class="eyebrow">Finger Training</span>
+                    <h3>Real touch-typing technique, one row at a time</h3>
+                    <p>Eight short stages take kids from the home row to the full keyboard. Color-coded keys and an on-screen hand guide show exactly which finger to use for every letter.</p>
+                    <ul class="check-list">
+                        <li><strong>Spoken finger hints</strong> say which finger to use, using your device's built-in voices</li>
+                        <li><strong>No-look mode</strong> hides the hints when they're ready, for bonus XP</li>
+                        <li><strong>Stars for accuracy</strong>, not raw speed</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="showcase-row">
+                <figure class="shot">
+                    <div class="shot-bar" aria-hidden="true"><span></span><span></span><span></span></div>
+                    <img src="img/screens/bubbles.webp" width="1200" height="949" loading="lazy" decoding="async"
+                         alt="TypePets Bubble Pop: bubbles with short words floating up an underwater scene, with score, combo, lives, a timer, and a list of 20 levels">
+                </figure>
+                <div class="showcase-text">
+                    <span class="eyebrow">Bubble Pop</span>
+                    <h3>Type the word, pop the bubble</h3>
+                    <p>20 levels grow from home-row letters to short words, longer words, and whole phrases. Finishing training stages unlocks new levels, so the game always matches what kids have learned.</p>
+                    <ul class="check-list">
+                        <li><strong>Kid-friendly pacing</strong> that ramps up gently as levels get harder</li>
+                        <li><strong>Tricky keys come back</strong> more often, so practice targets weak spots</li>
+                        <li><strong>Milestone rewards</strong> for the pet at levels 5, 10, 15, and 20</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="showcase-row">
+                <figure class="shot">
+                    <div class="shot-bar" aria-hidden="true"><span></span><span></span><span></span></div>
+                    <img src="img/screens/pet.webp" width="1200" height="806" loading="lazy" decoding="async"
+                         alt="TypePets pet page: a young pet at the Kid stage with its XP bar, hunger and happiness meters, and the evolution path from Egg to Master">
+                </figure>
+                <div class="showcase-text">
+                    <span class="eyebrow">Your pet</span>
+                    <h3>A pet that grows only from real practice</h3>
+                    <p>Every session earns XP, and the pet evolves from an egg through six stages. Pets get hungry, and the only way to earn food is to practice. There's nothing to buy and no shortcuts.</p>
+                    <ul class="check-list">
+                        <li><strong>Daily goal</strong> of a few minutes, with a streak freeze for off days</li>
+                        <li><strong>Six stages</strong>: Egg, Baby, Kid, Teen, Adult, Master</li>
+                        <li><strong>Nothing to buy</strong>: no shop, no coins, no upsells</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="showcase-row">
+                <figure class="shot">
+                    <div class="shot-bar" aria-hidden="true"><span></span><span></span><span></span></div>
+                    <img src="img/screens/dashboard.webp" width="1200" height="806" loading="lazy" decoding="async"
+                         alt="TypePets Stats dashboard: a 5-day practice streak, today's practice time, total sessions, best WPM, average accuracy, and rising speed and accuracy trend charts">
+                </figure>
+                <div class="showcase-text">
+                    <span class="eyebrow">Progress</span>
+                    <h3>Progress that parents and teachers can see</h3>
+                    <p>The Stats dashboard tracks streaks, practice time, speed, and accuracy over time. Speed only counts correctly typed characters while a child is actively typing, so a break never drags a score down.</p>
+                    <ul class="check-list">
+                        <li><strong>Printable report</strong> with practice minutes, trends, and weakest keys</li>
+                        <li><strong>Certificates</strong> for finished stages, levels, and articles</li>
+                        <li><strong>Badges</strong> for milestones along the way</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why parents & teachers pick TypePets -->
+    <section class="why" id="why">
+        <div class="section-inner">
+            <h2 class="section-title">Why parents &amp; teachers pick TypePets</h2>
+            <p class="section-sub">A typing tutor built the way we'd want one for our own kids.</p>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Private by design</h3>
+                    <p>No accounts, no ads, and no tracking cookies. Progress is saved in the browser on your own device and never leaves it. There's no child data for anyone to collect, sell, or leak.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">✅</div>
+                    <h3>Accuracy first, never harsh</h3>
+                    <p>Stars reward careful, correct typing rather than raw speed. Speed counts only correct characters during active typing, so pauses don't hurt, and mistakes are treated as practice, not failure.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⌨️</div>
+                    <h3>A real course, plus games</h3>
+                    <p>A structured finger-technique course from the home row to the number row, with Bubble Pop and reading practice to build speed once the technique is in place.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🐣</div>
+                    <h3>Rewards that follow real practice</h3>
+                    <p>The pet grows only from XP and food earned by typing. No shop, no loot boxes, no in-app purchases. The only way forward is to practice.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎓</div>
+                    <h3>Certificates &amp; reports</h3>
+                    <p>Print a certificate when a stage, level, or article is done, and a one-page report for a parent check-in or a conference.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💛</div>
+                    <h3>Free for everyone</h3>
+                    <p>Every feature, for every child, at no cost. There's no premium tier. TypePets is kept running by optional donations from families who love it.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- For teachers -->
+    <section class="audience section-alt" id="teachers">
+        <div class="section-inner audience-grid">
+            <div class="audience-copy">
+                <span class="eyebrow">For teachers</span>
+                <h2>Classroom-ready with one link</h2>
+                <p>Students open a link and start typing. There are no student accounts and TypePets collects no student data, so there's no roster to upload and no data-sharing agreement to sign. If your school reviews new sites, our <a href="/privacy.html">privacy policy</a> is one short page.</p>
+                <p><strong>Classroom links</strong> open a specific exercise with a countdown timer. Add <code>stage</code> (Finger Training stage 1–8) or <code>article</code> (reading passage 1–26) and <code>min</code> (minutes). A teacher link opens the lesson even if a student hasn't unlocked it yet, and the countdown starts when they press the first key. When time is up, students see a summary card, with a link to print a certificate, to show you.</p>
+                <code class="url-example">https://typepets.com/pages/training.html?stage=1&amp;min=10</code>
+                <span class="url-note">Opens Stage 1 (Home Row) with a 10-minute timer.</span>
+                <code class="url-example">https://typepets.com/pages/articles.html?article=3&amp;min=15</code>
+                <span class="url-note">Opens reading passage #3 with a 15-minute timer.</span>
+                <ul class="check-list">
+                    <li><strong>Shared Chromebooks are fine</strong>: each device keeps its own progress, and students can carry theirs with a Pet Passport code</li>
+                    <li><strong>Printable certificates</strong> and a one-page progress report</li>
+                    <li><strong>Works on iPads</strong>: tap to type with the on-screen keyboard (a physical keyboard is best)</li>
+                </ul>
+                <div class="panel-actions" style="margin-top:20px;">
+                    <a href="https://classroom.google.com/share?url=https%3A%2F%2Ftypepets.com" target="_blank" rel="noopener" class="btn-primary">Share to Google Classroom</a>
+                    <a href="/pages/home.html" class="btn-secondary">Try it yourself</a>
+                </div>
+            </div>
+
+            <div class="panel" id="link-builder">
+                <h3>🔗 Make a classroom link</h3>
+                <p>Pick a lesson and a time limit, then copy the link or post it straight to Google Classroom.</p>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="lb-stage">Finger Training stage</label>
+                        <select id="lb-stage">
+                            <option value="1">1. Home Row</option>
+                            <option value="2">2. Home Row Words</option>
+                            <option value="3">3. Top Row</option>
+                            <option value="4">4. Top + Home Words</option>
+                            <option value="5">5. Bottom Row</option>
+                            <option value="6">6. All Letters</option>
+                            <option value="7">7. Numbers</option>
+                            <option value="8">8. Full Keyboard</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="lb-min">Timer</label>
+                        <select id="lb-min">
+                            <option value="5">5 min</option>
+                            <option value="10" selected>10 min</option>
+                            <option value="15">15 min</option>
+                            <option value="20">20 min</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="lb-url">Your link</label>
+                    <textarea id="lb-url" class="link-output" rows="2" readonly spellcheck="false">https://typepets.com/pages/training.html?stage=1&amp;min=10</textarea>
+                </div>
+                <div class="panel-actions">
+                    <button type="button" class="btn-primary" id="lb-copy">Copy link</button>
+                    <a href="https://classroom.google.com/share?url=https%3A%2F%2Ftypepets.com%2Fpages%2Ftraining.html%3Fstage%3D1%26min%3D10" target="_blank" rel="noopener" class="btn-secondary" id="lb-share">Post to Google Classroom</a>
+                </div>
+                <p class="copy-status" id="lb-status" aria-live="polite"></p>
+            </div>
+        </div>
+    </section>
+
+    <!-- For families -->
+    <section class="audience" id="families">
+        <div class="section-inner audience-grid audience-grid-center">
+            <div class="audience-copy">
+                <span class="eyebrow">For families</span>
+                <h2>Made for real homes: siblings, shared laptops, and tablets</h2>
+                <p>Set up in seconds with no emails or passwords. Each child gets their own profile and pet, and a simple save code keeps everyone's progress safe.</p>
+                <p>Not sure where to start? Our guide to <a href="/blog/teach-kids-touch-typing/">teaching kids touch typing</a> covers the right age to begin, how much to practice, and how to keep it fun. For realistic targets, see <a href="/blog/typing-goals-by-grade/">typing speed goals by grade</a>.</p>
+                <div class="panel-actions" style="margin-top:8px;">
+                    <a href="/pages/home.html" class="btn-primary">Start typing — free →</a>
+                </div>
+            </div>
+            <div class="mini-grid">
+                <div class="mini-card">
+                    <div class="mini-icon">👧👦</div>
+                    <h3>Up to 4 kids per device</h3>
+                    <p>Each child gets their own profile, pet, and progress on the same browser.</p>
+                </div>
+                <div class="mini-card">
+                    <div class="mini-icon">💾</div>
+                    <h3>Pet Passport backup</h3>
+                    <p>Copy a save code to back up progress, then restore it on another browser or after clearing data.</p>
+                </div>
+                <div class="mini-card">
+                    <div class="mini-icon">💻</div>
+                    <h3>Chromebooks &amp; laptops</h3>
+                    <p>Runs in Chrome, Edge, Safari, or Firefox. Nothing to install, nothing to update.</p>
+                </div>
+                <div class="mini-card">
+                    <div class="mini-icon">📱</div>
+                    <h3>iPads &amp; tablets</h3>
+                    <p>Tap the typing area to use the on-screen keyboard, though a physical keyboard is best for learning to type by touch.</p>
+                </div>
+                <div class="mini-card">
+                    <div class="mini-icon">🎯</div>
+                    <h3>Daily goal &amp; streaks</h3>
+                    <p>A few minutes a day adds up. A streak freeze keeps one off day from breaking the streak.</p>
+                </div>
+                <div class="mini-card">
+                    <div class="mini-icon">🔊</div>
+                    <h3>Spoken finger hints</h3>
+                    <p>Optional voice hints, spoken by your device's built-in voices, say which finger to use. Great for kids still learning to read.</p>
                 </div>
             </div>
         </div>
@@ -211,7 +520,7 @@
                 <div class="step">
                     <div class="step-num">1</div>
                     <h3>Choose a mode</h3>
-                    <p>Pick Finger Training to learn proper technique, Bubble Pop for a fast-paced game, or Articles to practice with real stories.</p>
+                    <p>Pick Finger Training to learn proper technique, Bubble Pop for a fast-paced game, or Read &amp; Type to practice with real articles.</p>
                 </div>
                 <div class="step-arrow">→</div>
                 <div class="step">
@@ -223,7 +532,7 @@
                 <div class="step">
                     <div class="step-num">3</div>
                     <h3>Watch your pet grow</h3>
-                    <p>Every session earns XP for your virtual pet. It evolves from an egg through six stages. More practice = bigger, cooler pet.</p>
+                    <p>Every session earns XP and food for your pet. It evolves from an egg through six stages. More practice = bigger, cooler pet.</p>
                 </div>
             </div>
         </div>
@@ -238,7 +547,7 @@
         </div>
     </section>
 
-    <!-- FAQ -->
+    <!-- FAQ (keep in sync with the FAQPage JSON-LD in <head>) -->
     <section class="faq" id="faq">
         <div class="section-inner">
             <h2 class="section-title">Frequently Asked Questions</h2>
@@ -246,37 +555,62 @@
             <div class="faq-list">
                 <details class="faq-item">
                     <summary>Is TypePets really free?</summary>
-                    <p>Yes, 100% free. No signup, no premium tier, no ads, no in-app purchases. Every feature is available right now.</p>
+                    <p>Yes, 100% free. No signup, no premium tier, no ads, and no in-app purchases. Every feature is available right away. TypePets is kept running by optional donations.</p>
                 </details>
 
                 <details class="faq-item">
                     <summary>Does TypePets collect my child's data?</summary>
-                    <p>No. All progress data is stored in the browser's localStorage and never sent anywhere. There are no accounts, no servers, and no tracking. We use Cloudflare Web Analytics, a privacy-first tool that doesn't use cookies or track individuals. Your child's data stays on their device.</p>
+                    <p>No. Progress is saved in your browser's local storage on your own device and is never uploaded. There are no accounts, no ads, and no tracking cookies. We use Cloudflare Web Analytics, a privacy-first tool that doesn't use cookies or track individuals, to count page visits. See our <a href="/privacy.html">privacy policy</a>.</p>
                 </details>
 
                 <details class="faq-item">
                     <summary>What age is TypePets for?</summary>
-                    <p>TypePets is designed for kids ages 7–12 who are learning to touch type. The difficulty auto-adjusts, so younger beginners and more advanced typists both get an appropriate challenge.</p>
+                    <p>TypePets is designed for kids ages 7–12 who are learning to touch type. Lessons start with just a few home-row keys, so younger beginners can keep up, and later stages and games give more confident typists a real challenge.</p>
                 </details>
 
                 <details class="faq-item">
-                    <summary>What keyboard layout does it support?</summary>
-                    <p>TypePets currently supports QWERTY — the standard layout on most English-language keyboards.</p>
+                    <summary>Can more than one child use TypePets on the same device?</summary>
+                    <p>Yes. Up to four kids can each have their own profile on the same browser, with their own pet, progress, and stats. Switch profiles inside the app. No emails or passwords are needed.</p>
                 </details>
 
                 <details class="faq-item">
-                    <summary>Can I use it on iPad or tablet?</summary>
-                    <p>Yes, TypePets is fully responsive and works on iPads and tablets. However, a physical keyboard is recommended for the best typing practice experience.</p>
+                    <summary>What happens to progress if we clear the browser or switch computers?</summary>
+                    <p>Progress is stored in the browser on that device, so clearing browsing data or moving to a different computer starts fresh. To keep it safe, make a Pet Passport: a save code you can copy and keep somewhere safe, then paste into TypePets on any browser to restore your progress. Making a new one every week or so is a good habit.</p>
+                </details>
+
+                <details class="faq-item">
+                    <summary>Does TypePets work on Chromebooks?</summary>
+                    <p>Yes. TypePets runs in Chrome with nothing to install, so it works on home and school Chromebooks. Chromebook keyboards have a Search or Launcher key where Caps Lock usually is and a row of shortcut keys instead of F1–F12, which doesn't get in the way of letter practice. If a school Chromebook clears data when students sign out, use a Pet Passport code to carry progress between sessions. More in our <a href="/blog/chromebook-typing-practice/">Chromebook typing guide</a>.</p>
+                </details>
+
+                <details class="faq-item">
+                    <summary>Can I use TypePets on an iPad or tablet?</summary>
+                    <p>Yes. TypePets works on iPads and other tablets: tap the typing area to bring up the on-screen keyboard. For learning touch typing, a physical keyboard is best (a keyboard case or an inexpensive Bluetooth keyboard works well), because kids need to feel the keys and the bumps on F and J.</p>
+                </details>
+
+                <details class="faq-item">
+                    <summary>Is there a report for parents or teachers?</summary>
+                    <p>Yes. The Stats dashboard shows speed and accuracy over time, which keys are trickiest, and badges earned. You can also print a one-page progress report with practice minutes, speed and accuracy trends, weakest keys, and completed lessons, plus certificates for finished training stages, Bubble Pop levels, and articles.</p>
+                </details>
+
+                <details class="faq-item">
+                    <summary>Do students need accounts to use TypePets in class?</summary>
+                    <p>No. There are no student accounts and no student data leaves the device, so there is nothing to roster. Teachers can share a classroom link that opens a specific lesson with a timer, for example <code>https://typepets.com/pages/training.html?stage=1&amp;min=10</code> opens Stage 1 with a 10-minute countdown. See <a href="#teachers">For teachers</a> to build one.</p>
+                </details>
+
+                <details class="faq-item">
+                    <summary>Which keyboard layouts and languages does TypePets support?</summary>
+                    <p>For now, TypePets supports the QWERTY keyboard layout and English practice text only. Other layouts such as AZERTY, QWERTZ, or Dvorak, and other languages, aren't supported yet.</p>
                 </details>
 
                 <details class="faq-item">
                     <summary>How does the pet system work?</summary>
-                    <p>Every typing session earns XP. Your pet starts as an egg and evolves through 6 stages: Egg → Baby → Kid → Teen → Adult → Master. You can also feed it and play with it to keep it happy.</p>
+                    <p>Every practice session earns XP. Your pet starts as an egg and evolves through 6 stages: Egg, Baby, Kid, Teen, Adult, and Master. Pets also get hungry, and the food to feed them is earned by practicing, so the pet only grows when your child actually types. There is nothing to buy.</p>
                 </details>
 
                 <details class="faq-item">
-                    <summary>Is there a parent dashboard?</summary>
-                    <p>The built-in Dashboard shows typing speed over time, accuracy heatmaps by key, and achievement progress. Parents and kids can review it together to track improvement.</p>
+                    <summary>How long should my child practice each day?</summary>
+                    <p>10–15 minutes a day is plenty for most kids aged 7–12. Short daily sessions build muscle memory faster than one long session a week. You can set a daily goal in the app, and a streak freeze keeps one off day from breaking a streak. See <a href="/blog/typing-goals-by-grade/">typing goals by grade</a> for realistic targets.</p>
                 </details>
             </div>
         </div>
@@ -291,8 +625,9 @@
             </div>
             <div class="footer-links">
                 <a href="/pages/home.html">Open App</a>
-                <a href="/blog">Blog</a>
+                <a href="/blog/">Blog</a>
                 <a href="#features">Features</a>
+                <a href="#teachers">For Teachers</a>
                 <a href="#faq">FAQ</a>
                 <a href="/privacy.html">Privacy</a>
                 <a href="/terms.html">Terms</a>
@@ -313,14 +648,57 @@
         // Smooth scroll for anchor links
         document.querySelectorAll('a[href^="#"]').forEach(a => {
             a.addEventListener('click', e => {
-                e.preventDefault();
                 const target = document.querySelector(a.getAttribute('href'));
                 if (target) {
+                    e.preventDefault();
                     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     links.classList.remove('open');
                 }
             });
         });
+
+        // Classroom link builder (no network calls; builds a plain URL)
+        (function () {
+            const stageSel = document.getElementById('lb-stage');
+            const minSel = document.getElementById('lb-min');
+            const out = document.getElementById('lb-url');
+            const copyBtn = document.getElementById('lb-copy');
+            const share = document.getElementById('lb-share');
+            const status = document.getElementById('lb-status');
+            if (!stageSel || !minSel || !out) return;
+
+            function build() {
+                const url = 'https://typepets.com/pages/training.html?stage=' + stageSel.value + '&min=' + minSel.value;
+                out.value = url;
+                share.href = 'https://classroom.google.com/share?url=' + encodeURIComponent(url);
+                status.textContent = '';
+            }
+
+            function copied() {
+                status.textContent = '✓ Copied! Paste it into your class page or LMS.';
+            }
+
+            function fallbackCopy() {
+                out.focus();
+                out.select();
+                try {
+                    if (document.execCommand('copy')) { copied(); return; }
+                } catch (e) { /* ignore */ }
+                status.textContent = 'Link selected. Press Ctrl+C (or ⌘+C) to copy.';
+            }
+
+            stageSel.addEventListener('change', build);
+            minSel.addEventListener('change', build);
+            out.addEventListener('focus', () => out.select());
+            copyBtn.addEventListener('click', () => {
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(out.value).then(copied, fallbackCopy);
+                } else {
+                    fallbackCopy();
+                }
+            });
+            build();
+        })();
     </script>
     <!-- Cloudflare Web Analytics -->
 </body>
