@@ -73,7 +73,8 @@
     [data-theme="dark"] .level-complete-card { background:var(--bg-card); }
     .level-complete-emoji { font-size:3rem; margin-bottom:8px; }
     .level-complete-title { font-family:var(--font-display); font-size:1.6rem; margin-bottom:4px; color:var(--accent-green); }
-    .level-complete-sub { color:var(--text-secondary); font-size:0.9rem; margin-bottom:20px; }
+    .level-complete-sub { color:var(--text-secondary); font-size:0.9rem; margin-bottom:20px; white-space:pre-line; line-height:1.5; }
+    .overlay-xp { color:var(--accent-green); font-weight:700; font-size:0.9rem; margin:-8px 0 16px; min-height:1em; }
     @media (max-width:900px) { .bubble-game-layout{flex-direction:column-reverse;} .level-panel{width:100%;max-height:200px;position:static;} .level-list{flex-direction:row;flex-wrap:wrap;} .level-item{flex:0 0 auto;} }
     .conn-bar-bubble { display:flex; align-items:center; justify-content:center; gap:4px; padding:8px 10px; background:var(--bg-primary); border-radius:var(--radius-sm); margin-bottom:10px; font-size:0.68rem; font-weight:700; color:var(--text-secondary); }
     .conn-bar-bubble .conn-step { padding:2px 6px; border-radius:4px; }
@@ -138,7 +139,9 @@
                                 <div class="game-stat"><div class="overlay-stat-value" id="finalScore">0</div><div class="overlay-stat-label">Score</div></div>
                                 <div class="game-stat"><div class="overlay-stat-value" id="finalCombo">0</div><div class="overlay-stat-label">Best Combo</div></div>
                                 <div class="game-stat"><div class="overlay-stat-value" id="finalAccuracy">0%</div><div class="overlay-stat-label">Accuracy</div></div>
+                                <div class="game-stat"><div class="overlay-stat-value" id="finalWpm">0</div><div class="overlay-stat-label">WPM</div></div>
                             </div>
+                            <div class="overlay-xp" id="gameOverXp"></div>
                             <button class="btn btn-primary" onclick="startGame()" style="font-size:1rem;padding:10px 32px;">Play Again</button>
                             <a href="../index.html" class="btn btn-secondary">Home</a>
                         </div>
@@ -186,7 +189,7 @@
                 <div class="level-complete-emoji">🎉</div>
                 <div class="level-complete-title" id="lcTitle">Level 1 Complete!</div>
                 <div class="level-complete-sub" id="lcSub">Next level unlocked!</div>
-                <button class="btn btn-primary" onclick="goNextLevel()" style="margin-top:10px;">Next Level →</button>
+                <button class="btn btn-primary" id="lcNextBtn" onclick="goNextLevel()" style="margin-top:10px;">Next Level →</button>
                 <button class="btn btn-secondary" onclick="closeLevelComplete()">Stay</button>
             </div>
         </div>

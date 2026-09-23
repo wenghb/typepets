@@ -183,8 +183,22 @@ const BubblePopLogic = (function() {
         b.scale = Math.min(1, b.scale + 0.04 * dt);
     }
 
+    // ── Session stats ─────────────────────────────────────────
+    /** WPM = (correct characters / 5) per active minute. */
+    function computeWpm(chars, activeMs) {
+        if (!(activeMs >= 1000) || !(chars > 0)) return 0;
+        return Math.round((chars / 5) / (activeMs / 60000));
+    }
+
+    /** Share of typed keys that were not mistakes, 0–100 (0 when nothing was typed). */
+    function computeAccuracy(keys, errors) {
+        if (!(keys > 0)) return 0;
+        return Math.max(0, Math.min(100, Math.round(100 * (keys - errors) / keys)));
+    }
+
     return {
         HOME_ROW, ALL_LETTERS, WORDS, LEVEL_DEFS, WEAK_KEY_RATE,
+        computeWpm, computeAccuracy,
         normalizeWord, normalizeTyped, allowedKeysFor, injectableKeys, pickWord, resolveTyped,
         FRAME_MS, MAX_MOVE_MS, MAX_CLOCK_MS, frameStep, riseSpeed, stepBubble,
     };
@@ -207,11 +221,13 @@ const BubblePopLogic = (function() {
     }
 
     const MILESTONES = {
-        5:  { emoji: '🍎', name: 'Golden Apple', desc: '+50 happiness' },
-        10: { emoji: '⭐', name: 'Star Cookie', desc: '+100 happiness' },
-        15: { emoji: '🌈', name: 'Rainbow Cake', desc: '+150 happiness' },
-        20: { emoji: '👑', name: 'Crown', desc: 'Mastery!' },
+        5:  { id: 'golden_apple', emoji: '🍎', name: 'Golden Apple', desc: '+50 happiness' },
+        10: { id: 'star_cookie',  emoji: '⭐', name: 'Star Cookie', desc: '+100 happiness' },
+        15: { id: 'rainbow_cake', emoji: '🌈', name: 'Rainbow Cake', desc: '+150 happiness' },
+        20: { id: 'crown',        emoji: '👑', name: 'Crown', desc: 'Mastery!' },
     };
+    const MILESTONE_BY_ID = {};
+    Object.keys(MILESTONES).forEach(lvl => { MILESTONE_BY_ID[MILESTONES[lvl].id] = MILESTONES[lvl]; });
 
     function getSpeedLabel(mult) {
         if (mult <= 0.7) return { wpm: '~8 WPM', tier: 'Beginner' };
@@ -232,6 +248,7 @@ const BubblePopLogic = (function() {
     const ctx = canvas.getContext('2d');
     const W = canvas.width, H = canvas.height;
 
+    const MAX_LEVEL = LEVEL_DEFS.length;   // 20; saved max_level 21 = every level passed
     const LEVEL_PASS_TIME = 60;
     const FREEZE_MS = 3000;        // ❄️ lasts 3 seconds…
     const FREEZE_SLOWDOWN = 0.15;  // …at 15% speed
@@ -240,8 +257,10 @@ const BubblePopLogic = (function() {
     let gameRunning = false, paused = false, score = 0, lives = 3, combo = 0, maxCombo = 0;
     let currentLevel = 1, isFreePlay = false, maxUnlockedLevel = 1, maxTrainingStage = 0;
     let bubbles = [], particles = [], floatingTexts = [];
-    let totalPops = 0, totalMisses = 0, errorKeys = {}, weakKeys = {};
-    let personalBest = TypePetsData.getBubblePersonalBest();
+    let charsTyped = 0;      // characters of bubbles popped by typing (not bombs) → WPM
+    let keysPressed = 0, typingErrors = 0, bubblesMissed = 0, lastInputLen = 0;
+    let errorKeys = {}, weakKeys = {};
+    let personalBest = TypePetsData.getBubblePersonalBest() || 0;
     let frameId = null, lastTs = null;       // rAF handle + timestamp of the previous frame
     let activeMs = 0;                        // time actually played (excludes pauses / hidden tab)
     let lastSpawnMs = -Infinity, freezeMs = 0, levelTimer = 0;
@@ -284,6 +303,9 @@ const BubblePopLogic = (function() {
     const levelCompleteOverlay = document.getElementById('levelCompleteOverlay');
     const pauseOverlay = document.getElementById('pauseOverlay');
     const pauseBtn = document.getElementById('pauseBtn');
+    const lcTitle = document.getElementById('lcTitle');
+    const lcSub = document.getElementById('lcSub');
+    const lcNextBtn = document.getElementById('lcNextBtn');
 
     bestDisplay.textContent = personalBest;
 
@@ -335,7 +357,7 @@ const BubblePopLogic = (function() {
 
     function renderLevelPanel() {
         levelList.innerHTML = '';
-        for (let i = 1; i <= 20; i++) {
+        for (let i = 1; i <= MAX_LEVEL; i++) {
             const unlocked = isLevelUnlocked(i);
             const isActive = !isFreePlay && i === currentLevel;
             const isCompleted = i < maxUnlockedLevel;
@@ -353,8 +375,7 @@ const BubblePopLogic = (function() {
             }
             if (MILESTONES[i]) {
                 const m = MILESTONES[i];
-                const rewardId = i===5?'golden_apple':i===10?'star_cookie':i===15?'rainbow_cake':'crown';
-                const earned = earnedMilestones.has(rewardId);
+                const earned = earnedMilestones.has(m.id);
                 descHtml += `<div class="level-milestone">${m.emoji} ${earned ? '✓' : m.name}</div>`;
             }
             if (unlocked && !isCompleted) {
@@ -368,34 +389,74 @@ const BubblePopLogic = (function() {
             levelList.appendChild(item);
         }
         const fpBtn = document.getElementById('freePlayBtn');
-        const fpUnlocked = maxTrainingStage >= 8 || maxUnlockedLevel > 20;
+        const fpUnlocked = isFreePlayUnlocked();
         fpBtn.className = 'free-play-btn' + (isFreePlay ? ' active' : '');
         fpBtn.style.opacity = fpUnlocked ? '1' : '0.4';
-        fpBtn.title = fpUnlocked ? '' : 'Complete Training Stage 8 to unlock';
+        fpBtn.title = fpUnlocked ? '' : FREE_PLAY_LOCKED_MSG;
+    }
+
+    const FREE_PLAY_LOCKED_MSG = 'Pass Level 20 or finish Training Stage 8 to unlock Free Play';
+    function isFreePlayUnlocked() { return maxTrainingStage >= 8 || maxUnlockedLevel > MAX_LEVEL; }
+
+    function toast(msg, type, duration) {
+        if (typeof showToast === 'function') showToast(msg, type, duration);
+    }
+
+    function confetti(count) {
+        if (typeof spawnConfetti === 'function') spawnConfetti(count);
+    }
+
+    /** Controls that must not change mid-game (the speed sets the XP multiplier). */
+    function updateControls() {
+        speedSlider.disabled = gameRunning;
+        pauseBtn.disabled = !gameRunning || paused;
+    }
+
+    /** Show the "Start Game" card for the selected level / Free Play. */
+    function showReadyScreen() {
+        levelCompleteOverlay.classList.add('hidden');
+        gameOverOverlay.classList.add('hidden');
+        startOverlay.classList.remove('hidden');
+        renderLevelPanel(); updateUI();
+    }
+
+    /** Level switch mid-game: pause, ask, and if confirmed end (and save) the current game. */
+    function confirmEndForSwitch(target) {
+        pauseGame();
+        if (!window.confirm(`End this game and switch to ${target}? Your score so far will be saved.`)) return false;
+        endSession(false);
+        return true;
     }
 
     function selectLevel(lvl) {
         if (!isLevelUnlocked(lvl)) return;
+        if (gameRunning) {
+            if (!isFreePlay && lvl === currentLevel) return;
+            if (!confirmEndForSwitch(`Level ${lvl}`)) return;
+        }
         isFreePlay = false; currentLevel = lvl;
-        renderLevelPanel(); levelDisplay.textContent = currentLevel;
-        if (!gameRunning) { startOverlay.classList.remove('hidden'); gameOverOverlay.classList.add('hidden'); }
+        showReadyScreen();
     }
 
     window.selectFreePlay = function() {
-        const fpUnlocked = maxTrainingStage >= 8 || maxUnlockedLevel > 20;
-        if (!fpUnlocked) { showToast('Complete Training Stage 8 to unlock Free Play', 'error'); return; }
-        isFreePlay = true; currentLevel = 1;
-        renderLevelPanel(); levelDisplay.textContent = '∞';
-        if (!gameRunning) { startOverlay.classList.remove('hidden'); gameOverOverlay.classList.add('hidden'); }
+        if (!isFreePlayUnlocked()) { toast(FREE_PLAY_LOCKED_MSG, 'error'); return; }
+        if (gameRunning) {
+            if (isFreePlay) return;
+            if (!confirmEndForSwitch('Free Play')) return;
+        }
+        isFreePlay = true; freePlayLevel = 1;
+        showReadyScreen();
     };
 
     window.goNextLevel = function() {
-        levelCompleteOverlay.classList.add('hidden');
-        currentLevel++; if (currentLevel > 20) currentLevel = 20;
-        renderLevelPanel(); startGame();
+        if (isFreePlay) { /* already there */ }
+        else if (currentLevel < MAX_LEVEL) currentLevel++;
+        else if (isFreePlayUnlocked()) isFreePlay = true;
+        window.startGame();
     };
 
-    window.closeLevelComplete = function() { levelCompleteOverlay.classList.add('hidden'); };
+    // "Stay": back to this level's start card, to replay it or pick another level.
+    window.closeLevelComplete = function() { showReadyScreen(); };
 
     function getLevelParams() {
         if (isFreePlay) { const idx = Math.min(freePlayLevel-1, LEVEL_DEFS.length-1); return LEVEL_DEFS[idx]; }
@@ -428,7 +489,7 @@ const BubblePopLogic = (function() {
         const multiplier = Math.min(combo, 10);
         const wordBonus = b.word.length * 10;
         const points = wordBonus * multiplier;
-        score += points; totalPops++;
+        score += points; charsTyped += b.word.length;
         floatingTexts.push({x:b.x,y:b.y,text:`+${points}`,color:combo>=5?'#ED8936':'#68D391',life:1,vy:-1.8,size:combo>=5?24:18});
         if (combo >= 5) { canvasContainer.classList.add('screen-shake'); setTimeout(() => canvasContainer.classList.remove('screen-shake'), 300); }
         if (window.sound) window.sound.pop();
@@ -445,12 +506,13 @@ const BubblePopLogic = (function() {
     }
 
     function missedBubble(index) {
-        const b = bubbles[index]; lives--; combo = 0; totalMisses++;
+        if (!gameRunning) return;
+        const b = bubbles[index]; lives--; combo = 0; bubblesMissed++;
         // A missed single letter says "hard to find this key"; a missed word doesn't pin down a key.
         if (b.word.length === 1) recordErrorKey(b.word);
         if (window.sound) window.sound.wrong();
         bubbles.splice(index, 1); needsRevalidate = true; updateUI();
-        if (lives <= 0) gameOver();
+        if (lives <= 0) finishSession(false);
     }
 
     /** The bubble with this text that is closest to escaping. */
@@ -465,10 +527,11 @@ const BubblePopLogic = (function() {
     function setTyped(text, state) {
         typedText = text; typedState = state;
         if (gameInput.value !== text) gameInput.value = text;
+        lastInputLen = gameInput.value.length;
     }
 
     function typingError(r) {
-        combo = 0; totalMisses++;
+        combo = 0; typingErrors++;
         recordErrorKey(r.expected != null ? r.expected : r.typed);
         gameInput.classList.add('shake'); setTimeout(() => gameInput.classList.remove('shake'), 300);
         if (window.sound) window.sound.wrong();
@@ -530,7 +593,7 @@ const BubblePopLogic = (function() {
             while (bubbles.length > 0) {
                 const b = bubbles[0];
                 for (let i=0;i<6;i++) {const a=Math.random()*Math.PI*2;particles.push({x:b.x,y:b.y,vx:Math.cos(a)*2.5,vy:Math.sin(a)*2.5,radius:1.5+Math.random()*2.5,color:b.color.stroke,life:1,decay:0.025,gravity:0.04});}
-                score += b.word.length * 5; totalPops++; bubbles.splice(0,1);
+                score += b.word.length * 5; bubbles.splice(0,1);
             }
             needsRevalidate = true;
             updateUI();
@@ -619,7 +682,7 @@ const BubblePopLogic = (function() {
         if (freezeMs > 0) freezeMs = Math.max(0, freezeMs - step.clockMs);
         const secs = Math.floor(activeMs / 1000);
         if (secs !== levelTimer) { levelTimer = secs; updateTimerDisplay(); }
-        if (!isFreePlay && activeMs >= LEVEL_PASS_TIME * 1000) { onLevelPassed(); return; }
+        if (!isFreePlay && activeMs >= LEVEL_PASS_TIME * 1000) { finishSession(true); return; }
 
         const params = getLevelParams();
         if (activeMs - lastSpawnMs >= params.spawnInterval / speedMultiplier) { spawnBubble(); lastSpawnMs = activeMs; }
@@ -646,7 +709,7 @@ const BubblePopLogic = (function() {
         paused = true;
         stopLoop();
         pauseOverlay.classList.remove('hidden');
-        pauseBtn.disabled = true;
+        updateControls();
     }
 
     function resumeGame() {
@@ -654,7 +717,7 @@ const BubblePopLogic = (function() {
         if (document.getElementById('donatePrompt')) return;   // let that dialog be closed first
         paused = false;
         pauseOverlay.classList.add('hidden');
-        pauseBtn.disabled = false;
+        updateControls();
         lastTs = null;   // the paused gap never counts as game time
         startLoop();
         gameInput.focus();
@@ -690,8 +753,10 @@ const BubblePopLogic = (function() {
                 if (ch === '1') window.usePowerUp('freeze');
                 else if (ch === '2') window.usePowerUp('bomb');
             }
-            gameInput.value = value.replace(/[12]/g, '');
+            value = value.replace(/[12]/g, '');
+            gameInput.value = value;
         }
+        if (bubbles.length > 0) keysPressed += Math.max(0, value.length - lastInputLen);
         processInput(false, false);
     });
 
@@ -703,55 +768,116 @@ const BubblePopLogic = (function() {
     });
 
     window.startGame = function() {
+        if (gameRunning) return;
         score=0;lives=3;combo=0;maxCombo=0;bubbles=[];particles=[];floatingTexts=[];
-        totalPops=0;totalMisses=0;errorKeys={};
+        charsTyped=0;keysPressed=0;typingErrors=0;bubblesMissed=0;errorKeys={};
         powerUps={freeze:1,bomb:0};freezeMs=0;
         levelTimer=0;freePlayLevel=1;
         activeMs=0;lastSpawnMs=-Infinity;lastTs=null;gameRunning=true;paused=false;
         speedMultiplier=parseFloat(speedSlider.value);
         loadWeakKeys();
         startOverlay.classList.add('hidden');gameOverOverlay.classList.add('hidden');levelCompleteOverlay.classList.add('hidden');pauseOverlay.classList.add('hidden');
-        pauseBtn.disabled = false;
+        updateControls();renderLevelPanel();
         updateUI();updateTimerDisplay();updatePowerUpUI();
         setTyped('', null);gameInput.focus();
         stopLoop(); startLoop();
     };
 
-    function onLevelPassed() {
-        if (currentLevel < 20) {
-            const nextLevel = currentLevel + 1;
-            if (nextLevel > maxUnlockedLevel) {
-                maxUnlockedLevel = nextLevel;
-                TypePetsData.saveBubbleLevel(maxUnlockedLevel);
-            }
+    /**
+     * The one end-of-game path, for both "level passed" and "game over": unlock progress,
+     * save the session + personal best, check achievements, show the result, and only then
+     * (last) maybe show the donate prompt.
+     */
+    function finishSession(passed) {
+        if (!gameRunning) return;   // already ended (e.g. two bubbles escaped in the same frame)
+        const level = currentLevel;
+        let freePlayJustUnlocked = false;
+        if (passed && !isFreePlay && level + 1 > maxUnlockedLevel) {
+            // Passing Level 20 stores 21 = "all levels passed", which unlocks Free Play.
+            freePlayJustUnlocked = level >= MAX_LEVEL && !isFreePlayUnlocked();
+            maxUnlockedLevel = level + 1;
+            TypePetsData.saveBubbleLevel(maxUnlockedLevel);
         }
+        const summary = endSession(passed);
+        if (passed) showLevelComplete(level, summary, freePlayJustUnlocked);
+        else showGameOver(summary);
+        if ((passed || summary.isNewBest) && typeof window.maybeDonatePrompt === 'function') window.maybeDonatePrompt();
+    }
+
+    /** Stop the game and record it: session (+XP, milestones), personal best, achievements. */
+    function endSession(passed) {
+        gameRunning = false; paused = false;
+        stopLoop();
+        pauseOverlay.classList.add('hidden');
+        setTyped('', null);
+        gameInput.blur();
+        updateControls();
+
+        const wpm = L.computeWpm(charsTyped, activeMs);
+        const accuracy = L.computeAccuracy(keysPressed, typingErrors);
+        const isNewBest = score > personalBest;
+        if (isNewBest) { personalBest = score; TypePetsData.saveBubblePersonalBest(score); }
+        bestDisplay.textContent = personalBest;
+
+        const sessionData = {
+            mode: 'bubble_pop', level: isFreePlay ? freePlayLevel : currentLevel,
+            wpm, accuracy, duration_seconds: Math.round(activeMs / 1000),
+            keys_pressed: keysPressed, errors: typingErrors, error_keys: errorKeys,
+            chars_correct: charsTyped, score, speed_multiplier: speedMultiplier, passed: !!passed,
+        };
+        let result = null;
+        try { result = TypePetsData.saveSession(sessionData); } catch (e) { console.error('Failed to save Bubble Pop session:', e); }
+        result = result || {};
+        const rewards = result.milestone_rewards || [];
+        for (const reward of rewards) {
+            earnedMilestones.add(reward.id);
+            toast(`${reward.name} earned for your pet! 🎉`, 'achievement', 5000);
+        }
+        if (result.daily_goal && result.daily_goal.just_completed) toast('🎯 Daily practice goal reached — great job!', 'achievement', 5000);
         renderLevelPanel();
-        let subText = currentLevel<20 ? `Level ${currentLevel+1} unlocked!` : 'All levels complete! 🏆';
-        const milestoneRewardIds = {5:'golden_apple',10:'star_cookie',15:'rainbow_cake',20:'crown'};
-        const rewardId = milestoneRewardIds[currentLevel];
-        if (rewardId && !earnedMilestones.has(rewardId)) {
-            const m = MILESTONES[currentLevel];
-            subText += `\n${m.emoji} You earned ${m.name} for your pet!`;
+        if (typeof window.checkAchievements === 'function') {
+            try { window.checkAchievements(sessionData); } catch (e) { console.error('checkAchievements failed:', e); }
         }
-        document.getElementById('lcTitle').textContent = `Level ${currentLevel} Complete!`;
-        document.getElementById('lcSub').textContent = subText;
-        gameRunning = false; paused = false; stopLoop(); pauseBtn.disabled = true;
+        return { wpm, accuracy, isNewBest, rewards, xp: result.xp_earned || 0 };
+    }
+
+    function showLevelComplete(level, summary, freePlayJustUnlocked) {
+        const lines = [];
+        if (level < MAX_LEVEL) lines.push(`Level ${level + 1} unlocked!`);
+        else lines.push('All 20 levels complete! 🏆' + (freePlayJustUnlocked ? ' Free Play unlocked!' : ''));
+        for (const reward of summary.rewards) {
+            const m = MILESTONE_BY_ID[reward.id];
+            lines.push(`${m ? m.emoji : '🎁'} You earned ${reward.name} for your pet!`);
+        }
+        if (summary.isNewBest) lines.push(`🏆 New best score: ${score}!`);
+        lines.push(`⭐ ${score} points · ${summary.wpm} WPM · ${summary.accuracy}% accuracy`);
+        if (summary.xp > 0) lines.push(`🐾 +${summary.xp} XP for your pet`);
+        lcTitle.textContent = `Level ${level} Complete!`;
+        lcSub.textContent = lines.join('\n');
+        lcNextBtn.textContent = level < MAX_LEVEL ? 'Next Level →' : '🎮 Free Play →';
         levelCompleteOverlay.classList.remove('hidden');
         if (window.sound) window.sound.celebration();
-        spawnConfetti(60);
-        if (window.maybeDonatePrompt) window.maybeDonatePrompt();
-        const duration = Math.round(activeMs/1000);
-        const accuracy = totalPops+totalMisses>0 ? Math.round((totalPops/(totalPops+totalMisses))*100) : 0;
-        const wpm = duration>0 ? Math.round(totalPops/(duration/60)) : 0;
-        const sessionData = {mode:'bubble_pop',level:currentLevel,wpm,accuracy,duration_seconds:duration,keys_pressed:totalPops,errors:totalMisses,error_keys:errorKeys,score,speed_multiplier:speedMultiplier};
-        const result = TypePetsData.saveSession(sessionData);
-        if (result.milestone_rewards && result.milestone_rewards.length > 0) {
-            for (const reward of result.milestone_rewards) {
-                earnedMilestones.add(reward.id);
-                showToast(`${reward.name} earned for your pet! 🎉`, 'achievement', 5000);
-            }
-            renderLevelPanel();
+        confetti(60);
+    }
+
+    function showGameOver(summary) {
+        const finalScore = document.getElementById('finalScore');
+        finalScore.textContent = score;
+        document.getElementById('finalCombo').textContent = maxCombo;
+        document.getElementById('finalAccuracy').textContent = summary.accuracy + '%';
+        document.getElementById('finalWpm').textContent = summary.wpm;
+        const goTitle = document.getElementById('gameOverTitle');
+        const goSub = document.getElementById('gameOverSubtitle');
+        if (summary.isNewBest) {
+            finalScore.classList.add('new-best');
+            goTitle.textContent = 'New Record!'; goSub.textContent = `Score: ${personalBest}`;
+            confetti(80); if (window.sound) window.sound.celebration();
+        } else {
+            finalScore.classList.remove('new-best');
+            goTitle.textContent = 'Game Over'; goSub.textContent = `Best: ${personalBest}`;
         }
+        document.getElementById('gameOverXp').textContent = summary.xp > 0 ? `🐾 +${summary.xp} XP for your pet` : '';
+        gameOverOverlay.classList.remove('hidden');
     }
 
     function loadWeakKeys() {
@@ -760,40 +886,8 @@ const BubblePopLogic = (function() {
         if (data.weak_keys) { data.weak_keys.forEach(([key, count]) => { weakKeys[key] = count; }); }
     }
 
-    function gameOver() {
-        gameRunning = false; paused = false; stopLoop(); pauseBtn.disabled = true;
-        const duration = Math.round(activeMs/1000);
-        const accuracy = totalPops+totalMisses>0 ? Math.round((totalPops/(totalPops+totalMisses))*100) : 0;
-        const isNewBest = score > personalBest;
-        if (isNewBest) { personalBest=score; TypePetsData.saveBubblePersonalBest(score); bestDisplay.textContent=personalBest; }
-        document.getElementById('finalScore').textContent = score;
-        document.getElementById('finalCombo').textContent = maxCombo;
-        document.getElementById('finalAccuracy').textContent = accuracy+'%';
-        const goTitle = document.getElementById('gameOverTitle');
-        const goSub = document.getElementById('gameOverSubtitle');
-        if (isNewBest) {
-            document.getElementById('finalScore').classList.add('new-best');
-            goTitle.textContent='New Record!';goSub.textContent=`Score: ${personalBest}`;
-            spawnConfetti(80);if(window.sound) window.sound.celebration();
-        } else {
-            document.getElementById('finalScore').classList.remove('new-best');
-            goTitle.textContent='Game Over';goSub.textContent=`Best: ${personalBest}`;
-        }
-        gameOverOverlay.classList.remove('hidden');
-        const wpm = duration>0 ? Math.round(totalPops/(duration/60)) : 0;
-        const sessionData = {mode:'bubble_pop',level:isFreePlay?freePlayLevel:currentLevel,wpm,accuracy,duration_seconds:duration,keys_pressed:totalPops,errors:totalMisses,error_keys:errorKeys,score,speed_multiplier:speedMultiplier};
-        const result = TypePetsData.saveSession(sessionData);
-        if (result.milestone_rewards && result.milestone_rewards.length > 0) {
-            for (const reward of result.milestone_rewards) {
-                earnedMilestones.add(reward.id);
-                showToast(`${reward.name} earned for your pet! 🎉`, 'achievement', 5000);
-            }
-            renderLevelPanel();
-        }
-        checkAchievements(sessionData);
-    }
-
     drawBackground(0);
     loadProgress();
+    updateControls();
     document.addEventListener('click', () => { if (gameRunning && !paused) gameInput.focus(); });
 })();
