@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Not Found | TypePets</title>
+    <meta name="description" content="This page doesn't exist. Head back to TypePets for free typing practice for kids.">
+    <meta name="robots" content="noindex">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+    <!-- Absolute paths: Pages serves this file for missing URLs at any depth -->
+    <link rel="stylesheet" href="/css/landing.css">
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="/" class="nav-logo">🐾 TypePets</a>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/blog/">Blog</a>
+                <a href="/pages/home.html" class="nav-cta">Open App →</a>
+            </div>
+            <button class="nav-mobile-toggle" id="nav-toggle" aria-label="Menu">☰</button>
+        </div>
+    </nav>
+
+    <main class="not-found">
+        <div class="not-found-inner">
+            <div class="not-found-emoji" aria-hidden="true">🐾❓</div>
+            <p class="not-found-code">404</p>
+            <h1>Oops, this page wandered off!</h1>
+            <p class="not-found-sub">We followed the paw prints, but there's nothing here. The link might be old, or there could be a typo in the address. (Good typing practice, right?)</p>
+            <div class="not-found-actions">
+                <a href="/pages/home.html" class="btn-primary">Open TypePets →</a>
+                <a href="/" class="btn-secondary">Go to the homepage</a>
+            </div>
+            <div class="not-found-links">
+                <p>Looking for something to type?</p>
+                <ul>
+                    <li><a href="/pages/training.html">⌨️ Finger Training</a></li>
+                    <li><a href="/pages/bubbles.html">🫧 Bubble Pop</a></li>
+                    <li><a href="/pages/articles.html">📖 Read &amp; Type</a></li>
+                    <li><a href="/pages/pet.html">🐣 Visit your pet</a></li>
+                    <li><a href="/blog/">📝 Typing tips for parents &amp; teachers</a></li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <span class="footer-logo">🐾 TypePets</span>
+                <p>Free typing practice for kids. Type. Play. Grow.</p>
+            </div>
+            <div class="footer-links">
+                <a href="/pages/home.html">Open App</a>
+                <a href="/blog/">Blog</a>
+                <a href="/privacy.html">Privacy</a>
+                <a href="/terms.html">Terms</a>
+            </div>
+            <div class="footer-copy">
+                <p>© 2026 TypePets. Made with 🐾 for young typists everywhere.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const toggle = document.getElementById('nav-toggle');
+        const links = document.querySelector('.nav-links');
+        toggle.addEventListener('click', () => links.classList.toggle('open'));
+    </script>
+</body>
+</html>
