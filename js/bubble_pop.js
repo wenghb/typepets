@@ -21,27 +21,34 @@ const BubblePopLogic = (function() {
         phrases: ['the big dog','run and play','look at that','I can type','good morning','come with me','lets go home','nice to meet','how are you','well done now','the sun is up','try your best','keep it going','you did great'],
     };
 
+    // Tuned for kids 7–12. The typing speed needed to pop every bubble at 1.0x
+    // (bubbles per minute × average characters ÷ 5, see requiredWpm) climbs smoothly:
+    //   L1–5 ≈ 5–11 WPM · L6–10 ≈ 12–18 · L11–15 ≈ 21–27 · L16–20 ≈ 29–39.
+    // spawnInterval (ms) sets that pace. riseTime (s) leaves time to read and type even the
+    // longest text of the level at that pace. maxBubbles sits just above the natural number
+    // on screen (riseTime / spawnInterval), so it only stops runaway pile-ups and never
+    // quietly lowers the pace. Higher intensity multipliers remain the challenge for strong typists.
     const LEVEL_DEFS = [
-        {content:'home_letters',riseTime:10,maxBubbles:3,spawnInterval:3500},
-        {content:'home_letters',riseTime:10,maxBubbles:3,spawnInterval:3500},
-        {content:'home_letters',riseTime:10,maxBubbles:3,spawnInterval:3500},
-        {content:'home_words',riseTime:8,maxBubbles:4,spawnInterval:3000},
-        {content:'home_words',riseTime:8,maxBubbles:4,spawnInterval:3000},
-        {content:'all_letters',riseTime:7,maxBubbles:4,spawnInterval:2500},
-        {content:'all_letters',riseTime:7,maxBubbles:4,spawnInterval:2500},
-        {content:'all_letters',riseTime:7,maxBubbles:4,spawnInterval:2500},
-        {content:'short_words',riseTime:6,maxBubbles:5,spawnInterval:2200},
-        {content:'short_words',riseTime:6,maxBubbles:5,spawnInterval:2200},
-        {content:'short_words',riseTime:6,maxBubbles:5,spawnInterval:2200},
-        {content:'medium_words',riseTime:5,maxBubbles:5,spawnInterval:2000},
-        {content:'medium_words',riseTime:5,maxBubbles:5,spawnInterval:2000},
-        {content:'medium_words',riseTime:5,maxBubbles:5,spawnInterval:2000},
-        {content:'long_words',riseTime:4.5,maxBubbles:6,spawnInterval:1800},
-        {content:'long_words',riseTime:4.5,maxBubbles:6,spawnInterval:1800},
-        {content:'long_words',riseTime:4.5,maxBubbles:6,spawnInterval:1800},
-        {content:'phrases',riseTime:4,maxBubbles:7,spawnInterval:1500},
-        {content:'phrases',riseTime:4,maxBubbles:7,spawnInterval:1500},
-        {content:'phrases',riseTime:4,maxBubbles:7,spawnInterval:1500},
+        {content:'home_letters',riseTime:9,   maxBubbles:5,spawnInterval:2400},
+        {content:'home_letters',riseTime:8,   maxBubbles:6,spawnInterval:1850},
+        {content:'home_letters',riseTime:7,   maxBubbles:6,spawnInterval:1500},
+        {content:'home_words',  riseTime:11,  maxBubbles:5,spawnInterval:3250},
+        {content:'home_words',  riseTime:10,  maxBubbles:5,spawnInterval:2800},
+        {content:'all_letters', riseTime:5,   maxBubbles:6,spawnInterval:1000},
+        {content:'all_letters', riseTime:5,   maxBubbles:7,spawnInterval:900},
+        {content:'all_letters', riseTime:4.5, maxBubbles:7,spawnInterval:800},
+        {content:'short_words', riseTime:7,   maxBubbles:5,spawnInterval:2200},
+        {content:'short_words', riseTime:6.5, maxBubbles:5,spawnInterval:1950},
+        {content:'short_words', riseTime:6,   maxBubbles:5,spawnInterval:1750},
+        {content:'medium_words',riseTime:8,   maxBubbles:4,spawnInterval:2750},
+        {content:'medium_words',riseTime:7.5, maxBubbles:4,spawnInterval:2550},
+        {content:'medium_words',riseTime:7,   maxBubbles:4,spawnInterval:2350},
+        {content:'long_words',  riseTime:8.5, maxBubbles:4,spawnInterval:3100},
+        {content:'long_words',  riseTime:8,   maxBubbles:4,spawnInterval:2900},
+        {content:'long_words',  riseTime:7.5, maxBubbles:4,spawnInterval:2650},
+        {content:'phrases',     riseTime:10,  maxBubbles:4,spawnInterval:4250},
+        {content:'phrases',     riseTime:9.5, maxBubbles:4,spawnInterval:3950},
+        {content:'phrases',     riseTime:9,   maxBubbles:4,spawnInterval:3700},
     ];
 
     const WEAK_KEY_RATE = 0.2;          // share of bubbles that practise a past error key
@@ -361,7 +368,7 @@ const BubblePopLogic = (function() {
         speedValueEl.textContent = speedMultiplier.toFixed(1) + 'x';
         speedWpmEl.textContent = isFreePlay
             ? `Free Play speeds up as you score — ${tier}`
-            : `Level ${currentLevel} needs ~${L.requiredWpm(LEVEL_DEFS[currentLevel - 1], speedMultiplier)} WPM — ${tier}`;
+            : `Level ${currentLevel}: ~${L.requiredWpm(LEVEL_DEFS[currentLevel - 1], speedMultiplier)} WPM pops every bubble — ${tier}`;
         // Same rule as TypePetsData.saveSession(): XP = score ÷ 10, ×1.25 / ×1.5 / ×2 at 1.25x / 1.5x / 2x.
         const mult = L.xpMultiplier(speedMultiplier);
         speedBonusEl.textContent = mult > 1
