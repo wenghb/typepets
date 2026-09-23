@@ -1,23 +1,76 @@
 /**
  * Sound effects using Web Audio API — no external files needed!
  * Enhanced with combo sounds, better tones, and more satisfying feedback.
+ *
+ * Mute is a device-level setting stored in localStorage 'typepets_sound_muted' ('1' / '0'),
+ * read on construction so it sticks across pages. `window.sound.enabled` (true = sound on),
+ * `muted`, `setMuted(bool)` and `toggle()` all keep it in sync.
  */
+const SOUND_MUTED_KEY = 'typepets_sound_muted';
+
+function readSoundMuted() {
+    try {
+        return localStorage.getItem(SOUND_MUTED_KEY) === '1';
+    } catch (e) {
+        return false;
+    }
+}
+
+function writeSoundMuted(muted) {
+    try {
+        localStorage.setItem(SOUND_MUTED_KEY, muted ? '1' : '0');
+    } catch (e) {
+        // storage blocked (private mode) — mute still works for this page
+    }
+}
+
 class SoundEngine {
     constructor() {
         this.ctx = null;
-        this.enabled = true;
+        this.enabled = !readSoundMuted();
         this._volume = 0.6;
     }
 
     init() {
         if (!this.ctx) {
-            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+            try { this.ctx = new AudioCtx(); } catch (e) { this.ctx = null; }
         }
     }
 
     _ensureCtx() {
         if (!this.ctx) this.init();
+        if (!this.ctx) return false;
         if (this.ctx.state === 'suspended') this.ctx.resume();
+        return true;
+    }
+
+    get muted() {
+        return !this.enabled;
+    }
+
+    set muted(value) {
+        this.setMuted(value);
+    }
+
+    isMuted() {
+        return !this.enabled;
+    }
+
+    /** Mute/unmute, remember it for every page, and update the nav button. Returns `enabled`. */
+    setMuted(muted) {
+        this.enabled = muted === '0' || muted === 'false' ? true : !muted;
+        writeSoundMuted(!this.enabled);
+        if (!this.enabled && window.speech && typeof window.speech.cancel === 'function') window.speech.cancel();
+        this.syncButton();
+        return this.enabled;
+    }
+
+    syncButton() {
+        if (typeof document === 'undefined') return;
+        const btn = document.getElementById('soundToggle');
+        if (btn) btn.textContent = this.enabled ? '🔊' : '🔇';
     }
 
     _gain(vol) {
@@ -27,8 +80,7 @@ class SoundEngine {
     }
 
     keyClick() {
-        if (!this.enabled) return;
-        this._ensureCtx();
+        if (!this.enabled || !this._ensureCtx()) return;
         const t = this.ctx.currentTime;
         const bufferSize = this.ctx.sampleRate * 0.02;
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
@@ -64,8 +116,7 @@ class SoundEngine {
     }
 
     correct() {
-        if (!this.enabled) return;
-        this._ensureCtx();
+        if (!this.enabled || !this._ensureCtx()) return;
         const t = this.ctx.currentTime;
         [880, 1100].forEach((freq, i) => {
             const osc = this.ctx.createOscillator();
@@ -83,8 +134,7 @@ class SoundEngine {
     }
 
     wrong() {
-        if (!this.enabled) return;
-        this._ensureCtx();
+        if (!this.enabled || !this._ensureCtx()) return;
         const t = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
@@ -100,8 +150,7 @@ class SoundEngine {
     }
 
     combo(count) {
-        if (!this.enabled) return;
-        this._ensureCtx();
+        if (!this.enabled || !this._ensureCtx()) return;
         const t = this.ctx.currentTime;
         const baseFreq = 440 + Math.min(count, 20) * 30;
         const numTones = Math.min(3, Math.floor(count / 3) + 1);
@@ -121,8 +170,7 @@ class SoundEngine {
     }
 
     levelUp() {
-        if (!this.enabled) return;
-        this._ensureCtx();
+        if (!this.enabled || !this._ensureCtx()) return;
         const t = this.ctx.currentTime;
         const notes = [523.25, 659.25, 783.99, 1046.50];
         notes.forEach((freq, i) => {
@@ -156,8 +204,7 @@ class SoundEngine {
     }
 
     celebration() {
-        if (!this.enabled) return;
-        this._ensureCtx();
+        if (!this.enabled || !this._ensureCtx()) return;
         const t = this.ctx.currentTime;
         const melody = [392, 440, 523.25, 587.33, 659.25, 783.99, 880, 1046.50];
         melody.forEach((freq, i) => {
@@ -190,8 +237,7 @@ class SoundEngine {
     }
 
     pop() {
-        if (!this.enabled) return;
-        this._ensureCtx();
+        if (!this.enabled || !this._ensureCtx()) return;
         const t = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
@@ -222,9 +268,19 @@ class SoundEngine {
     }
 
     toggle() {
-        this.enabled = !this.enabled;
-        return this.enabled;
+        return this.setMuted(this.enabled);
     }
 }
 
 window.sound = new SoundEngine();
+
+// Show the saved mute state on the nav button, and follow changes made in other tabs
+window.sound.syncButton();
+if (typeof document !== 'undefined' && document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => window.sound.syncButton());
+}
+window.addEventListener('storage', (e) => {
+    if (e.key !== SOUND_MUTED_KEY) return;
+    window.sound.enabled = e.newValue !== '1';
+    window.sound.syncButton();
+});
