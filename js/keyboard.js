@@ -323,8 +323,296 @@ class VirtualKeyboard {
     }
 }
 
+/* ─── Typing helpers (shared by Training + Articles) ─────────── */
+
+/**
+ * Active-time clock. Counts only time the kid is actually practicing:
+ * - pauses while the tab is hidden or the window is in the background
+ * - with `idleMs`, a long gap between keystrokes only counts up to `idleMs`
+ * - hold()/release() pause it on purpose (e.g. while a summary card is open)
+ */
+class ActiveClock {
+    constructor(options) {
+        const o = options || {};
+        this.idleMs = o.idleMs > 0 ? o.idleMs : Infinity;
+        this._now = typeof o.now === 'function' ? o.now : () => Date.now();
+        this._hidden = false;
+        this.reset();
+        if (!o.manual && typeof document !== 'undefined' && document.addEventListener) {
+            this._hidden = !!document.hidden;
+            document.addEventListener('visibilitychange', () => this.setHidden(!!document.hidden));
+            window.addEventListener('blur', () => this.setHidden(true));
+            window.addEventListener('focus', () => this.setHidden(!!document.hidden));
+        }
+    }
+
+    reset() {
+        this._acc = 0;
+        this._last = 0;
+        this._started = false;
+        this._held = false;
+        this._stopped = false;
+    }
+
+    get started() { return this._started; }
+
+    _running() {
+        return this._started && !this._hidden && !this._held && !this._stopped;
+    }
+
+    _flush(now) {
+        if (this._running()) this._acc += Math.max(0, Math.min(now - this._last, this.idleMs));
+        this._last = now;
+    }
+
+    _change(fn) {
+        this._flush(this._now());
+        fn();
+    }
+
+    start() {
+        if (this._started || this._stopped) return;
+        this._started = true;
+        this._last = this._now();
+    }
+
+    /** Call on every keystroke. Starts the clock on the first one. */
+    tick() {
+        if (this._stopped) return;
+        if (!this._started) { this.start(); return; }
+        const now = this._now();
+        // A keystroke proves the page is in front, even if a focus event was missed
+        if (this._hidden) { this._hidden = false; this._last = now; return; }
+        this._flush(now);
+    }
+
+    setHidden(hidden) {
+        if (hidden === this._hidden) return;
+        this._change(() => { this._hidden = hidden; });
+    }
+
+    hold() { this._change(() => { this._held = true; }); }
+    release() { this._change(() => { this._held = false; }); }
+    stop() { this._change(() => { this._stopped = true; }); }
+
+    /** Seconds since the first keystroke, minus hidden/held/idle time. */
+    seconds() {
+        let ms = this._acc;
+        if (this._running()) ms += Math.max(0, Math.min(this._now() - this._last, this.idleMs));
+        return ms / 1000;
+    }
+
+    /** True while the clock is waiting for the next keystroke after `idleMs`. */
+    isIdle() {
+        return this._running() && this._now() - this._last > this.idleMs;
+    }
+}
+
+const TypingUtils = (function () {
+    'use strict';
+
+    /** WPM everywhere = (correctly typed characters / 5) / active minutes. */
+    function calcWpm(charsCorrect, activeSeconds) {
+        if (!(activeSeconds > 0) || !(charsCorrect > 0)) return 0;
+        return Math.round((charsCorrect / 5) / (activeSeconds / 60));
+    }
+
+    function calcAccuracy(correct, total) {
+        if (!(total > 0)) return 100;
+        return Math.max(0, Math.min(100, Math.round((correct / total) * 100)));
+    }
+
+    function formatTime(seconds) {
+        const s = Math.max(0, Math.floor(seconds || 0));
+        return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    }
+
+    function isCapsLockOn(e) {
+        try {
+            return !!(e && typeof e.getModifierState === 'function' && e.getModifierState('CapsLock'));
+        } catch (err) {
+            return false;
+        }
+    }
+
+    /**
+     * Sort a keydown event into what the typing screens should do with it:
+     *   ime             — IME composition (Chinese/Japanese/Korean input, Android soft keyboards)
+     *   capslock        — the Caps Lock key itself
+     *   shortcut        — Ctrl/Cmd/Alt combos (Ctrl+F must not count as "f")
+     *   ignore          — Shift, arrows, F-keys, Backspace…
+     *   repeat          — auto-repeat from a held key
+     *   capslock-letter — a letter typed while Caps Lock is on
+     *   enter / char    — something to type ({ char })
+     * `codeFallback` maps e.code → char for keys whose e.key is not a single character (dead keys).
+     */
+    function classifyKey(e, options) {
+        const opts = options || {};
+        const key = e.key;
+        if (e.isComposing || e.keyCode === 229 || key === 'Process') return { kind: 'ime' };
+        if (key === 'CapsLock') return { kind: 'capslock' };
+        if (e.ctrlKey || e.metaKey || e.altKey) return { kind: 'shortcut' };
+        if (typeof key !== 'string') return { kind: 'ignore' };
+        let ch = null;
+        if (key === 'Enter') ch = '\n';
+        else if (key.length === 1) ch = key;
+        else if (opts.codeFallback && e.code && opts.codeFallback[e.code]) ch = opts.codeFallback[e.code];
+        if (ch === null) return { kind: 'ignore' };
+        if (e.repeat) return { kind: 'repeat', char: ch };
+        if (/^[a-z]$/i.test(ch) && isCapsLockOn(e)) return { kind: 'capslock-letter', char: ch };
+        return { kind: ch === '\n' ? 'enter' : 'char', char: ch };
+    }
+
+    /** Soft keyboards love "smart" punctuation — map it back to what a US keyboard types. */
+    const SMART_CHARS = {
+        '‘': "'", '’': "'", '‚': "'", '′': "'",
+        '“': '"', '”': '"', '„': '"', '″': '"',
+        '–': '-', '—': '-', '−': '-',
+        ' ': ' ', '…': '.',
+    };
+
+    function normalizeTyped(ch) {
+        return Object.prototype.hasOwnProperty.call(SMART_CHARS, ch) ? SMART_CHARS[ch] : ch;
+    }
+
+    function isEditableTarget(el) {
+        if (!el || !el.tagName) return false;
+        return !!el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
+    }
+
+    /**
+     * Classroom links: ?<idParam>=N&min=M. Only whole numbers are accepted; minutes 1–60.
+     * Returns { id, minutes, invalid: [param names that were present but unusable] }.
+     */
+    function parseClassParams(search, spec) {
+        const out = { id: null, minutes: null, invalid: [] };
+        let params;
+        try { params = new URLSearchParams(search || ''); } catch (e) { return out; }
+        if (spec && spec.idParam && params.has(spec.idParam)) {
+            const raw = (params.get(spec.idParam) || '').trim();
+            const n = /^\d{1,4}$/.test(raw) ? parseInt(raw, 10) : NaN;
+            if (!isNaN(n) && (!spec.isValidId || spec.isValidId(n))) out.id = n;
+            else out.invalid.push(spec.idParam);
+        }
+        if (params.has('min')) {
+            const raw = (params.get('min') || '').trim();
+            const m = /^\d{1,3}$/.test(raw) ? parseInt(raw, 10) : NaN;
+            if (m >= 1 && m <= 60) out.minutes = m;
+            else out.invalid.push('min');
+        }
+        return out;
+    }
+
+    function hasTouch() {
+        try {
+            return (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    /** The main pointer is a finger (phone/tablet), so show "tap to type" hints. */
+    function prefersTouch() {
+        try {
+            return !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+        } catch (e) {
+            return false;
+        }
+    }
+
+    /**
+     * Wire a hidden-but-focusable <input> so phones/tablets without a hardware keyboard
+     * get an on-screen keyboard. Hardware keys keep going through the page's keydown
+     * handler (which calls noteHandled() + preventDefault, so nothing lands in the input).
+     * Characters that only arrive as `input` events (Android keyboards report keyCode 229)
+     * are diffed out of the input's value and passed to opts.onChar one by one.
+     */
+    function attachTouchInput(input, opts) {
+        const o = opts || {};
+        let last = '';
+        let composing = false;
+        let lastPointerType = '';
+        const recent = [];
+        const now = () => (window.performance && performance.now ? performance.now() : Date.now());
+
+        function reset() {
+            input.value = '';
+            last = '';
+        }
+
+        function focus() {
+            // Re-focusing an already focused input doesn't bring a closed phone keyboard back
+            if (document.activeElement === input) input.blur();
+            try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
+        }
+
+        function wasJustHandled(ch) {
+            const t = now();
+            while (recent.length && t - recent[0].t > 200) recent.shift();
+            const i = recent.findIndex(r => r.ch === ch);
+            if (i === -1) return false;
+            recent.splice(i, 1);
+            return true;
+        }
+
+        input.addEventListener('compositionstart', () => { composing = true; });
+        input.addEventListener('compositionend', () => { composing = false; });
+        input.addEventListener('beforeinput', (e) => {
+            if (e.inputType === 'insertFromPaste' || e.inputType === 'insertFromDrop') e.preventDefault();
+        });
+        input.addEventListener('paste', (e) => e.preventDefault());
+        input.addEventListener('drop', (e) => e.preventDefault());
+        input.addEventListener('input', () => {
+            const val = input.value;
+            // Only appended text counts; autocorrect rewrites and deletions are ignored
+            const added = val.startsWith(last) ? val.slice(last.length) : '';
+            last = val;
+            for (const raw of added) {
+                const ch = normalizeTyped(raw);
+                if (wasJustHandled(ch) || wasJustHandled(raw)) continue;
+                if (o.onChar) o.onChar(ch);
+            }
+            if (!composing && val.length > 40) reset();
+        });
+        input.addEventListener('focus', () => { if (o.onFocusChange) o.onFocusChange(true); });
+        input.addEventListener('blur', () => {
+            if (!composing) reset();
+            if (o.onFocusChange) o.onFocusChange(false);
+        });
+
+        (o.tapTargets || []).forEach(el => {
+            if (!el) return;
+            el.addEventListener('pointerdown', (e) => { lastPointerType = e.pointerType || ''; });
+            el.addEventListener('click', (e) => {
+                if (e.target && e.target.closest && e.target.closest('button, a, select, textarea')) return;
+                const byFinger = lastPointerType ? lastPointerType !== 'mouse' : hasTouch();
+                if (byFinger) focus();
+            });
+        });
+
+        return {
+            focus,
+            reset,
+            isFocused: () => document.activeElement === input,
+            /** The page handled this char from a keydown — don't count it again from `input`. */
+            noteHandled(ch) {
+                recent.push({ ch, t: now() });
+                if (recent.length > 10) recent.shift();
+            },
+        };
+    }
+
+    return {
+        calcWpm, calcAccuracy, formatTime, isCapsLockOn, classifyKey, normalizeTyped,
+        isEditableTarget, parseClassParams, hasTouch, prefersTouch, attachTouchInput,
+        ActiveClock,
+    };
+})();
+
 // Export for use
 window.VirtualKeyboard = VirtualKeyboard;
 window.KEY_FINGER_MAP = KEY_FINGER_MAP;
 window.FINGER_NAMES = FINGER_NAMES;
 window.FINGER_COLORS = FINGER_COLORS;
+window.ActiveClock = ActiveClock;
+window.TypingUtils = TypingUtils;
