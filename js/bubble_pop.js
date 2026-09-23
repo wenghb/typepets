@@ -327,6 +327,11 @@ const BubblePopLogic = (function() {
 
     speedSlider.addEventListener('input', () => {
         speedMultiplier = parseFloat(parseFloat(speedSlider.value).toFixed(1));
+        updateSpeedDisplay();
+    });
+    // Saving rewrites the whole localStorage blob, so only do it when the slider is released.
+    speedSlider.addEventListener('change', () => {
+        speedMultiplier = parseFloat(parseFloat(speedSlider.value).toFixed(1));
         TypePetsData.saveSpeedPreference(speedMultiplier);
         updateSpeedDisplay();
     });
@@ -471,9 +476,11 @@ const BubblePopLogic = (function() {
         const radius = Math.max(28, 16 + word.length * 8);
         const actualRadius = word.length > 8 ? Math.max(45, 10 + word.length * 5) : radius;
         const x = actualRadius + Math.random() * (W - actualRadius * 2);
-        const colorScheme = BUBBLE_COLORS[Math.floor(Math.random() * BUBBLE_COLORS.length)];
+        const colorIndex = Math.floor(Math.random() * BUBBLE_COLORS.length);
         const speedVariation = L.riseSpeed(H, actualRadius, params.riseTime) * (0.85 + Math.random() * 0.3);
-        bubbles.push({x,y:H+actualRadius,radius:actualRadius,word,color:colorScheme,speed:speedVariation,wobbleOffset:Math.random()*Math.PI*2,wobbleAmp:Math.random()*1.2+0.3,opacity:1,scale:0.3,powerUp:Math.random()<0.06?(Math.random()<0.5?'freeze':'bomb'):null});
+        const powerUp = Math.random()<0.06?(Math.random()<0.5?'freeze':'bomb'):null;
+        bubbles.push({x,y:H+actualRadius,radius:actualRadius,word,colorIndex,color:BUBBLE_COLORS[colorIndex],speed:speedVariation,wobbleOffset:Math.random()*Math.PI*2,wobbleAmp:Math.random()*1.2+0.3,scale:0.3,powerUp,
+            spriteKey:`${colorIndex}|${actualRadius}|${word}|${powerUp || ''}`});
     }
 
     function popBubble(index) {
@@ -600,38 +607,79 @@ const BubblePopLogic = (function() {
         }
     };
 
-    function drawBackground(dt) {
-        const grad = ctx.createLinearGradient(0,0,0,H);
-        grad.addColorStop(0,'#1A2744');grad.addColorStop(0.4,'#1E3A5F');grad.addColorStop(0.8,'#2A5070');grad.addColorStop(1,'#2A6A70');
-        ctx.fillStyle = grad; ctx.fillRect(0,0,W,H);
+    // The background gradients never change: build them once, not every frame.
+    const bgGradient = ctx.createLinearGradient(0,0,0,H);
+    bgGradient.addColorStop(0,'#1A2744');bgGradient.addColorStop(0.4,'#1E3A5F');bgGradient.addColorStop(0.8,'#2A5070');bgGradient.addColorStop(1,'#2A6A70');
+    const rayGradient = ctx.createLinearGradient(0,0,0,H);
+    rayGradient.addColorStop(0,'#ffffff');rayGradient.addColorStop(1,'transparent');
+
+    function drawBackground(ts, dt) {
+        ctx.fillStyle = bgGradient; ctx.fillRect(0,0,W,H);
         if (freezeMs > 0) { ctx.fillStyle='rgba(180,220,240,0.10)'; ctx.fillRect(0,0,W,H); }
-        ctx.save(); ctx.globalAlpha=0.03;
-        for (let i=0;i<4;i++) {const x=100+i*160;const grad2=ctx.createLinearGradient(x,0,x,H);grad2.addColorStop(0,'#ffffff');grad2.addColorStop(1,'transparent');ctx.fillStyle=grad2;ctx.beginPath();ctx.moveTo(x-25,0);ctx.lineTo(x+25,0);ctx.lineTo(x+50+Math.sin(Date.now()/2000+i)*15,H);ctx.lineTo(x-50+Math.sin(Date.now()/2000+i)*15,H);ctx.fill();}
-        ctx.restore();
-        ctx.save(); ctx.globalAlpha=0.1;
-        for (const bb of bgBubbles) {bb.y-=bb.speed*dt;bb.x+=Math.sin(Date.now()/3000+bb.wobble)*0.15*dt;if(bb.y<-10){bb.y=H+10;bb.x=Math.random()*W;}ctx.beginPath();ctx.arc(bb.x,bb.y,bb.r,0,Math.PI*2);ctx.fillStyle='#88BBDD';ctx.fill();}
-        ctx.restore();
-        ctx.save();ctx.globalAlpha=0.2;ctx.fillStyle='#1A3A50';ctx.beginPath();ctx.moveTo(0,H);
-        for(let x=0;x<=W;x+=40){ctx.lineTo(x,H-12-Math.sin(x/60+Date.now()/5000)*6);}
-        ctx.lineTo(W,H);ctx.fill();ctx.restore();
+        ctx.globalAlpha = 0.03; ctx.fillStyle = rayGradient;
+        for (let i=0;i<4;i++) {const x=100+i*160;const sway=Math.sin(ts/2000+i)*15;ctx.beginPath();ctx.moveTo(x-25,0);ctx.lineTo(x+25,0);ctx.lineTo(x+50+sway,H);ctx.lineTo(x-50+sway,H);ctx.fill();}
+        ctx.globalAlpha = 0.1; ctx.fillStyle = '#88BBDD'; ctx.beginPath();
+        for (const bb of bgBubbles) {bb.y-=bb.speed*dt;bb.x+=Math.sin(ts/3000+bb.wobble)*0.15*dt;if(bb.y<-10){bb.y=H+10;bb.x=Math.random()*W;}ctx.moveTo(bb.x+bb.r,bb.y);ctx.arc(bb.x,bb.y,bb.r,0,Math.PI*2);}
+        ctx.fill();
+        ctx.globalAlpha = 0.2; ctx.fillStyle='#1A3A50'; ctx.beginPath(); ctx.moveTo(0,H);
+        for(let x=0;x<=W;x+=40){ctx.lineTo(x,H-12-Math.sin(x/60+ts/5000)*6);}
+        ctx.lineTo(W,H); ctx.fill();
         if (!isFreePlay && gameRunning) {
             const progress = Math.min(activeMs/(LEVEL_PASS_TIME*1000),1);
-            ctx.save();ctx.globalAlpha=0.5;ctx.fillStyle='rgba(255,255,255,0.1)';ctx.fillRect(20,10,W-40,6);
-            ctx.fillStyle=progress>=1?'#68D391':'#4A90D9';ctx.fillRect(20,10,(W-40)*progress,6);ctx.restore();
+            ctx.globalAlpha=0.5;ctx.fillStyle='rgba(255,255,255,0.1)';ctx.fillRect(20,10,W-40,6);
+            ctx.fillStyle=progress>=1?'#68D391':'#4A90D9';ctx.fillRect(20,10,(W-40)*progress,6);
         }
+        ctx.globalAlpha = 1;
     }
 
-    function drawBubble(b) {
-        ctx.save();const s=Math.min(1,b.scale);ctx.translate(b.x,b.y);ctx.scale(s,s);const r=b.radius;
-        ctx.shadowColor=b.color.stroke;ctx.shadowBlur=8;ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fillStyle=b.color.fill;ctx.fill();ctx.strokeStyle=b.color.stroke;ctx.lineWidth=1.5;ctx.stroke();ctx.shadowBlur=0;
-        ctx.beginPath();ctx.arc(-r*0.25,-r*0.3,r*0.2,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,0.25)';ctx.fill();
+    /** The static look of a bubble (glow, body, shine, label, power-up icon) centred on (0,0). */
+    function paintBubble(g, b) {
+        const r = b.radius;
+        g.shadowColor=b.color.stroke;g.shadowBlur=8;g.beginPath();g.arc(0,0,r,0,Math.PI*2);g.fillStyle=b.color.fill;g.fill();g.strokeStyle=b.color.stroke;g.lineWidth=1.5;g.stroke();g.shadowBlur=0;
+        g.beginPath();g.arc(-r*0.25,-r*0.3,r*0.2,0,Math.PI*2);g.fillStyle='rgba(255,255,255,0.25)';g.fill();
         const fontSize=b.word.length===1?r*0.85:Math.min(r*0.55,20);
-        ctx.font=`bold ${fontSize}px Fredoka, sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
-        ctx.shadowColor='rgba(0,0,0,0.5)';ctx.shadowBlur=3;ctx.shadowOffsetX=1;ctx.shadowOffsetY=1;ctx.fillStyle=b.color.text;
-        if(b.word.length>10){const words=b.word.split(' ');if(words.length>1){const lineH=fontSize+2;const startY=-(words.length-1)*lineH/2;words.forEach((w,i)=>ctx.fillText(w,0,startY+i*lineH));}else{ctx.fillText(b.word,0,2);}}else{ctx.fillText(b.word,0,2);}
-        if(b.powerUp){ctx.font=`${r*0.35}px sans-serif`;ctx.fillText(b.powerUp==='freeze'?'❄️':'💣',0,-r*0.5);}
-        if(b.y<50){ctx.globalAlpha=0.4+Math.sin(Date.now()/100)*0.4;ctx.strokeStyle='#E07070';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,r+4,0,Math.PI*2);ctx.stroke();}
-        ctx.restore();
+        g.font=`bold ${fontSize}px Fredoka, sans-serif`;g.textAlign='center';g.textBaseline='middle';
+        g.shadowColor='rgba(0,0,0,0.5)';g.shadowBlur=3;g.shadowOffsetX=1;g.shadowOffsetY=1;g.fillStyle=b.color.text;
+        if(b.word.length>10){const words=b.word.split(' ');if(words.length>1){const lineH=fontSize+2;const startY=-(words.length-1)*lineH/2;words.forEach((w,i)=>g.fillText(w,0,startY+i*lineH));}else{g.fillText(b.word,0,2);}}else{g.fillText(b.word,0,2);}
+        if(b.powerUp){g.font=`${r*0.35}px sans-serif`;g.fillText(b.powerUp==='freeze'?'❄️':'💣',0,-r*0.5);}
+    }
+
+    // Blurred shadows and text are the costliest canvas draws, so each bubble look is painted once
+    // into an offscreen canvas (keyed by colour, size, text and power-up) and blitted every frame.
+    const SPRITE_PAD = 12;          // room for the 8px glow
+    const SPRITE_CACHE_MAX = 80;
+    const spriteCache = new Map();
+    function bubbleSprite(b) {
+        let sprite = spriteCache.get(b.spriteKey);
+        if (sprite === undefined) {
+            if (spriteCache.size >= SPRITE_CACHE_MAX) spriteCache.clear();
+            const size = Math.ceil((b.radius + SPRITE_PAD) * 2);
+            const c = document.createElement('canvas');
+            c.width = size; c.height = size;
+            const g = c.getContext && c.getContext('2d');
+            sprite = null;
+            if (g) { g.translate(size / 2, size / 2); paintBubble(g, b); sprite = { canvas: c, size }; }
+            spriteCache.set(b.spriteKey, sprite);
+        }
+        return sprite;
+    }
+    // Labels drawn before the Fredoka web font loaded would stay in the fallback font.
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => spriteCache.clear(), () => {});
+
+    function drawBubble(b, ts) {
+        const s = Math.min(1, b.scale);
+        const sprite = bubbleSprite(b);
+        if (sprite) {
+            const d = sprite.size * s;
+            ctx.drawImage(sprite.canvas, b.x - d / 2, b.y - d / 2, d, d);
+        } else {
+            ctx.save(); ctx.translate(b.x, b.y); ctx.scale(s, s); paintBubble(ctx, b); ctx.restore();
+        }
+        if (b.y < 50) {
+            ctx.globalAlpha = 0.4 + Math.sin(ts / 100) * 0.4; ctx.strokeStyle = '#E07070'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(b.x, b.y, (b.radius + 4) * s, 0, Math.PI * 2); ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
         drawTypedRing(b);
     }
 
@@ -663,11 +711,29 @@ const BubblePopLogic = (function() {
     }
 
     function drawParticles(dt) {
-        for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=p.gravity*dt;p.life-=p.decay*dt;if(p.life<=0){particles.splice(i,1);continue;}ctx.save();ctx.globalAlpha=p.life;ctx.beginPath();ctx.arc(p.x,p.y,p.radius*p.life,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();ctx.restore();}
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx * dt; p.y += p.vy * dt; p.vy += p.gravity * dt; p.life -= p.decay * dt;
+            if (p.life <= 0) { particles.splice(i, 1); continue; }
+            ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * p.life, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
     }
 
     function drawFloatingTexts(dt) {
-        for(let i=floatingTexts.length-1;i>=0;i--){const ft=floatingTexts[i];ft.y+=ft.vy*dt;ft.life-=0.015*dt;if(ft.life<=0){floatingTexts.splice(i,1);continue;}ctx.save();ctx.globalAlpha=Math.min(1,ft.life*2);ctx.font=`bold ${ft.size}px Fredoka, sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fillText(ft.text,ft.x+1,ft.y+1);ctx.fillStyle=ft.color;ctx.fillText(ft.text,ft.x,ft.y);ctx.restore();}
+        if (floatingTexts.length === 0) return;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        for (let i = floatingTexts.length - 1; i >= 0; i--) {
+            const ft = floatingTexts[i];
+            ft.y += ft.vy * dt; ft.life -= 0.015 * dt;
+            if (ft.life <= 0) { floatingTexts.splice(i, 1); continue; }
+            ctx.globalAlpha = Math.min(1, ft.life * 2);
+            ctx.font = `bold ${ft.size}px Fredoka, sans-serif`;
+            ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillText(ft.text, ft.x + 1, ft.y + 1);
+            ctx.fillStyle = ft.color; ctx.fillText(ft.text, ft.x, ft.y);
+        }
+        ctx.globalAlpha = 1;
     }
 
     function startLoop() { if (frameId == null) frameId = requestAnimationFrame(gameLoop); }
@@ -697,8 +763,8 @@ const BubblePopLogic = (function() {
         }
         if (needsRevalidate) { needsRevalidate = false; processInput(false, true); }
 
-        ctx.clearRect(0,0,W,H); drawBackground(step.dt);
-        for (let i = bubbles.length - 1; i >= 0; i--) drawBubble(bubbles[i]);
+        drawBackground(ts, step.dt);
+        for (let i = bubbles.length - 1; i >= 0; i--) drawBubble(bubbles[i], ts);
         drawParticles(step.dt); drawFloatingTexts(step.dt); drawInputHint();
         frameId = requestAnimationFrame(gameLoop);
     }
@@ -886,7 +952,7 @@ const BubblePopLogic = (function() {
         if (data.weak_keys) { data.weak_keys.forEach(([key, count]) => { weakKeys[key] = count; }); }
     }
 
-    drawBackground(0);
+    drawBackground(performance.now(), 0);
     loadProgress();
     updateControls();
     document.addEventListener('click', () => { if (gameRunning && !paused) gameInput.focus(); });
