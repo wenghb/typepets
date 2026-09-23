@@ -894,7 +894,11 @@ const TypePetsData = (function() {
             if (session.mode === 'finger_training') {
                 const stage = session.level;
                 const acc = session.accuracy;
-                if (acc >= 85) {
+                // A teacher's classroom link can open a locked stage: that counts as practice,
+                // but only a stage the child had already unlocked advances their progress.
+                const st = d.training.stages[stage];
+                const wasUnlocked = Number(stage) === 1 || !!(isPlainObject(st) && st.unlocked === true);
+                if (acc >= 85 && wasUnlocked) {
                     addActivity('training', `Completed Training Stage ${stage}`, xpEarned, { stage, accuracy: acc });
                     saveTrainingStage(stage);
                 } else {
@@ -1213,6 +1217,18 @@ const TypePetsData = (function() {
 
     // ─── Integrated Progress (for home page) ─────────────────
 
+    const ARTICLES_TOTAL_FALLBACK = 26;
+
+    /** Number of articles: from js/articles-data.js when the page loaded it, else the known total. */
+    function _articlesTotal() {
+        try {
+            /* global ARTICLES */
+            if (typeof ARTICLES !== 'undefined' && Array.isArray(ARTICLES) && ARTICLES.length) return ARTICLES.length;
+            if (typeof window !== 'undefined' && Array.isArray(window.ARTICLES) && window.ARTICLES.length) return window.ARTICLES.length;
+        } catch (e) { /* ignore */ }
+        return ARTICLES_TOTAL_FALLBACK;
+    }
+
     function getIntegratedProgress() {
         const d = _ensure();
         return {
@@ -1222,7 +1238,7 @@ const TypePetsData = (function() {
             bubble_total: 20,
             pet: getPet(),
             articles_completed: d.articles.completed.length,
-            articles_total: 10,
+            articles_total: _articlesTotal(),
             recent_activities: getRecentActivities(5),
             milestones: d.milestones.map(m => m.reward_id)
         };
