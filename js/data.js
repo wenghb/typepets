@@ -636,8 +636,16 @@ const TypePetsData = (function() {
         });
     }
 
+    /**
+     * Bubble levels passed (1–20). Passing level N unlocks N+1 (max_level reaches 21 after level 20 = Free Play),
+     * so every level below max_level counts, plus any level recorded by a `passed: true` session.
+     */
     function getBubblePassedLevels() {
-        return _ensure().bubbles.passed_levels.slice();
+        const d = _ensure();
+        const set = new Set(d.bubbles.passed_levels.filter(l => l >= 1 && l <= 20));
+        const upTo = Math.min(20, Math.floor(num(d.bubbles.max_level, 1)) - 1);
+        for (let l = 1; l <= upTo; l++) set.add(l);
+        return Array.from(set).sort((a, b) => a - b);
     }
 
     function getBubblePersonalBest() {

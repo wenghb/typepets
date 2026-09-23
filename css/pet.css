@@ -1129,3 +1129,13 @@
     .pet-scene { width: 100%; max-width: 300px; }
     .pet-stage-area { padding: 20px 14px; }
 }
+
+@media (prefers-reduced-motion: reduce) {
+    .pet-scene *,
+    .floating-heart,
+    .pet-stat-bar-fill,
+    .xp-bar-inner {
+        animation: none !important;
+        transition: none !important;
+    }
+}

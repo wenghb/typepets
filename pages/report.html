@@ -426,7 +426,7 @@
             append(root, h('div', { class: 'r-two' },
                 h('section', { class: 'r-card' }, h('h2', { text: 'Bubble Pop levels passed' }),
                     h('div', { class: 'r-chips' }, levels),
-                    h('p', { class: 'r-note', text: `${passed.size} of 20 passed · highest unlocked: ${bubble.max_level} · best score: ${TypePetsData.getBubblePersonalBest().toLocaleString()}` })),
+                    h('p', { class: 'r-note', text: `${passed.size} of 20 passed · ${bubble.max_level > 20 ? 'Free Play unlocked' : `highest unlocked: level ${bubble.max_level}`} · best score: ${TypePetsData.getBubblePersonalBest().toLocaleString()}` })),
                 h('section', { class: 'r-card' }, h('h2', { text: `Articles typed (${completed.length})` }),
                     completed.length
                         ? h('table', { class: 'r-table' }, h('tbody', null, completed.map(id => {

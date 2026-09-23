@@ -1395,3 +1395,22 @@ button:not(:disabled):active, .btn:active {
         max-width: none;
     }
 }
+
+/* ─── Reduced motion ───────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    .content,
+    .donate-heart,
+    .profile-menu,
+    .tp-modal-overlay,
+    .toast,
+    .goal-ring-fill {
+        animation: none !important;
+        transition: none !important;
+    }
+    .mode-card:hover,
+    .journey-track:hover,
+    button:not(:disabled):hover,
+    .btn:hover {
+        transform: none !important;
+    }
+}

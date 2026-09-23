@@ -54,6 +54,7 @@
         const name = user.nickname && user.nickname !== 'Player' ? user.nickname : 'Your child';
 
         const card = el('aside', 'donate-card');
+        card.id = 'donatePrompt'; // kept for compatibility (Bubble Pop pauses while #donatePrompt exists)
         card.setAttribute('aria-label', 'A note for grown-ups');
         card.appendChild(el('div', 'donate-card-label', 'For grown-ups'));
         card.appendChild(el('h3', 'donate-card-title',

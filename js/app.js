@@ -38,6 +38,9 @@ function showToast(message, type = 'info', duration = 3000) {
  * Spawn confetti
  */
 function spawnConfetti(count = 50) {
+    try {
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    } catch (e) { /* ignore */ }
     const container = document.createElement('div');
     container.className = 'confetti-container';
     document.body.appendChild(container);
@@ -197,6 +200,7 @@ document.addEventListener('keydown', () => {
     function openModal(opts) {
         opts = opts || {};
         const overlay = el('div', 'tp-modal-overlay');
+        if (opts.id) overlay.id = opts.id;
         const card = el('div', 'tp-modal' + (opts.className ? ' ' + opts.className : ''));
         card.setAttribute('role', 'dialog');
         card.setAttribute('aria-modal', 'true');
@@ -234,7 +238,7 @@ document.addEventListener('keydown', () => {
             b = 6 + Math.floor(Math.random() * 4);
             question.textContent = `What is ${a} × ${b}?`;
         }
-        const m = openModal({ className: 'parent-gate', label: 'Grown-ups only' });
+        const m = openModal({ className: 'parent-gate', label: 'Grown-ups only', id: opts.id });
         m.card.appendChild(el('div', 'tp-modal-emoji', '👋'));
         m.card.appendChild(el('h3', null, 'Grown-ups only'));
         m.card.appendChild(el('p', 'tp-modal-text', opts.reason || 'Please ask a grown-up to answer this to continue.'));
@@ -272,7 +276,8 @@ document.addEventListener('keydown', () => {
     }
 
     function showDonateLink() {
-        const m = openModal({ className: 'donate-final', label: 'Support TypePets' });
+        // id="donatePrompt": Bubble Pop pauses its game while this element exists
+        const m = openModal({ className: 'donate-final', label: 'Support TypePets', id: 'donatePrompt' });
         m.card.appendChild(el('div', 'tp-modal-emoji', '💛'));
         m.card.appendChild(el('h3', null, 'Thank you for supporting TypePets'));
         m.card.appendChild(el('p', 'tp-modal-text',
@@ -292,7 +297,7 @@ document.addEventListener('keydown', () => {
     }
 
     function openDonate() {
-        showParentGate(showDonateLink, { reason: 'This link is for grown-ups. Please ask one to answer:' });
+        showParentGate(showDonateLink, { reason: 'This link is for grown-ups. Please ask one to answer:', id: 'donatePrompt' });
     }
 
     // Every Stripe link on app pages goes through the grown-up gate first.

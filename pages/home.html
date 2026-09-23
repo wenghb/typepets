@@ -338,9 +338,12 @@
             document.getElementById('trainingProgress').textContent = `Stage ${data.training_stage} of ${data.training_total}`;
             makeDots(document.getElementById('trainingDots'), data.training_stage, data.training_total, 'filled');
 
-            // Bubbles
-            document.getElementById('bubblesProgress').textContent = `Level ${data.bubble_level} of ${data.bubble_total}`;
-            makeDots(document.getElementById('bubbleDots'), data.bubble_level - 1, data.bubble_total, 'filled-teal');
+            // Bubbles (max_level becomes 21 once level 20 is passed = Free Play)
+            const bubblesDone = data.bubble_level > data.bubble_total;
+            document.getElementById('bubblesProgress').textContent = bubblesDone
+                ? `All ${data.bubble_total} levels complete 🎉`
+                : `Level ${data.bubble_level} of ${data.bubble_total}`;
+            makeDots(document.getElementById('bubbleDots'), Math.min(data.bubble_total, data.bubble_level - 1), data.bubble_total, 'filled-teal');
 
             // Pet
             const pet = data.pet;
@@ -395,7 +398,7 @@
                 } else {
                     parts = [{ text: `Train Stage ${nextStage}`, href: 'training.html' }, ' to unlock Free Play!'];
                 }
-            } else if (data.bubble_level <= 20) {
+            } else if (!bubblesDone) {
                 parts = ['Try ', { text: `Bubble Level ${data.bubble_level}`, href: 'bubbles.html' }, ' next!'];
             } else if (data.articles_completed < data.articles_total) {
                 parts = [{ text: 'Type some articles', href: 'articles.html' }, ' to earn more XP!'];
