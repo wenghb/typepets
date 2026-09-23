@@ -33,6 +33,20 @@ python3 -m http.server 5007
 npx serve .
 ```
 
+## Deployment
+
+Deployed automatically by Cloudflare Pages via its GitHub integration — there is no build step or deploy script.
+
+1. Preview locally (see above).
+2. Commit and push / merge to `main`.
+3. Cloudflare Pages picks up the push and publishes the repo root to [typepets.com](https://typepets.com). The "Cloudflare Pages" check on the commit shows the deploy status.
+
+Pushes to other branches get a preview deployment on `*.typepets.pages.dev`.
+
+Notes:
+- `_redirects` holds the Pages routing rules (`/* /index.html 200` fallback).
+- Production branch, build settings (none; output dir = root), and the custom domain are configured in the Cloudflare dashboard, not in this repo.
+
 ## Structure
 
 ```
