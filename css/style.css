@@ -1414,3 +1414,10 @@ button:not(:disabled):active, .btn:active {
         transform: none !important;
     }
 }
+
+/* Phone nav: Support lives in the ☰ menu, so drop the header pill (the base rule above is declared later than the 600px block) */
+@media (max-width: 600px) {
+    .nav-right .donate-heart {
+        display: none;
+    }
+}
