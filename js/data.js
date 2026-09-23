@@ -1333,6 +1333,8 @@ const TypePetsData = (function() {
         if (!v.ok) return v;
         const profileInfo = (parsed && parsed.profile) || v.profile;
         v.data.backup.last_backup_at = _iso();
+        // Be kind: the pet resumes from the backed-up mood instead of decaying for the time the backup sat in a drawer.
+        v.data.pet.stats_at = _iso();
         if (_txDepth !== 0) return { ok: false, error: 'busy' };
         _data = v.data;
         if (!_save()) return { ok: false, error: 'storage' };

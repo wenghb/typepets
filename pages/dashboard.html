@@ -459,18 +459,30 @@
         async function copySaveCode() {
             const btn = document.getElementById('copyCodeBtn');
             btn.disabled = true;
+            const codePromise = TypePetsData.exportSaveCode();
+            // Start the clipboard write inside the click (Safari rejects writes that start after an await).
+            let clipPromise = null;
             try {
-                const code = await TypePetsData.exportSaveCode();
+                if (window.isSecureContext && navigator.clipboard) {
+                    if (typeof window.ClipboardItem === 'function' && typeof navigator.clipboard.write === 'function') {
+                        clipPromise = navigator.clipboard.write([new ClipboardItem({
+                            'text/plain': codePromise.then(c => new Blob([c], { type: 'text/plain' }))
+                        })]);
+                    } else if (typeof navigator.clipboard.writeText === 'function') {
+                        clipPromise = codePromise.then(c => navigator.clipboard.writeText(c));
+                    }
+                }
+            } catch (e) { clipPromise = null; }
+            if (clipPromise) clipPromise.catch(() => {}); // handled below; avoid unhandled-rejection noise
+            try {
+                const code = await codePromise;
                 const out = document.getElementById('saveCodeOut');
                 out.value = code;
                 out.hidden = false;
                 let copied = false;
-                try {
-                    if (navigator.clipboard && window.isSecureContext) {
-                        await navigator.clipboard.writeText(code);
-                        copied = true;
-                    }
-                } catch (e) { copied = false; }
+                if (clipPromise) {
+                    try { await clipPromise; copied = true; } catch (e) { copied = false; }
+                }
                 if (!copied) {
                     out.focus();
                     out.select();
