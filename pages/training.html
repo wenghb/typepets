@@ -155,6 +155,7 @@
     let targetText = '';
     let typedIndex = 0;
     let challengeCount = 0;
+    let nextChallengeTimer = null;
 
     function initTraining() {
         keyboard = new VirtualKeyboard('keyboardContainer');
@@ -212,6 +213,7 @@
     function loadStage(idx) {
         const stage = STAGES[idx];
         currentStageIdx = idx;
+        clearTimeout(nextChallengeTimer);
         sessionKeys = 0; sessionErrors = 0; sessionErrorKeys = {}; sessionStartTime = null; challengeCount = 0; typedIndex = 0;
         document.getElementById('stageName').textContent = `Stage ${stage.id}: ${stage.name}`;
         document.getElementById('stageDesc').textContent = stage.desc;
@@ -285,6 +287,8 @@
         const validSet = new Set(stage.keys.map(k => k.toLowerCase()));
         if (stage.mode === 'words') validSet.add(' ');
         if (!validSet.has(pressed)) return;
+        // Ignore keys during the short pause before the next challenge appears
+        if (typedIndex >= targetText.length) return;
         if (!sessionStartTime) sessionStartTime = Date.now();
         sessionKeys++;
         const expected = targetText[typedIndex];
@@ -297,7 +301,7 @@
                 challengeCount++;
                 updateStats();
                 updateProgress();
-                setTimeout(() => generateChallenge(), 300);
+                nextChallengeTimer = setTimeout(generateChallenge, 300);
             } else { highlightNextKey(); updateStats(); }
         } else {
             if (window.sound) window.sound.wrong();
