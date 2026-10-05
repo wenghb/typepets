@@ -435,44 +435,115 @@ a {
 }
 
 /* ─── Feedback form (js/feedback.js) ───────────────────────── */
-.feedback-modal {
-    max-width: 460px;
-}
-
-.fb-form {
+/* Every choice is a keycap: it sits up on a little edge and sinks when picked. */
+.tp-modal.feedback-modal {
+    display: flex;
+    flex-direction: column;
+    max-width: 560px;
+    padding: 0;
+    overflow: hidden;
     text-align: left;
 }
 
-.fb-form .tp-modal-emoji,
-.fb-form h3,
-.fb-form > .tp-modal-text,
-.fb-thanks {
-    text-align: center;
+.fb-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    text-align: left;
 }
 
 .fb-form [hidden] {
     display: none !important;
 }
 
-.fb-group {
-    border: 0;
-    padding: 0;
-    margin: 0 0 12px;
+.fb-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 24px 24px 6px;
+}
+
+.fb-titles {
+    flex: 1;
     min-width: 0;
 }
 
-.fb-options {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+.fb-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--text-primary);
 }
 
-.fb-chip {
-    position: relative;
+.fb-sub {
+    margin-top: 4px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--text-secondary);
+}
+
+.fb-close {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    margin: -4px -6px 0 0;
+    border: none;
+    border-radius: 50%;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 700;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.fb-chip input {
+.fb-close:hover {
+    color: var(--text-primary);
+    background: var(--border-color);
+}
+
+.fb-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 18px 24px 20px;
+}
+
+.fb-group {
+    border: 0;
+    padding: 0;
+    margin: 0 0 20px;
+    min-width: 0;
+}
+
+.fb-label {
+    display: block;
+    padding: 0;
+    margin-bottom: 10px;
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.fb-keys {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.fb-key {
+    position: relative;
+    display: flex; /* the cap fills the row, so a two-line label doesn't make one key taller */
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.fb-key input {
     position: absolute;
     opacity: 0;
     width: 1px;
@@ -480,89 +551,102 @@ a {
     pointer-events: none;
 }
 
-.fb-chip-face {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 12px;
-    border: 2px solid var(--border-color);
-    border-radius: 999px;
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-weight: 700;
-    font-size: 0.85rem;
-    transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
-}
-
-.fb-chip:hover .fb-chip-face {
-    border-color: var(--accent-blue);
-}
-
-.fb-chip input:checked + .fb-chip-face {
-    border-color: var(--accent-blue);
-    background: rgba(74, 144, 217, 0.14);
-}
-
-.fb-chip input:focus-visible + .fb-chip-face {
-    outline: 3px solid var(--accent-blue);
-    outline-offset: 2px;
-}
-
-.fb-rating .fb-options {
-    flex-wrap: nowrap;
-    gap: 6px;
-}
-
-.fb-rating .fb-chip {
+.fb-key-cap {
     flex: 1;
-    min-width: 0;
-}
-
-.fb-rating .fb-chip-face {
+    display: flex;
     flex-direction: column;
-    gap: 3px;
-    width: 100%;
-    padding: 8px 2px 6px;
-    border-radius: var(--radius-md);
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 78px;
+    padding: 10px 4px 9px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 14px;
+    background: var(--bg-primary);
+    box-shadow: 0 4px 0 var(--border-color);
+    text-align: center;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease, background-color 0.12s ease;
 }
 
-.fb-rating .fb-chip-icon {
-    font-size: 1.7rem;
+.fb-key:hover .fb-key-cap {
+    border-color: var(--accent-blue);
+}
+
+.fb-key input:checked + .fb-key-cap {
+    transform: translateY(3px);
+    border-color: var(--accent-blue);
+    background: rgba(74, 144, 217, 0.13);
+    box-shadow: 0 1px 0 var(--accent-blue);
+}
+
+.fb-key input:focus-visible + .fb-key-cap {
+    outline: 3px solid rgba(74, 144, 217, 0.45);
+    outline-offset: 3px;
+}
+
+.fb-key-icon {
+    font-size: 1.75rem;
     line-height: 1;
 }
 
-.fb-rating .fb-chip-label {
-    font-size: 0.68rem;
+.fb-key-label {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.15;
     color: var(--text-secondary);
-    text-align: center;
-    line-height: 1.2;
 }
 
-.fb-rating .fb-chip input:checked + .fb-chip-face {
-    transform: scale(1.06);
+.fb-key input:checked + .fb-key-cap .fb-key-label {
+    color: var(--accent-blue);
+}
+
+.fb-topics .fb-key-cap {
+    min-height: 68px;
+}
+
+.fb-topics .fb-key-icon {
+    font-size: 1.35rem;
+}
+
+.fb-input {
+    display: block;
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 14px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.5;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fb-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.8;
+}
+
+.fb-input:focus {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.18);
 }
 
 .fb-message {
-    min-height: 96px;
+    min-height: 112px;
     resize: vertical;
-    font-family: var(--font-body);
-    font-size: 0.95rem;
-    text-align: left;
-    line-height: 1.45;
 }
 
-.fb-input-left {
-    font-size: 1rem;
-    text-align: left;
-}
-
-.fb-meta {
+.fb-hint {
     display: flex;
     justify-content: space-between;
-    gap: 8px;
-    margin-top: 6px;
-    font-size: 0.75rem;
-    font-weight: 700;
+    gap: 12px;
+    margin-top: 7px;
+    font-size: 0.8rem;
+    font-weight: 600;
     color: var(--text-secondary);
 }
 
@@ -572,44 +656,168 @@ a {
 }
 
 .fb-contact {
-    margin-top: 10px;
+    margin-top: 16px;
 }
 
 .fb-link {
-    background: none;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 2px 0;
     border: none;
-    padding: 4px 0;
-    font-family: inherit;
-    font-size: 0.82rem;
-    font-weight: 700;
+    background: none;
     color: var(--accent-blue);
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 700;
     text-align: left;
-    text-decoration: underline;
-    text-underline-offset: 2px;
     cursor: pointer;
 }
 
+.fb-link-text {
+    text-decoration: underline;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 3px;
+}
+
+.fb-link:hover .fb-link-text {
+    text-decoration-thickness: 2.5px;
+}
+
 .fb-note {
-    margin-top: 8px;
-    font-size: 0.75rem;
-    line-height: 1.45;
+    margin-top: 16px;
+    font-size: 0.78rem;
+    line-height: 1.5;
     color: var(--text-secondary);
 }
 
-.fb-trap {
-    position: absolute;
-    left: -9999px;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
+.fb-error {
+    margin-top: 12px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--accent-red);
 }
 
-@media (max-width: 400px) {
-    .tp-modal.feedback-modal {
-        padding: 22px 16px;
+.fb-error:empty {
+    margin: 0;
+}
+
+.fb-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 24px;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-card);
+}
+
+.fb-foot .btn {
+    margin: 0;
+}
+
+.fb-send {
+    min-width: 160px;
+}
+
+.fb-send:disabled {
+    opacity: 0.7;
+    cursor: progress;
+}
+
+/* /feedback.html: the form sits in a page card, so no header and no fixed footer */
+.fb-form-inline .fb-body {
+    padding: 0;
+    overflow: visible;
+}
+
+.fb-form-inline .fb-foot {
+    padding: 20px 0 0;
+    border-top: none;
+    background: none;
+}
+
+.fb-thanks {
+    padding: 44px 28px 32px;
+    text-align: center;
+}
+
+.fb-thanks-icon {
+    font-size: 2.8rem;
+    line-height: 1;
+    margin-bottom: 14px;
+}
+
+.fb-thanks-actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+.fb-thanks-actions .btn {
+    margin: 0;
+}
+
+/* Phones: the modal becomes a bottom sheet with Send always in reach */
+@keyframes fbSheetUp {
+    from { transform: translateY(32px); opacity: 0.5; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@media (max-width: 600px) {
+    .tp-modal-overlay.feedback-overlay {
+        align-items: flex-end;
+        padding: 0;
     }
-    .fb-rating .fb-chip-icon {
-        font-size: 1.45rem;
+    .tp-modal.feedback-modal {
+        max-width: none;
+        max-height: calc(100vh - 20px);
+        max-height: calc(100dvh - 20px);
+        border-radius: 22px 22px 0 0;
+        animation: fbSheetUp 0.22s ease-out;
+    }
+    .fb-head {
+        padding: 20px 18px 4px;
+    }
+    .fb-title {
+        font-size: 1.25rem;
+    }
+    .fb-body {
+        padding: 14px 18px 18px;
+    }
+    .fb-keys {
+        gap: 7px;
+    }
+    .fb-key-cap {
+        min-height: 68px;
+        gap: 5px;
+        border-radius: 12px;
+    }
+    .fb-key-icon {
+        font-size: 1.5rem;
+    }
+    .fb-key-label {
+        font-size: 0.72rem;
+    }
+    .fb-topics .fb-key-cap {
+        min-height: 62px;
+    }
+    .fb-topics .fb-key-icon {
+        font-size: 1.2rem;
+    }
+    .fb-input {
+        font-size: 16px; /* below 16px iOS zooms the page on focus */
+    }
+    .fb-foot {
+        padding: 12px 18px;
+        padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    }
+    .fb-foot .btn {
+        flex: 1;
+    }
+    .fb-send {
+        min-width: 0;
     }
 }
 
@@ -1591,7 +1799,8 @@ button:not(:disabled):active, .btn:active {
     .tp-modal-overlay,
     .toast,
     .goal-ring-fill,
-    .fb-chip-face {
+    .fb-key-cap,
+    .tp-modal.feedback-modal {
         animation: none !important;
         transition: none !important;
     }

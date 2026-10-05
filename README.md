@@ -70,7 +70,7 @@ Privacy rules (the privacy policy describes these, so keep them in sync):
 - No player names, save data, IP addresses or cookies are stored.
 - Emails and phone numbers that kids type into the message are redacted on the server before saving.
 - The optional reply email sits behind the grown-up gate.
-- A honeypot field, a minimum fill time and a site-wide cap (60 messages per 10 minutes) keep out spam floods. The cap is site-wide, so one determined script could keep it full; if that ever happens, add a Cloudflare rate-limiting rule (Security → WAF → Rate limiting rules) for `POST /api/feedback`, e.g. 5 requests per minute per IP. It works at the edge, so no IP is stored.
+- A minimum fill time and a site-wide cap (60 messages per 10 minutes) keep out spam floods. The cap is site-wide, so one determined script could keep it full; if that ever happens, add a Cloudflare rate-limiting rule (Security → WAF → Rate limiting rules) for `POST /api/feedback`, e.g. 5 requests per minute per IP. It works at the edge, so no IP is stored. Rejected requests always get an error status (never a fake success), so a person always sees when their message didn't go through. Don't add a hidden "honeypot" field: browser autofill fills it and real feedback gets thrown away.
 
 ### One-time setup (Cloudflare dashboard)
 

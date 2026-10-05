@@ -10,6 +10,10 @@
  *   FEEDBACK_DB           D1 database. The table is created on first use.
  *   FEEDBACK_ADMIN_TOKEN  secret; admin calls send `Authorization: Bearer <token>`.
  *
+ * Nothing is ever dropped silently: a rejected request gets an error status, so the
+ * form can tell the person (an earlier honeypot field was filled by browser autofill
+ * and quietly discarded real feedback).
+ *
  * Privacy: no IP address, cookie or player name is stored. Email addresses and
  * phone numbers typed into the message are redacted before saving; the only
  * contact detail kept is the optional reply email a grown-up enters.
@@ -225,10 +229,8 @@ export async function onRequestPost(context) {
     }
     if (!body || typeof body !== 'object') return json({ ok: false, error: 'bad_request' }, 400);
 
-    // Honeypot / too-fast submissions: pretend it worked, store nothing
-    if (body.website || !(Number(body.elapsed_ms) >= MIN_FILL_MS)) {
-        return json({ ok: true });
-    }
+    // Scripts that post without opening the form (or faster than a person can) are refused
+    if (!(Number(body.elapsed_ms) >= MIN_FILL_MS)) return json({ ok: false, error: 'too_fast' }, 400);
 
     const category = CATEGORIES.includes(body.category) ? body.category : 'other';
     const rating = Number.isInteger(body.rating) && body.rating >= 1 && body.rating <= 5 ? body.rating : null;
