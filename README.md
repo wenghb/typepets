@@ -51,10 +51,22 @@ Then open http://localhost:8788 and use `dev-token` on `/admin/feedback.html`.
 Deployed automatically by Cloudflare Pages via its GitHub integration — there is no build step or deploy script.
 
 1. Preview locally (see above).
-2. Commit and push / merge to `main`.
-3. Cloudflare Pages picks up the push and publishes the repo root to [typepets.com](https://typepets.com). The "Cloudflare Pages" check on the commit shows the deploy status.
+2. If you changed anything in `css/` or `js/`, run `python3 scripts/version-assets.py` (see below).
+3. Commit and push / merge to `main`.
+4. Cloudflare Pages picks up the push and publishes the repo root to [typepets.com](https://typepets.com). The "Cloudflare Pages" check on the commit shows the deploy status.
 
 Pushes to other branches get a preview deployment on `*.typepets.pages.dev`.
+
+### Cache busting for CSS and JS
+
+Cloudflare tells browsers to cache CSS and JS for 4 hours, but HTML is revalidated on every visit. So every local `<link>`/`<script>` in the HTML carries a content hash, e.g. `../css/style.css?v=9d3e6722`. When a file changes, its URL changes and visitors get the new version on their next page load; unchanged files stay cached.
+
+```bash
+python3 scripts/version-assets.py          # restamp every HTML page after editing css/ or js/
+python3 scripts/version-assets.py --check  # exits 1 if a stamp is stale
+```
+
+New pages need nothing special: link the files normally and run the script.
 
 Notes:
 - `_routes.json` limits Pages Functions to `/api/*`, so every other URL is served as a plain static file (no Function invocations, real 404s).
@@ -136,6 +148,8 @@ typepets/
 ├── terms.html
 ├── sitemap.xml
 ├── robots.txt
+├── scripts/
+│   └── version-assets.py # Stamps CSS/JS links with ?v=<content hash>
 ├── _routes.json        # Only /api/* runs as a Pages Function
 └── _redirects          # Cloudflare Pages redirect rules
 ```
