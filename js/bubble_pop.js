@@ -23,20 +23,23 @@ const BubblePopLogic = (function() {
 
     // Tuned for kids 7–12. The typing speed needed to pop every bubble at 1.0x
     // (bubbles per minute × average characters ÷ 5, see requiredWpm) climbs smoothly:
-    //   L1–5 ≈ 5–11 WPM · L6–10 ≈ 12–18 · L11–15 ≈ 21–27 · L16–20 ≈ 29–39.
+    //   L1–5 ≈ 5–11 WPM · L6–10 ≈ 11–18 · L11–15 ≈ 21–27 · L16–20 ≈ 29–39.
     // spawnInterval (ms) sets that pace. riseTime (s) leaves time to read and type even the
     // longest text of the level at that pace. maxBubbles sits just above the natural number
     // on screen (riseTime / spawnInterval), so it only stops runaway pile-ups and never
     // quietly lowers the pace. Higher intensity multipliers remain the challenge for strong typists.
+    // All-letter levels (6–8) stay gentler than their WPM suggests: every bubble is a fresh hunt
+    // for a key anywhere on the keyboard, with no word to chunk. They used to ask for 60–75
+    // keys a minute on 4.5–5 s rises, which a kid typing ~9 WPM reported as "goes too fast".
     const LEVEL_DEFS = [
         {content:'home_letters',riseTime:9,   maxBubbles:5,spawnInterval:2400},
         {content:'home_letters',riseTime:8,   maxBubbles:6,spawnInterval:1850},
         {content:'home_letters',riseTime:7,   maxBubbles:6,spawnInterval:1500},
         {content:'home_words',  riseTime:11,  maxBubbles:5,spawnInterval:3250},
         {content:'home_words',  riseTime:10,  maxBubbles:5,spawnInterval:2800},
-        {content:'all_letters', riseTime:5,   maxBubbles:6,spawnInterval:1000},
-        {content:'all_letters', riseTime:5,   maxBubbles:7,spawnInterval:900},
-        {content:'all_letters', riseTime:4.5, maxBubbles:7,spawnInterval:800},
+        {content:'all_letters', riseTime:6.5, maxBubbles:7,spawnInterval:1100},
+        {content:'all_letters', riseTime:6,   maxBubbles:7,spawnInterval:1000},
+        {content:'all_letters', riseTime:5.5, maxBubbles:7,spawnInterval:920},
         {content:'short_words', riseTime:7,   maxBubbles:5,spawnInterval:2200},
         {content:'short_words', riseTime:6.5, maxBubbles:5,spawnInterval:1950},
         {content:'short_words', riseTime:6,   maxBubbles:5,spawnInterval:1750},
@@ -355,6 +358,8 @@ const BubblePopLogic = (function() {
     const lcCertLink = document.getElementById('lcCertLink');
     const startBtn = document.getElementById('startBtn');
     const playAgainBtn = document.getElementById('playAgainBtn');
+    const slowerBtn = document.getElementById('slowerBtn');
+    const gameOverHint = document.getElementById('gameOverHint');
 
     bestDisplay.textContent = personalBest;
 
@@ -368,7 +373,7 @@ const BubblePopLogic = (function() {
         speedValueEl.textContent = speedMultiplier.toFixed(1) + 'x';
         speedWpmEl.textContent = isFreePlay
             ? `Free Play speeds up as you score — ${tier}`
-            : `Level ${currentLevel}: ~${L.requiredWpm(LEVEL_DEFS[currentLevel - 1], speedMultiplier)} WPM pops every bubble — ${tier}`;
+            : `Level ${currentLevel}: ~${L.requiredWpm(LEVEL_DEFS[currentLevel - 1], speedMultiplier)} WPM pops every bubble — ${tier}${speedMultiplier < 1 ? ' · slower bubbles' : ''}`;
         // Same rule as TypePetsData.saveSession(): XP = score ÷ 10, ×1.25 / ×1.5 / ×2 at 1.25x / 1.5x / 2x.
         const mult = L.xpMultiplier(speedMultiplier);
         speedBonusEl.textContent = mult > 1
@@ -546,16 +551,23 @@ const BubblePopLogic = (function() {
         return LEVEL_DEFS[currentLevel-1];
     }
 
+    /**
+     * Below 1.0x the intensity slider also slows the rise, so "too fast" has a real fix: at 0.7x
+     * bubbles come 30% less often AND float 30% slower. Above 1.0x only the spawn rate grows.
+     */
+    function riseFactor() { return Math.min(1, speedMultiplier); }
+
     function spawnBubble() {
         const params = getLevelParams();
-        const effectiveMaxBubbles = Math.round(params.maxBubbles * speedMultiplier);
+        // Rise and spawn slow down together below 1.0x, so the number on screen only grows above it
+        const effectiveMaxBubbles = Math.round(params.maxBubbles * Math.max(1, speedMultiplier));
         if (bubbles.length >= effectiveMaxBubbles) return;
         const word = L.pickWord(params.content, weakKeys, Math.random);
         const radius = Math.max(28, 16 + word.length * 8);
         const actualRadius = word.length > 8 ? Math.max(45, 10 + word.length * 5) : radius;
         const x = actualRadius + Math.random() * (W - actualRadius * 2);
         const colorIndex = Math.floor(Math.random() * BUBBLE_COLORS.length);
-        const speedVariation = L.riseSpeed(H, actualRadius, params.riseTime) * (0.85 + Math.random() * 0.3);
+        const speedVariation = L.riseSpeed(H, actualRadius, params.riseTime) * riseFactor() * (0.85 + Math.random() * 0.3);
         const powerUp = Math.random()<0.06?(Math.random()<0.5?'freeze':'bomb'):null;
         bubbles.push({x,y:H+actualRadius,radius:actualRadius,word,colorIndex,color:BUBBLE_COLORS[colorIndex],speed:speedVariation,wobbleOffset:Math.random()*Math.PI*2,wobbleAmp:Math.random()*1.2+0.3,scale:0.3,powerUp,
             spriteKey:`${colorIndex}|${actualRadius}|${word}|${powerUp || ''}`});
@@ -1033,9 +1045,34 @@ const BubblePopLogic = (function() {
             goTitle.textContent = 'Game Over'; goSub.textContent = `Best: ${personalBest}`;
         }
         document.getElementById('gameOverXp').textContent = summary.xp > 0 ? `🐾 +${summary.xp} XP for your pet` : '';
+        const slower = isFreePlay ? null : slowerSpeed(speedMultiplier);
+        gameOverHint.hidden = slowerBtn.hidden = slower === null;
+        if (slower !== null) {
+            slowerBtn.dataset.speed = slower;
+            slowerBtn.textContent = `🐢 Try at ${slower.toFixed(1)}x`;
+            gameOverHint.textContent = currentLevel < MAX_LEVEL
+                ? `Too fast? Slower bubbles still unlock Level ${currentLevel + 1}.`
+                : 'Too fast? Passing at a slower speed still counts.';
+        }
         gameOverOverlay.classList.remove('hidden');
+        // Focus stays on Play Again: a leftover Enter from the game must not change the saved speed
         focusSoon(playAgainBtn, 700);
     }
+
+    /** One notch gentler after a lost level: anything above 1.0x drops to 1.0x, then 0.3x steps down to 0.5x. */
+    function slowerSpeed(speed) {
+        if (speed <= 0.5) return null;
+        return speed > 1 ? 1.0 : clampSpeed(Math.max(0.5, speed - 0.3));
+    }
+
+    slowerBtn.addEventListener('click', () => {
+        const speed = clampSpeed(slowerBtn.dataset.speed);
+        speedSlider.value = speed;
+        speedMultiplier = speed;
+        TypePetsData.saveSpeedPreference(speed);
+        updateSpeedDisplay();
+        window.startGame();
+    });
 
     function loadWeakKeys() {
         const data = TypePetsData.getWeakness();
