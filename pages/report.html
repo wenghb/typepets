@@ -11,7 +11,7 @@
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
-    <link rel="stylesheet" href="../css/style.css?v=9d3e6722">
+    <link rel="stylesheet" href="../css/style.css?v=7ab271c8">
     <style>
     .report-page { max-width: 900px; }
     .report-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
@@ -148,9 +148,10 @@
 
     <div id="toast-container"></div>
 
-    <script src="../js/data.js?v=39eeb82f"></script>
+    <script src="../js/data.js?v=5035de87"></script>
     <script src="../js/sound.js?v=e57a4213"></script>
-    <script src="../js/app.js?v=e572dd59"></script>
+    <script src="../js/app.js?v=d65bbdd6"></script>
+    <script src="../js/cloud-save.js?v=986f6ca9"></script>
     <script src="../js/feedback.js?v=310f25f1"></script>
     <script src="../js/achievements.js?v=b6254226"></script>
     <script src="../js/articles-data.js?v=062f93bf"></script>
@@ -454,7 +455,10 @@
                     }))
                     : h('p', { class: 'r-note', text: 'No badges yet — they come quickly with practice!' })));
 
-            append(root, h('p', { class: 'r-footer', text: `Printed ${fmtDate(new Date())} · All TypePets data stays on this device · typepets.com` }));
+            const where = TypePetsData.getCloudLink().code
+                ? 'Progress saved online with a save code (no names)'
+                : 'All TypePets data stays on this device';
+            append(root, h('p', { class: 'r-footer', text: `Printed ${fmtDate(new Date())} · ${where} · typepets.com` }));
             document.title = `TypePets — ${profile.name}'s report`;
         }
 

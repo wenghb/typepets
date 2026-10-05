@@ -233,9 +233,11 @@ document.addEventListener('keydown', () => {
             if (isTop() && !card.contains(e.target)) card.focus();
         }
         function close() {
+            if (!overlay.isConnected) return;
             overlay.remove();
             document.removeEventListener('keydown', onKey, true);
             document.removeEventListener('focusin', onFocusIn, true);
+            if (typeof opts.onClose === 'function') opts.onClose();
             if (prevFocus && typeof prevFocus.focus === 'function') {
                 try { prevFocus.focus(); } catch (e) { /* ignore */ }
             }
@@ -486,7 +488,13 @@ document.addEventListener('keydown', () => {
         });
         add.disabled = full;
         menu.appendChild(add);
-        menu.appendChild(el('div', 'profile-menu-note', 'Each player gets their own pet and progress on this device.'));
+        // Save codes carry one player's progress to another computer (js/cloud-save.js)
+        const code = typeof TypePetsData.getCloudLink === 'function' ? TypePetsData.getCloudLink().code : null;
+        const saveLink = el('a', 'profile-savecode', code ? `☁️ Save code: ${code}` : '☁️ Get a save code');
+        saveLink.href = '/pages/dashboard.html#savecode';
+        saveLink.setAttribute('role', 'menuitem');
+        menu.appendChild(saveLink);
+        menu.appendChild(el('div', 'profile-menu-note', 'Each player gets their own pet and progress on this device. A save code takes it to another computer.'));
 
         menu.addEventListener('click', (e) => e.stopPropagation());
         document.body.appendChild(menu);
