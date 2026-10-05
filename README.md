@@ -83,7 +83,7 @@ A kid presses **Get my save code** on the Stats page and gets a short code like 
 - Both changed → the kid picks which to keep (this computer or the save code). The prompt opens by itself only on Home and Stats; elsewhere it's the banner. Its choices ignore keys for a moment, so a key still held from typing can't pick. Nothing is merged or overwritten silently, and nothing is sent until they choose.
 - Offline or server trouble never blocks play; progress stays local and goes up later.
 
-The code is linked per player (`cloud` in that player's data, see `js/data.js`); `js/cloud-save.js` does the syncing and draws the UI; `functions/api/save.js` stores one row per code in D1 with a revision number for conflict checks. Codes are shown on the Stats page, in the player menu, and nudged on Home once a player has a couple of sessions.
+The code is linked per player (`cloud` in that player's data, see `js/data.js`); `js/cloud-save.js` does the syncing and draws the UI; `functions/api/save.js` stores one row per code in D1 with a revision number for conflict checks. The player menu (top right, on every page) has "Load a code", which opens the load dialog right there, and shows this player's code or a link to get one. The Stats page has the full panel, a new player sees a "Played on another computer?" box on Home, and players without a code get a nudge on Home after a couple of sessions.
 
 Privacy rules (the privacy policy describes these, so keep them in sync):
 - The player's name is never stored: the browser leaves it out and the server blanks it again. A pet name that looks like an email or phone number is dropped.

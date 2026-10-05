@@ -1106,9 +1106,19 @@ a {
     margin-left: 0;
 }
 
-/* Conflict + stop prompts */
+/* Conflict, stop and load prompts */
 .tp-modal.savecode-modal {
     max-width: 480px;
+}
+
+.savecode-load-modal .savecode-form {
+    text-align: left;
+    margin: 6px 0 2px;
+}
+
+.savecode-load-modal .savecode-row,
+.savecode-load-modal .savecode-preview {
+    max-width: none;
 }
 
 .savecode-choices {
@@ -1252,10 +1262,25 @@ a {
     cursor: pointer;
 }
 
-/* Profile menu shortcut */
+/* Profile menu shortcuts */
+.profile-savecodes {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color);
+}
+
+.profile-savecodes .profile-menu-title {
+    margin-bottom: 0;
+}
+
 .profile-savecode {
     display: block;
-    margin-top: 8px;
+    width: 100%;
+    border: none;
+    cursor: pointer;
     padding: 9px 10px;
     border-radius: var(--radius-sm);
     background: var(--bg-primary);

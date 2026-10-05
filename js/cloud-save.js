@@ -601,6 +601,21 @@ const TypePetsCloud = (function() {
         return { input: input };
     }
 
+    /** "Load a save code" from the player menu: the same form, in a dialog, on any page. */
+    function openLoadDialog() {
+        if (typeof window.tpOpenModal !== 'function') return;
+        const m = window.tpOpenModal({ className: 'savecode-modal savecode-load-modal', label: 'Load a save code' });
+        const prof = TypePetsData.getActiveProfile();
+        m.card.appendChild(el('div', 'tp-modal-emoji', '🔑'));
+        m.card.appendChild(el('h3', null, 'Load a save code'));
+        m.card.appendChild(el('p', 'tp-modal-text', `Played on another computer? Type your save code to bring that pet and progress here, for ${prof.name}.`));
+        const host = el('div');
+        const form = mountLoadForm(host, { label: 'Your save code' });
+        m.card.appendChild(host);
+        m.card.appendChild(button('savecode-later', 'Close', () => m.close()));
+        setTimeout(() => form.input.focus(), 0);
+    }
+
     // ─── UI: Stats page panel ────────────────────────────────
 
     function statusText(st) {
@@ -781,6 +796,7 @@ const TypePetsCloud = (function() {
         stop: stop,
         check: check,
         resolve: resolve,
+        openLoadDialog: openLoadDialog,
         mountLoadForm: mountLoadForm,
         mountPanel: mountPanel
     };
