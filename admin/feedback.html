@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>TypePets — Feedback Inbox</title>
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+    .admin { max-width: 980px; margin: 0 auto; padding: 24px 16px 60px; }
+    .admin-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+    .admin-head h1 { font-size: 1.5rem; margin-right: auto; }
+    .admin-head .btn { padding: 8px 14px; font-size: 0.85rem; }
+    .admin-head .btn-secondary { background: var(--bg-card); box-shadow: var(--shadow-sm); }
+    .panel { background: var(--bg-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 18px 20px; }
+    .login { max-width: 380px; margin: 60px auto; text-align: center; }
+    .login p { color: var(--text-secondary); font-size: 0.9rem; margin: 6px 0 14px; line-height: 1.5; }
+    .login label.remember { display: flex; gap: 8px; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 600; margin: 12px 0; color: var(--text-secondary); }
+    .notice { border-left: 4px solid var(--accent-orange); margin-bottom: 16px; line-height: 1.6; font-size: 0.9rem; }
+    .notice code { background: var(--bg-primary); padding: 1px 6px; border-radius: 6px; }
+    .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+    .tile-value { font-family: var(--font-display); font-size: 1.8rem; font-weight: 700; }
+    .tile-label { font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); }
+    .breakdown { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+    .breakdown h2 { font-size: 0.95rem; margin-bottom: 10px; }
+    .bar-row { display: grid; grid-template-columns: minmax(0, 1.3fr) 1fr 2.2em; gap: 8px; align-items: center; font-size: 0.8rem; font-weight: 700; margin-bottom: 6px; }
+    .bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bar-track { height: 8px; background: var(--bg-primary); border-radius: 999px; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--accent-blue); border-radius: 999px; }
+    .bar-count { text-align: right; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+    .empty-note { font-size: 0.8rem; color: var(--text-secondary); }
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+    .tabs { display: flex; gap: 4px; background: var(--bg-card); border-radius: 999px; padding: 4px; box-shadow: var(--shadow-sm); }
+    .tab { border: 0; background: none; padding: 6px 12px; border-radius: 999px; font-family: inherit; font-weight: 700; font-size: 0.8rem; color: var(--text-secondary); cursor: pointer; }
+    .tab[aria-pressed="true"] { background: var(--accent-blue); color: #fff; }
+    .filters select, .filters input[type="search"] {
+        padding: 8px 12px; border: 2px solid var(--border-color); border-radius: var(--radius-sm);
+        background: var(--bg-card); color: var(--text-primary); font-family: inherit; font-weight: 600; font-size: 0.85rem;
+    }
+    .filters input[type="search"] { flex: 1; min-width: 160px; }
+    .count-line { font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 10px; }
+    .item { margin-bottom: 12px; }
+    .item.status-done { opacity: 0.75; }
+    .item.status-archived { opacity: 0.55; }
+    .item-top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; }
+    .pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; background: var(--bg-primary); color: var(--text-primary); }
+    .pill-new { background: rgba(74, 144, 217, 0.15); color: var(--accent-blue); }
+    .pill-done { background: rgba(104, 211, 145, 0.18); color: #2F855A; }
+    [data-theme="dark"] .pill-done { color: var(--accent-green); }
+    .item-rating { font-size: 1.2rem; }
+    .item-page { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 600; }
+    .item-date { margin-left: auto; }
+    .item-message { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.55; font-size: 0.95rem; }
+    .item-message.muted { color: var(--text-secondary); font-style: italic; }
+    .item-contact { margin-top: 8px; font-size: 0.85rem; font-weight: 700; }
+    .item-contact a { color: var(--accent-blue); text-decoration: underline; }
+    .item details { margin-top: 10px; font-size: 0.8rem; color: var(--text-secondary); }
+    .item summary { cursor: pointer; font-weight: 700; }
+    .item dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin-top: 8px; }
+    .item dt { font-weight: 700; }
+    .item dd { overflow-wrap: anywhere; }
+    .item-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+    .item-actions button {
+        border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);
+        padding: 5px 12px; border-radius: 999px; font-family: inherit; font-weight: 700; font-size: 0.78rem; cursor: pointer;
+    }
+    .item-actions button:hover { border-color: var(--accent-blue); }
+    .item-actions .danger { color: var(--accent-red); }
+    .item-actions .danger:hover { border-color: var(--accent-red); }
+    .error-line { color: var(--accent-red); font-weight: 700; font-size: 0.85rem; min-height: 1.2em; margin: 8px 0; }
+    #loadMore { display: block; margin: 16px auto 0; }
+    [hidden] { display: none !important; }
+    @media (max-width: 760px) {
+        .tiles { grid-template-columns: repeat(2, 1fr); }
+        .breakdown { grid-template-columns: 1fr; }
+        .item-date { margin-left: 0; }
+    }
+    </style>
+</head>
+<body>
+    <main class="admin">
+        <section id="loginView" class="panel login" hidden>
+            <div class="tp-modal-emoji">🔐</div>
+            <h1 style="font-size:1.3rem;">Feedback inbox</h1>
+            <p>Enter the admin token (the <code>FEEDBACK_ADMIN_TOKEN</code> value set in Cloudflare Pages).</p>
+            <form id="loginForm">
+                <input id="tokenInput" class="tp-input" type="password" autocomplete="current-password" aria-label="Admin token" required>
+                <label class="remember"><input id="rememberInput" type="checkbox"> Remember on this device</label>
+                <p id="loginError" class="error-line" role="alert"></p>
+                <button class="btn btn-primary" type="submit">Unlock</button>
+            </form>
+        </section>
+
+        <section id="inboxView" hidden>
+            <div class="admin-head">
+                <h1>🐾 Feedback inbox</h1>
+                <button class="btn btn-secondary" id="refreshBtn" type="button">↻ Refresh</button>
+                <button class="btn btn-secondary" id="exportBtn" type="button">⬇ Export CSV</button>
+                <button class="btn btn-secondary" id="lockBtn" type="button">Lock</button>
+            </div>
+            <div id="notice" class="panel notice" hidden></div>
+
+            <div class="tiles">
+                <div class="panel"><div class="tile-value" id="tileOpen">–</div><div class="tile-label">Open feedback</div></div>
+                <div class="panel"><div class="tile-value" id="tileNew">–</div><div class="tile-label">New (unread)</div></div>
+                <div class="panel"><div class="tile-value" id="tileWeek">–</div><div class="tile-label">Last 7 days</div></div>
+                <div class="panel"><div class="tile-value" id="tileRating">–</div><div class="tile-label">Avg. rating (1–5)</div></div>
+            </div>
+
+            <div class="breakdown">
+                <div class="panel"><h2>By topic</h2><div id="byTopic"></div></div>
+                <div class="panel"><h2>Ratings</h2><div id="byRating"></div></div>
+                <div class="panel"><h2>Top pages</h2><div id="byPage"></div></div>
+            </div>
+
+            <div class="filters">
+                <div class="tabs" role="group" aria-label="Status">
+                    <button class="tab" type="button" data-status="open">Open</button>
+                    <button class="tab" type="button" data-status="new">New</button>
+                    <button class="tab" type="button" data-status="done">Done</button>
+                    <button class="tab" type="button" data-status="archived">Archived</button>
+                    <button class="tab" type="button" data-status="all">All</button>
+                </div>
+                <select id="topicFilter" aria-label="Topic">
+                    <option value="">All topics</option>
+                </select>
+                <input id="searchInput" type="search" placeholder="Search messages and pages…" aria-label="Search">
+            </div>
+            <p id="listError" class="error-line" role="alert"></p>
+            <div id="countLine" class="count-line"></div>
+            <div id="list"></div>
+            <button class="btn btn-secondary" id="loadMore" type="button" hidden>Load more</button>
+        </section>
+    </main>
+
+    <script>
+    (function() {
+        'use strict';
+
+        const API = '/api/feedback';
+        const TOKEN_KEY = 'typepets_feedback_admin';
+        const TOPICS = {
+            bug: '🐛 Broken', idea: '💡 Idea', difficulty: '🎯 Difficulty', love: '❤️ Love', other: '💬 Other'
+        };
+        const FACES = { 1: '😢', 2: '😕', 3: '😐', 4: '🙂', 5: '😍' };
+        const PAGE_SIZE = 200;
+
+        const $ = (id) => document.getElementById(id);
+        const state = { token: null, status: 'open', topic: '', search: '', items: [], hasMore: false };
+        let loadSeq = 0; // only the latest request may update the list (tabs can be clicked faster than replies arrive)
+
+        try {
+            const theme = localStorage.getItem('typepets-theme');
+            if (theme === 'dark' || theme === 'light') document.documentElement.setAttribute('data-theme', theme);
+        } catch (e) { /* ignore */ }
+
+        function el(tag, className, text) {
+            const node = document.createElement(tag);
+            if (className) node.className = className;
+            if (text !== undefined && text !== null) node.textContent = text;
+            return node;
+        }
+
+        // ─── Token storage ───────────────────────────────────
+        function loadToken() {
+            try { return sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY); } catch (e) { return null; }
+        }
+        function saveToken(token, remember) {
+            try {
+                sessionStorage.setItem(TOKEN_KEY, token);
+                if (remember) localStorage.setItem(TOKEN_KEY, token);
+            } catch (e) { /* ignore: token stays in memory for this page */ }
+        }
+        function clearToken() {
+            state.token = null;
+            try { sessionStorage.removeItem(TOKEN_KEY); localStorage.removeItem(TOKEN_KEY); } catch (e) { /* ignore */ }
+        }
+
+        // ─── API ─────────────────────────────────────────────
+        class ApiError extends Error {
+            constructor(status, code) { super(code || String(status)); this.status = status; this.code = code; }
+        }
+
+        async function api(method, query, body) {
+            const res = await fetch(API + (query ? '?' + query : ''), {
+                method,
+                headers: Object.assign(
+                    { Authorization: 'Bearer ' + state.token },
+                    body ? { 'Content-Type': 'application/json' } : {}
+                ),
+                body: body ? JSON.stringify(body) : undefined
+            });
+            let data = null;
+            try { data = await res.json(); } catch (e) { /* not JSON */ }
+            if (!res.ok || !data || !data.ok) throw new ApiError(res.status, data && data.error);
+            return data;
+        }
+
+        function explain(err) {
+            if (err.status === 401) return 'That token is not right.';
+            if (err.code === 'admin_not_configured') return 'FEEDBACK_ADMIN_TOKEN is not set for this deployment yet (see README → Feedback).';
+            if (err.code === 'not_configured') return 'No D1 database is bound as FEEDBACK_DB for this deployment yet (see README → Feedback).';
+            if (err.status === 404 || err.status === 405) return 'The /api/feedback function is not running here. Use the deployed site or `wrangler pages dev` (a plain static server has no API).';
+            if (err instanceof TypeError) return 'Network error — check your connection.';
+            return 'Something went wrong (' + (err.code || err.status || err.message) + ').';
+        }
+
+        // ─── Views ───────────────────────────────────────────
+        function showLogin(message) {
+            $('inboxView').hidden = true;
+            $('loginView').hidden = false;
+            $('loginError').textContent = message || '';
+            $('tokenInput').value = '';
+            $('tokenInput').focus();
+        }
+
+        function showInbox() {
+            $('loginView').hidden = true;
+            $('inboxView').hidden = false;
+        }
+
+        async function load(append) {
+            $('listError').textContent = '';
+            const params = new URLSearchParams({ status: state.status, limit: String(PAGE_SIZE) });
+            if (state.topic) params.set('category', state.topic);
+            if (append && state.items.length) params.set('before', String(state.items[state.items.length - 1].id));
+            const seq = ++loadSeq;
+            try {
+                const data = await api('GET', params.toString());
+                if (seq !== loadSeq) return false;
+                state.items = append ? state.items.concat(data.items) : data.items;
+                state.hasMore = data.has_more;
+                showInbox();
+                renderSummary(data.summary);
+                renderList();
+                return true;
+            } catch (err) {
+                if (seq !== loadSeq) return false;
+                if (err.status === 401) { clearToken(); showLogin(explain(err)); return false; }
+                if (!$('inboxView').hidden) { $('listError').textContent = explain(err); return false; }
+                // Still on the login screen: setup problems are clearer as a notice in the inbox
+                if (err.code === 'admin_not_configured') { clearToken(); showLogin(explain(err)); return false; }
+                showInbox();
+                $('notice').hidden = false;
+                $('notice').textContent = explain(err);
+                return false;
+            }
+        }
+
+        function bars(container, rows) {
+            container.textContent = '';
+            const max = Math.max(1, ...rows.map((r) => r.count));
+            if (!rows.length || rows.every((r) => !r.count)) {
+                container.appendChild(el('p', 'empty-note', 'Nothing yet.'));
+                return;
+            }
+            rows.forEach((r) => {
+                const row = el('div', 'bar-row');
+                const label = el('span', 'bar-label', r.label);
+                label.title = r.label;
+                const track = el('span', 'bar-track');
+                const fill = el('span', 'bar-fill');
+                fill.style.display = 'block';
+                fill.style.width = Math.round((r.count / max) * 100) + '%';
+                track.appendChild(fill);
+                row.appendChild(label);
+                row.appendChild(track);
+                row.appendChild(el('span', 'bar-count', String(r.count)));
+                container.appendChild(row);
+            });
+        }
+
+        function renderSummary(s) {
+            $('notice').hidden = true;
+            const st = s.by_status || {};
+            $('tileOpen').textContent = (st.new || 0) + (st.done || 0);
+            $('tileNew').textContent = st.new || 0;
+            $('tileWeek').textContent = s.last_7_days || 0;
+            const r = s.by_rating || {};
+            let n = 0, sum = 0;
+            Object.keys(r).forEach((k) => { n += r[k]; sum += Number(k) * r[k]; });
+            $('tileRating').textContent = n ? (sum / n).toFixed(1) + ' ' + FACES[Math.round(sum / n)] : '–';
+
+            bars($('byTopic'), Object.keys(TOPICS).map((k) => ({ label: TOPICS[k], count: (s.by_category || {})[k] || 0 })));
+            bars($('byRating'), [5, 4, 3, 2, 1].map((k) => ({ label: FACES[k] + ' ' + k, count: r[k] || 0 })));
+            bars($('byPage'), (s.by_page || []).map((p) => ({ label: p.page, count: p.count })));
+        }
+
+        function visibleItems() {
+            const q = state.search.trim().toLowerCase();
+            if (!q) return state.items;
+            return state.items.filter((it) =>
+                (it.message || '').toLowerCase().includes(q) ||
+                (it.page || '').toLowerCase().includes(q) ||
+                (it.contact || '').toLowerCase().includes(q));
+        }
+
+        function fmtDate(iso) {
+            const d = new Date(iso);
+            return isNaN(d) ? iso : d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+        }
+
+        /** "Chrome 140 · ChromeOS" from a user-agent string (good enough to spot device patterns). */
+        function browserLabel(ua) {
+            if (!ua) return '';
+            const os = /CrOS/.test(ua) ? 'ChromeOS'
+                : /iPad/.test(ua) ? 'iPad'
+                : /iPhone/.test(ua) ? 'iPhone'
+                : /Android/.test(ua) ? 'Android'
+                : /Windows/.test(ua) ? 'Windows'
+                : /Mac OS X|Macintosh/.test(ua) ? 'Mac'
+                : /Linux/.test(ua) ? 'Linux' : '';
+            let m;
+            const browser = (m = ua.match(/Edg\/(\d+)/)) ? 'Edge ' + m[1]
+                : (m = ua.match(/Firefox\/(\d+)/)) ? 'Firefox ' + m[1]
+                : (m = ua.match(/Chrome\/(\d+)/)) ? 'Chrome ' + m[1]
+                : (m = ua.match(/Version\/(\d+)[.\d]* .*Safari/)) ? 'Safari ' + m[1] : '';
+            return [browser, os].filter(Boolean).join(' · ');
+        }
+
+        function contextRows(ctx) {
+            if (!ctx) return [];
+            const rows = [];
+            const p = ctx.progress || {};
+            if (ctx.ua) rows.push(['User agent', ctx.ua]);
+            if (ctx.screen || ctx.viewport) rows.push(['Screen', (ctx.screen || '?') + ' (window ' + (ctx.viewport || '?') + ')']);
+            if (ctx.touch !== undefined) rows.push(['Touch screen', ctx.touch ? 'yes' : 'no']);
+            if (ctx.lang) rows.push(['Language', ctx.lang]);
+            if (ctx.country) rows.push(['Country', ctx.country]);
+            if (ctx.theme) rows.push(['Theme', ctx.theme]);
+            if (ctx.progress) {
+                rows.push(['Sessions', String(p.sessions ?? '?')]);
+                rows.push(['Avg speed', (p.avg_wpm ?? '?') + ' WPM, ' + (p.avg_accuracy ?? '?') + '% accuracy']);
+                rows.push(['Training stage', (p.training_stage ?? '?') + ' / 8']);
+                rows.push(['Bubble level', (p.bubble_level ?? '?') + ' / 20']);
+                rows.push(['Articles done', String(p.articles ?? '?')]);
+                rows.push(['Pet level', String(p.pet_level ?? '?')]);
+            }
+            return rows;
+        }
+
+        function renderItem(it) {
+            const card = el('article', 'panel item status-' + it.status);
+            const top = el('div', 'item-top');
+            top.appendChild(el('span', 'pill', TOPICS[it.category] || it.category));
+            if (it.rating) {
+                const face = el('span', 'item-rating', FACES[it.rating]);
+                face.title = 'Rating ' + it.rating + '/5';
+                top.appendChild(face);
+            }
+            top.appendChild(el('span', 'pill pill-' + it.status, it.status));
+            if (it.page) top.appendChild(el('span', 'item-page', it.page));
+            const device = browserLabel(it.context && it.context.ua);
+            if (device) top.appendChild(el('span', null, device));
+            top.appendChild(el('span', 'item-date', '#' + it.id + ' · ' + fmtDate(it.created_at)));
+            card.appendChild(top);
+
+            card.appendChild(it.message
+                ? el('div', 'item-message', it.message)
+                : el('div', 'item-message muted', 'No message — rating only.'));
+
+            if (it.contact) {
+                const c = el('div', 'item-contact', '✉️ Reply to: ');
+                const a = el('a', null, it.contact);
+                a.href = 'mailto:' + it.contact + '?subject=' + encodeURIComponent('Your TypePets feedback');
+                c.appendChild(a);
+                card.appendChild(c);
+            }
+
+            const rows = contextRows(it.context);
+            if (rows.length) {
+                const details = el('details');
+                details.appendChild(el('summary', null, 'Device & progress'));
+                const dl = el('dl');
+                rows.forEach(([k, v]) => { dl.appendChild(el('dt', null, k)); dl.appendChild(el('dd', null, v)); });
+                details.appendChild(dl);
+                card.appendChild(details);
+            }
+
+            const actions = el('div', 'item-actions');
+            function action(label, fn, cls) {
+                const b = el('button', cls || null, label);
+                b.type = 'button';
+                b.addEventListener('click', async () => {
+                    b.disabled = true;
+                    try {
+                        if ((await fn()) === false) { b.disabled = false; return; }
+                        await load(false);
+                    }
+                    catch (err) { $('listError').textContent = explain(err); b.disabled = false; }
+                });
+                actions.appendChild(b);
+            }
+            const setStatus = (s) => () => api('PATCH', '', { id: it.id, status: s });
+            if (it.status === 'new') action('✓ Mark done', setStatus('done'));
+            else action('↺ Mark new', setStatus('new'));
+            if (it.status === 'archived') action('Unarchive', setStatus('done'));
+            else action('Archive', setStatus('archived'));
+            action('Delete', async () => {
+                if (!confirm('Delete feedback #' + it.id + ' for good?')) return false;
+                await api('DELETE', 'id=' + it.id);
+            }, 'danger');
+            card.appendChild(actions);
+            return card;
+        }
+
+        function renderList() {
+            const list = $('list');
+            list.textContent = '';
+            const items = visibleItems();
+            $('countLine').textContent = items.length
+                ? 'Showing ' + items.length + (state.hasMore ? '+' : '') + ' item' + (items.length === 1 ? '' : 's')
+                : '';
+            if (!items.length) {
+                list.appendChild(el('div', 'panel empty-note', state.items.length ? 'No feedback matches that search.' : 'No feedback here yet.'));
+            }
+            items.forEach((it) => list.appendChild(renderItem(it)));
+            $('loadMore').hidden = !state.hasMore;
+            document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-pressed', t.dataset.status === state.status ? 'true' : 'false'));
+        }
+
+        // ─── CSV export (what is currently listed) ───────────
+        function csvCell(v) {
+            let s = v === null || v === undefined ? '' : String(v);
+            if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; // keep spreadsheets from running it as a formula
+            return '"' + s.replace(/"/g, '""') + '"';
+        }
+
+        function exportCsv() {
+            const head = ['id', 'created_at', 'status', 'topic', 'rating', 'message', 'contact', 'page',
+                'device', 'user_agent', 'screen', 'viewport', 'language', 'country', 'sessions', 'avg_wpm', 'avg_accuracy',
+                'training_stage', 'bubble_level', 'articles', 'pet_level'];
+            const lines = [head.join(',')];
+            visibleItems().forEach((it) => {
+                const c = it.context || {};
+                const p = c.progress || {};
+                lines.push([it.id, it.created_at, it.status, it.category, it.rating, it.message, it.contact, it.page,
+                    browserLabel(c.ua), c.ua, c.screen, c.viewport, c.lang, c.country, p.sessions, p.avg_wpm, p.avg_accuracy,
+                    p.training_stage, p.bubble_level, p.articles, p.pet_level].map(csvCell).join(','));
+            });
+            const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+            const a = el('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'typepets-feedback-' + new Date().toISOString().slice(0, 10) + '.csv';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        }
+
+        // ─── Wiring ──────────────────────────────────────────
+        Object.keys(TOPICS).forEach((k) => {
+            const o = el('option', null, TOPICS[k]);
+            o.value = k;
+            $('topicFilter').appendChild(o);
+        });
+
+        $('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const token = $('tokenInput').value.trim();
+            if (!token) return;
+            state.token = token;
+            if (await load(false)) saveToken(token, $('rememberInput').checked);
+        });
+        $('lockBtn').addEventListener('click', () => { clearToken(); state.items = []; showLogin(); });
+        $('refreshBtn').addEventListener('click', () => load(false));
+        $('exportBtn').addEventListener('click', exportCsv);
+        $('loadMore').addEventListener('click', () => load(true));
+        $('topicFilter').addEventListener('change', (e) => { state.topic = e.target.value; load(false); });
+        $('searchInput').addEventListener('input', (e) => { state.search = e.target.value; renderList(); });
+        document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => {
+            state.status = t.dataset.status;
+            load(false);
+        }));
+
+        state.token = loadToken();
+        if (state.token) load(false); else showLogin();
+    })();
+    </script>
+</body>
+</html>

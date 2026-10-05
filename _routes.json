@@ -1,0 +1,6 @@
+{
+    "version": 1,
+    "description": "Only the feedback API runs as a Pages Function; every other URL is served as a static file (no Function invocations, real 404s).",
+    "include": ["/api/*"],
+    "exclude": []
+}
