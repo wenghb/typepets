@@ -86,7 +86,7 @@ A kid presses **Get my save code** on the Stats page and gets a short code like 
 The code is linked per player (`cloud` in that player's data, see `js/data.js`); `js/cloud-save.js` does the syncing and draws the UI; `functions/api/save.js` stores one row per code in D1 with a revision number for conflict checks. The player menu (top right, on every page) has "Load a code", which opens the load dialog right there, and shows this player's code or a link to get one. The Stats page has the full panel, a new player sees a "Played on another computer?" box on Home, and players without a code get a nudge on Home after a couple of sessions.
 
 Privacy rules (the privacy policy describes these, so keep them in sync):
-- The player's name is never stored: the browser leaves it out and the server blanks it again. A pet name that looks like an email or phone number is dropped.
+- The player's name is never stored: the browser leaves it out and the server blanks it again. A pet name that looks like an email or phone number is dropped. Because of that, a code typed in on a computer where the player still has the default name "Player" is followed by a "What's your name?" prompt; the answer stays on that computer.
 - No IP addresses, cookies or device IDs. The code is random and not tied to anyone.
 - "Stop saving online" on the Stats page deletes the row immediately. Codes not opened or saved for 12 months are deleted (housekeeping runs whenever a new code is made).
 - Anyone who has a code can open and change that progress, like a game password. The words are short and easy to spell for 7–12 year olds, and no two are one typo apart, so a typo is always caught and the right code is suggested.

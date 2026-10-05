@@ -25,6 +25,8 @@ const TypePetsCloud = (function() {
     const CHOICE_GUARD_MS = 700;                  // a prompt's choices ignore input this long after it opens
     const NOTE_KEY = 'typepets_cloud_note';      // sessionStorage: toast to show after a reload
     const RELOADS_KEY = 'typepets_cloud_reloads'; // sessionStorage: guards against reload loops
+    const ASK_NAME_KEY = 'typepets_cloud_askname'; // sessionStorage: ask the kid's name after a load
+    const DEFAULT_NAME = 'Player';                 // data.js's name for a player nobody has named
     // Pages where nothing is running, so a prompt may open by itself when the page opens
     const CALM_PAGE_RE = /\/(home|dashboard)(\.html)?$/;
 
@@ -103,13 +105,14 @@ const TypePetsCloud = (function() {
         try { sessionStorage.setItem(NOTE_KEY, text); } catch (e) { /* ignore */ }
     }
 
-    function showNote() {
+    /** Show (or just drop) the toast left before a reload. */
+    function showNote(show) {
         let text = null;
         try {
             text = sessionStorage.getItem(NOTE_KEY);
             sessionStorage.removeItem(NOTE_KEY);
         } catch (e) { /* ignore */ }
-        if (text) toast(text, 'success', 5000);
+        if (text && show) toast(text, 'success', 5000);
     }
 
     // ─── Server calls ────────────────────────────────────────
@@ -221,8 +224,12 @@ const TypePetsCloud = (function() {
         };
     }
 
-    /** Replace this player's progress with a looked-up code's and link it, then reload the page. */
-    function use(found, note) {
+    /**
+     * Replace this player's progress with a looked-up code's and link it, then reload the page.
+     * opts.askName: after the reload, ask the kid's name if this player still has the default
+     * one (save codes never carry names, so a new computer doesn't know it).
+     */
+    function use(found, note, opts) {
         const res = TypePetsData.applyCloudData(found.data, {
             code: found.code, token: found.token, rev: found.rev, synced_at: found.updated_at
         });
@@ -231,6 +238,9 @@ const TypePetsCloud = (function() {
         }
         waiting = null;
         leaveNote(note || `☁️ ${found.summary.pet} is here! Progress loaded from ${found.code}.`);
+        if (opts && opts.askName) {
+            try { sessionStorage.setItem(ASK_NAME_KEY, found.summary.pet); } catch (e) { /* ignore */ }
+        }
         location.reload();
         return { ok: true };
     }
@@ -575,7 +585,7 @@ const TypePetsCloud = (function() {
             input.value = found.code;
             const here = describeHere();
             if (!here || (here.sessions === 0 && here.xp === 0)) {
-                const r = use(found);
+                const r = use(found, null, { askName: true });
                 if (!r.ok) showError(r.error);
                 return;
             }
@@ -587,7 +597,7 @@ const TypePetsCloud = (function() {
             const actions = el('div', 'savecode-actions');
             const yes = button('btn btn-danger', 'Load it', () => {
                 yes.disabled = true;
-                const r = use(found);
+                const r = use(found, null, { askName: true });
                 if (!r.ok) { yes.disabled = false; showError(r.error); }
             });
             actions.appendChild(yes);
@@ -614,6 +624,66 @@ const TypePetsCloud = (function() {
         m.card.appendChild(host);
         m.card.appendChild(button('savecode-later', 'Close', () => m.close()));
         setTimeout(() => form.input.focus(), 0);
+    }
+
+    /** Right after a code was loaded: "What's your name?" if this player has none yet. Returns true if asked. */
+    function maybeAskName() {
+        let pet = null;
+        try {
+            pet = sessionStorage.getItem(ASK_NAME_KEY);
+            sessionStorage.removeItem(ASK_NAME_KEY);
+        } catch (e) { pet = null; }
+        const prof = TypePetsData.getActiveProfile();
+        if (!pet || (prof.name && prof.name !== DEFAULT_NAME) || typeof window.tpOpenModal !== 'function') return false;
+
+        const m = window.tpOpenModal({ className: 'savecode-modal savecode-name-modal', label: "What's your name?" });
+        m.card.appendChild(el('div', 'tp-modal-emoji', '🎉'));
+        m.card.appendChild(el('h3', null, `${pet} is here!`));
+        m.card.appendChild(el('p', 'tp-modal-text', "What's your name? Just a first name or a nickname. It stays on this computer."));
+        const form = el('form');
+        form.noValidate = true;
+        const input = el('input', 'tp-input');
+        input.type = 'text';
+        input.maxLength = 20;
+        input.autocomplete = 'off';
+        input.placeholder = 'Your name';
+        input.setAttribute('aria-label', 'Your name');
+        form.appendChild(input);
+        const err = el('div', 'tp-modal-error');
+        err.setAttribute('role', 'alert');
+        form.appendChild(err);
+        const actions = el('div', 'tp-modal-actions');
+        const save = el('button', 'btn btn-primary', 'Save my name');
+        save.type = 'submit';
+        actions.appendChild(save);
+        actions.appendChild(button('btn btn-secondary', 'Skip', () => m.close()));
+        form.appendChild(actions);
+        m.card.appendChild(form);
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = input.value.trim();
+            if (!name) { err.textContent = 'Type a name, or press Skip.'; input.focus(); return; }
+            const r = TypePetsData.renameProfile(prof.id, name);
+            if (!r.ok) { err.textContent = "Couldn't save the name. Try a different one."; return; }
+            showName(r.profile.name);
+            m.close();
+            toast(`Hi ${r.profile.name}! 👋`, 'success');
+        });
+        input.addEventListener('input', () => { err.textContent = ''; });
+        setTimeout(() => input.focus(), 50);
+        return true;
+    }
+
+    /** Put a new player name on what's already on screen (the nav chip, Home's greeting). */
+    function showName(name) {
+        const chipName = document.getElementById('userName');
+        if (chipName) chipName.textContent = name;
+        const chip = document.querySelector('.main-nav .nav-user');
+        if (chip) chip.setAttribute('aria-label', `Player: ${name}. Switch player`);
+        const hero = document.getElementById('heroTitle');
+        if (hero) hero.textContent = `Hey ${name}!`;
+        const passport = document.getElementById('passportName');
+        if (passport) passport.textContent = name;
     }
 
     // ─── UI: Stats page panel ────────────────────────────────
@@ -770,7 +840,10 @@ const TypePetsCloud = (function() {
     // ─── Start ───────────────────────────────────────────────
 
     function start() {
-        showNote();
+        // After the page's own setup (so its focus calls don't pull focus out of the name box)
+        const afterSetup = () => showNote(!maybeAskName()); // the name prompt already says the pet is here
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', afterSetup);
+        else afterSetup();
         // This runs before the page's own setup, so this is the state the kid left it in
         const link = TypePetsData.getCloudLink();
         cleanAtOpen = !link.code || TypePetsData.cloudHash() === link.synced_hash;
