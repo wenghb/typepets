@@ -1,10 +1,11 @@
 /**
  * Feedback — lets kids, parents and teachers tell us what to improve.
  *
- * - App pages: a 💬 button in the nav (in the ☰ menu on phones) opens the form in a modal.
- *   Bubble Pop pauses itself while any .tp-modal-overlay is open.
+ * - App pages: a 💬 button in the nav (in the ☰ menu on phones) opens the form in a modal
+ *   (a bottom sheet on phones). Bubble Pop pauses itself while any .tp-modal-overlay is open.
  * - /feedback.html renders the same form inline into #feedbackInline (linked from the
  *   landing page, blog and 404 footers).
+ * - Every choice is a keycap you press, like the on-screen keyboard in the lessons.
  * - Sends: topic, optional 1–5 rating, the message, the page, browser/screen size and
  *   progress level (sessions, stage, level); the server adds the country. Never the player's name.
  * - The optional reply email sits behind the grown-up gate (app.js `showParentGate`).
@@ -15,21 +16,22 @@
 
     const ENDPOINT = '/api/feedback';
     const MAX_MESSAGE = 1000;
-
-    const TOPICS = [
-        { id: 'bug', icon: '🐛', label: 'Something is broken', placeholder: 'What happened? What were you doing when it went wrong?' },
-        { id: 'idea', icon: '💡', label: 'I have an idea', placeholder: 'What should we add or change?' },
-        { id: 'difficulty', icon: '🎯', label: 'Too hard or too easy', placeholder: 'Which part? Was it too hard or too easy?' },
-        { id: 'love', icon: '❤️', label: 'I love something', placeholder: 'What do you like best?' },
-        { id: 'other', icon: '💬', label: 'Something else', placeholder: 'Type your message here…' }
-    ];
+    const DEFAULT_PLACEHOLDER = 'Write your message here';
 
     const RATINGS = [
         { value: 1, icon: '😢', label: 'Not fun' },
         { value: 2, icon: '😕', label: 'Meh' },
         { value: 3, icon: '😐', label: 'Okay' },
         { value: 4, icon: '🙂', label: 'Fun' },
-        { value: 5, icon: '😍', label: 'Love it' }
+        { value: 5, icon: '😍', label: 'Super fun' }
+    ];
+
+    const TOPICS = [
+        { value: 'bug', icon: '🐛', label: 'Broken', placeholder: 'What happened? What were you doing when it went wrong?' },
+        { value: 'idea', icon: '💡', label: 'Idea', placeholder: 'What should we add or change?' },
+        { value: 'difficulty', icon: '🎯', label: 'Hard / easy', placeholder: 'Which part was too hard or too easy?' },
+        { value: 'love', icon: '❤️', label: 'Love it', placeholder: 'What do you like best?' },
+        { value: 'other', icon: '💬', label: 'Other', placeholder: DEFAULT_PLACEHOLDER }
     ];
 
     let uid = 0;
@@ -48,23 +50,25 @@
         return b;
     }
 
-    /** A row of radio "chips" (real radios, so arrow keys and screen readers work). */
-    function chipGroup(name, legendText, options, className) {
+    /** A row of five keycaps (real radios, so arrow keys and screen readers work). */
+    function keyRow(name, legendText, options, className) {
         const fieldset = el('fieldset', 'fb-group ' + className);
-        fieldset.appendChild(el('legend', 'tp-field-label', legendText));
-        const row = el('div', 'fb-options');
+        fieldset.appendChild(el('legend', 'fb-label', legendText));
+        const row = el('div', 'fb-keys');
         options.forEach((opt) => {
-            const label = el('label', 'fb-chip');
+            const key = el('label', 'fb-key');
             const input = el('input');
             input.type = 'radio';
             input.name = name;
-            input.value = String(opt.id || opt.value);
-            const face = el('span', 'fb-chip-face');
-            face.appendChild(el('span', 'fb-chip-icon', opt.icon));
-            face.appendChild(el('span', 'fb-chip-label', opt.label));
-            label.appendChild(input);
-            label.appendChild(face);
-            row.appendChild(label);
+            input.value = String(opt.value);
+            const cap = el('span', 'fb-key-cap');
+            const icon = el('span', 'fb-key-icon', opt.icon);
+            icon.setAttribute('aria-hidden', 'true');
+            cap.appendChild(icon);
+            cap.appendChild(el('span', 'fb-key-label', opt.label));
+            key.appendChild(input);
+            key.appendChild(cap);
+            row.appendChild(key);
         });
         fieldset.appendChild(row);
         return fieldset;
@@ -100,52 +104,76 @@
 
     /**
      * Build the form inside `container`.
-     * opts.onClose: shows a Cancel/Close button (modal only).
-     * opts.topic: preselect a topic id.
+     * opts.onClose: modal mode (header with ✕, Cancel button, fixed footer).
+     * opts.topic: preselect a topic.
      */
     function buildForm(container, opts) {
         opts = opts || {};
+        const isModal = typeof opts.onClose === 'function';
         const id = 'fb' + (++uid);
         const openedAt = Date.now();
         container.textContent = '';
 
-        const form = el('form', 'fb-form');
+        const form = el('form', 'fb-form ' + (isModal ? 'fb-form-modal' : 'fb-form-inline'));
         form.noValidate = true;
         form.setAttribute('aria-label', 'Send feedback');
 
-        if (opts.heading !== false) {
-            form.appendChild(el('div', 'tp-modal-emoji', '💬'));
-            form.appendChild(el('h3', null, 'Tell us what you think'));
-            form.appendChild(el('p', 'tp-modal-text', 'We read every message and use it to make TypePets better.'));
+        if (isModal) {
+            const head = el('div', 'fb-head');
+            const titles = el('div', 'fb-titles');
+            titles.appendChild(el('h2', 'fb-title', 'Tell us what you think'));
+            titles.appendChild(el('p', 'fb-sub', 'Every message is read by the people who make TypePets.'));
+            head.appendChild(titles);
+            const closeBtn = button('fb-close', '✕', opts.onClose);
+            closeBtn.setAttribute('aria-label', 'Close');
+            head.appendChild(closeBtn);
+            form.appendChild(head);
         }
 
-        const rating = chipGroup(id + '-rating', 'How fun is TypePets?', RATINGS, 'fb-rating');
-        form.appendChild(rating);
-        const topics = chipGroup(id + '-topic', 'What is it about?', TOPICS, 'fb-topics');
-        form.appendChild(topics);
+        const body = el('div', 'fb-body');
+        form.appendChild(body);
 
-        const msgLabel = el('label', 'tp-field-label', 'Tell us more');
+        const ratingName = id + '-rating';
+        const topicName = id + '-topic';
+        body.appendChild(keyRow(ratingName, 'How fun is TypePets?', RATINGS, 'fb-rating'));
+        const topics = keyRow(topicName, "What's it about?", TOPICS, 'fb-topics');
+        body.appendChild(topics);
+
+        const msgLabel = el('label', 'fb-label', 'Tell us more');
         msgLabel.htmlFor = id + '-msg';
-        form.appendChild(msgLabel);
-        const message = el('textarea', 'tp-input fb-message');
+        body.appendChild(msgLabel);
+        const message = el('textarea', 'fb-input fb-message');
         message.id = id + '-msg';
         message.rows = 4;
         message.maxLength = MAX_MESSAGE;
-        message.placeholder = TOPICS[TOPICS.length - 1].placeholder;
+        message.placeholder = DEFAULT_PLACEHOLDER;
         message.setAttribute('aria-describedby', id + '-privacy');
-        form.appendChild(message);
-        const meta = el('div', 'fb-meta');
-        const privacy = el('span', 'fb-privacy', "🔒 Please don't type your name, email or address.");
+        body.appendChild(message);
+        const hint = el('div', 'fb-hint');
+        const privacy = el('span', null, "🔒 Don't type your name, email or address.");
         privacy.id = id + '-privacy';
         const counter = el('span', 'fb-counter', '0/' + MAX_MESSAGE);
         counter.setAttribute('aria-hidden', 'true');
-        meta.appendChild(privacy);
-        meta.appendChild(counter);
-        form.appendChild(meta);
+        hint.appendChild(privacy);
+        hint.appendChild(counter);
+        body.appendChild(hint);
 
         // Optional reply email, grown-ups only
         const contactWrap = el('div', 'fb-contact');
-        const contactToggle = button('fb-link', '👋 Grown-up? Add an email if you would like a reply', () => {
+        const contactField = el('div', 'fb-contact-field');
+        contactField.hidden = true;
+        const contactLabel = el('label', 'fb-label', 'Your email');
+        contactLabel.htmlFor = id + '-contact';
+        const contactInput = el('input', 'fb-input');
+        contactInput.id = id + '-contact';
+        contactInput.type = 'email';
+        contactInput.autocomplete = 'email';
+        contactInput.maxLength = 120;
+        contactInput.placeholder = 'you@example.com';
+        contactField.appendChild(contactLabel);
+        contactField.appendChild(contactInput);
+        contactField.appendChild(el('p', 'fb-hint', 'Only used to reply to this message.'));
+        const contactToggle = button('fb-link', null, () => {
             const reveal = () => {
                 contactToggle.hidden = true;
                 contactField.hidden = false;
@@ -157,65 +185,46 @@
                 reveal();
             }
         });
-        const contactField = el('div', 'fb-contact-field');
-        contactField.hidden = true;
-        const contactLabel = el('label', 'tp-field-label', 'Grown-up email (optional)');
-        contactLabel.htmlFor = id + '-contact';
-        const contactInput = el('input', 'tp-input fb-input-left');
-        contactInput.id = id + '-contact';
-        contactInput.type = 'email';
-        contactInput.autocomplete = 'email';
-        contactInput.maxLength = 120;
-        contactInput.placeholder = 'you@example.com';
-        contactField.appendChild(contactLabel);
-        contactField.appendChild(contactInput);
-        contactField.appendChild(el('p', 'fb-note', 'We only use it to reply to this message.'));
+        const waveIcon = el('span', null, '👋');
+        waveIcon.setAttribute('aria-hidden', 'true');
+        contactToggle.appendChild(waveIcon);
+        contactToggle.appendChild(el('span', 'fb-link-text', 'Grown-up? Add your email to get a reply'));
         contactWrap.appendChild(contactToggle);
         contactWrap.appendChild(contactField);
-        form.appendChild(contactWrap);
+        body.appendChild(contactWrap);
 
-        // Honeypot: people never see or fill this; simple bots do
-        const trap = el('div', 'fb-trap');
-        trap.setAttribute('aria-hidden', 'true');
-        const trapInput = el('input');
-        trapInput.type = 'text';
-        trapInput.name = 'website';
-        trapInput.tabIndex = -1;
-        trapInput.autocomplete = 'off';
-        trap.appendChild(trapInput);
-        form.appendChild(trap);
+        body.appendChild(el('p', 'fb-note',
+            "Sent with your message: the page you're on, your browser, screen size, country and progress level. Never your name."));
 
-        form.appendChild(el('p', 'fb-note',
-            "Along with your message we send the page you're on, your browser, screen size and country, " +
-            'and your progress level — never your name.'));
-
-        const err = el('p', 'tp-modal-error');
+        const err = el('p', 'fb-error');
         err.setAttribute('role', 'alert');
-        form.appendChild(err);
+        body.appendChild(err);
 
-        const actions = el('div', 'tp-modal-actions');
-        const send = el('button', 'btn btn-primary', 'Send feedback');
+        const foot = el('div', 'fb-foot');
+        if (isModal) foot.appendChild(button('btn btn-secondary', 'Cancel', opts.onClose));
+        const send = el('button', 'btn btn-primary fb-send', 'Send feedback');
         send.type = 'submit';
-        actions.appendChild(send);
-        if (opts.onClose) actions.appendChild(button('btn btn-secondary', 'Cancel', opts.onClose));
-        form.appendChild(actions);
+        foot.appendChild(send);
+        form.appendChild(foot);
 
         function selected(name) {
             const r = form.querySelector('input[name="' + name + '"]:checked');
             return r ? r.value : null;
         }
 
-        topics.addEventListener('change', () => {
-            const t = TOPICS.find((x) => x.id === selected(id + '-topic'));
-            if (t) message.placeholder = t.placeholder;
-        });
+        function syncPlaceholder() {
+            const t = TOPICS.find((x) => x.value === selected(topicName));
+            message.placeholder = t ? t.placeholder : DEFAULT_PLACEHOLDER;
+        }
+        topics.addEventListener('change', syncPlaceholder);
         message.addEventListener('input', () => {
             counter.textContent = message.value.length + '/' + MAX_MESSAGE;
         });
 
-        if (opts.topic && TOPICS.some((t) => t.id === opts.topic)) {
-            const r = topics.querySelector('input[value="' + opts.topic + '"]');
-            if (r) { r.checked = true; message.placeholder = TOPICS.find((t) => t.id === opts.topic).placeholder; }
+        // ?topic= comes from the URL on /feedback.html, so only accept known values
+        if (TOPICS.some((t) => t.value === opts.topic)) {
+            topics.querySelector('input[value="' + opts.topic + '"]').checked = true;
+            syncPlaceholder();
         }
 
         let sending = false;
@@ -223,16 +232,16 @@
             e.preventDefault();
             if (sending) return;
             err.textContent = '';
-            const ratingVal = selected(id + '-rating');
+            const ratingVal = selected(ratingName);
             const text = message.value.trim();
             const contact = contactField.hidden ? '' : contactInput.value.trim();
             if (!text && !ratingVal) {
-                err.textContent = 'Pick a face or type a message first.';
+                err.textContent = 'Pick a face or write a message first.';
                 message.focus();
                 return;
             }
             if (contact && !contactInput.checkValidity()) {
-                err.textContent = 'That email doesn\'t look right — please check it, or leave it empty.';
+                err.textContent = 'Check the email address, or leave it empty.';
                 contactInput.focus();
                 return;
             }
@@ -241,13 +250,12 @@
             send.disabled = true;
             send.textContent = 'Sending…';
             const payload = {
-                category: selected(id + '-topic') || 'other',
+                category: selected(topicName) || 'other',
                 rating: ratingVal ? parseInt(ratingVal, 10) : null,
                 message: text,
                 contact: contact,
                 page: location.pathname,
                 context: collectContext(),
-                website: trapInput.value,
                 elapsed_ms: Date.now() - openedAt
             };
             fetch(ENDPOINT, {
@@ -255,18 +263,16 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             }).then((res) => {
-                if (res.ok) { showThanks(); return; }
+                if (res.status === 201) { showThanks(); return; }
                 return res.json().catch(() => ({})).then((data) => {
-                    if (res.status === 429) {
-                        fail('Lots of people are sending feedback right now. Please try again in a few minutes.');
-                    } else if (data && data.error === 'bad_contact') {
-                        fail('That email doesn\'t look right — please check it, or leave it empty.');
-                    } else {
-                        fail("Sorry, we couldn't send that right now. Please try again later.");
-                    }
+                    const code = data && data.error;
+                    if (res.status === 429) fail('Too many messages are coming in right now. Try again in a few minutes.');
+                    else if (code === 'bad_contact') fail('Check the email address, or leave it empty.');
+                    else if (code === 'too_fast') fail('That was quick! Press Send feedback again.');
+                    else fail("Couldn't send your feedback. Try again in a minute.");
                 });
             }).catch(() => {
-                fail("Sorry, we couldn't send that. Check your internet connection and try again.");
+                fail("Couldn't send. Check your internet connection and try again.");
             });
         });
 
@@ -282,22 +288,23 @@
             container.textContent = '';
             const done = el('div', 'fb-thanks');
             done.setAttribute('role', 'status');
-            done.appendChild(el('div', 'tp-modal-emoji', '🎉'));
-            done.appendChild(el('h3', null, 'Thank you!'));
-            done.appendChild(el('p', 'tp-modal-text',
-                'Your feedback was sent. Ideas like yours help us make TypePets more fun for everyone.'));
-            const doneActions = el('div', 'tp-modal-actions');
-            if (opts.onClose) {
-                const close = button('btn btn-primary', 'Back to typing', opts.onClose);
-                doneActions.appendChild(close);
-                setTimeout(() => close.focus(), 50);
+            const icon = el('div', 'fb-thanks-icon', '🎉');
+            icon.setAttribute('aria-hidden', 'true');
+            done.appendChild(icon);
+            done.appendChild(el('h2', 'fb-title', 'Thanks! We got it.'));
+            done.appendChild(el('p', 'fb-sub', 'Your feedback goes straight to the people who make TypePets.'));
+            const actions = el('div', 'fb-thanks-actions');
+            if (isModal) {
+                const back = button('btn btn-primary', 'Back to typing', opts.onClose);
+                actions.appendChild(back);
+                setTimeout(() => back.focus(), 50);
             } else {
-                doneActions.appendChild(button('btn btn-secondary', 'Send more feedback', () => buildForm(container, opts)));
-                const back = el('a', 'btn btn-primary', 'Open TypePets');
-                back.href = '/pages/home.html';
-                doneActions.appendChild(back);
+                actions.appendChild(button('btn btn-secondary', 'Send more feedback', () => buildForm(container, opts)));
+                const open = el('a', 'btn btn-primary', 'Open TypePets');
+                open.href = '/pages/home.html';
+                actions.appendChild(open);
             }
-            done.appendChild(doneActions);
+            done.appendChild(actions);
             container.appendChild(done);
             if (typeof window.spawnConfetti === 'function') window.spawnConfetti(30);
         }
@@ -315,12 +322,13 @@
         const m = window.tpOpenModal({
             className: 'feedback-modal',
             label: 'Send feedback',
-            // Clicking outside only closes an empty form (Cancel and Escape always work)
+            // Clicking outside only closes an empty form (✕, Cancel and Escape always work)
             closeOnOverlay: () => {
                 const msg = m.card.querySelector('.fb-message');
                 return !msg || !msg.value.trim();
             }
         });
+        m.overlay.classList.add('feedback-overlay'); // bottom sheet on phones
         buildForm(m.card, { topic: opts.topic, onClose: m.close });
         setTimeout(() => {
             const first = m.card.querySelector('input[type="radio"]');
@@ -356,7 +364,7 @@
     const inline = document.getElementById('feedbackInline');
     if (inline) {
         const topic = new URLSearchParams(location.search).get('topic');
-        buildForm(inline, { heading: false, topic: topic });
+        buildForm(inline, { topic: topic });
     } else {
         initNavEntry();
     }
