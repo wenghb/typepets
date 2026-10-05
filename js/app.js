@@ -204,25 +204,55 @@ document.addEventListener('keydown', () => {
         const card = el('div', 'tp-modal' + (opts.className ? ' ' + opts.className : ''));
         card.setAttribute('role', 'dialog');
         card.setAttribute('aria-modal', 'true');
+        card.tabIndex = -1; // focus parks here when it would otherwise fall back to the page
         if (opts.label) card.setAttribute('aria-label', opts.label);
         overlay.appendChild(card);
         const prevFocus = document.activeElement;
 
+        // Only the top-most modal reacts (the grown-up gate can open on top of the feedback form)
+        function isTop() {
+            const open = document.querySelectorAll('.tp-modal-overlay');
+            return open[open.length - 1] === overlay;
+        }
         function onKey(e) {
-            if (e.key === 'Escape') { e.stopPropagation(); close(); }
+            if (!isTop()) return;
+            if (e.key === 'Escape') {
+                e.stopPropagation();
+                close();
+                return;
+            }
+            // Focus fell out of the modal (overlay click, a button disabled while sending, Tab past
+            // the end): keep the key away from the lesson or game underneath and pull focus back
+            if (!card.contains(e.target)) {
+                e.preventDefault();
+                e.stopPropagation();
+                card.focus();
+            }
+        }
+        function onFocusIn(e) {
+            if (isTop() && !card.contains(e.target)) card.focus();
         }
         function close() {
             overlay.remove();
             document.removeEventListener('keydown', onKey, true);
+            document.removeEventListener('focusin', onFocusIn, true);
             if (prevFocus && typeof prevFocus.focus === 'function') {
                 try { prevFocus.focus(); } catch (e) { /* ignore */ }
             }
         }
         document.addEventListener('keydown', onKey, true);
+        document.addEventListener('focusin', onFocusIn, true);
         // Keep typing inside the modal away from game keyboard handlers
         card.addEventListener('keydown', (e) => e.stopPropagation());
         card.addEventListener('keypress', (e) => e.stopPropagation());
-        overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+        // Clicking the dimmed backdrop shouldn't blur the field being typed in
+        overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) e.preventDefault(); });
+        overlay.addEventListener('click', (e) => {
+            if (e.target !== overlay) return;
+            // A form can refuse while it holds unsent text (a stray click shouldn't throw it away)
+            if (typeof opts.closeOnOverlay === 'function' && !opts.closeOnOverlay()) return;
+            close();
+        });
         document.body.appendChild(overlay);
         return { overlay, card, close };
     }
@@ -270,7 +300,9 @@ document.addEventListener('keydown', () => {
         actions.appendChild(button('btn btn-primary', 'Continue', submit));
         actions.appendChild(button('btn btn-secondary', 'Cancel', m.close));
         m.card.appendChild(actions);
-        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+        // preventDefault: focus can move into a form underneath (feedback email) before the
+        // Enter's keypress fires, which would submit that form
+        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } });
         newQuestion();
         setTimeout(() => input.focus(), 50);
     }
@@ -353,6 +385,14 @@ document.addEventListener('keydown', () => {
         });
 
         if (!links.id) links.id = 'navLinks';
+
+        // Header Support pill: wrap the word so tablet widths can show just the heart (see style.css)
+        const pill = nav.querySelector('.nav-right .donate-heart');
+        if (pill && pill.textContent.trim() === '💛 Support') {
+            pill.textContent = '💛';
+            pill.appendChild(el('span', 'donate-heart-label', 'Support'));
+            pill.setAttribute('aria-label', 'Support TypePets');
+        }
 
         // Support link inside the mobile menu (the nav button is hidden on phones)
         const support = el('a', 'nav-link nav-link-support', '💛 Support TypePets');

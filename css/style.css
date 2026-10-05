@@ -152,7 +152,8 @@ a {
     flex-shrink: 0;
 }
 
-.nav-link-support {
+.nav-link-support,
+.nav-link-feedback {
     display: none;
 }
 
@@ -162,7 +163,7 @@ a {
     gap: 8px;
 }
 
-.theme-toggle, .sound-toggle {
+.theme-toggle, .sound-toggle, .feedback-toggle {
     background: none;
     border: 1px solid var(--border-color);
     border-radius: 50%;
@@ -176,7 +177,7 @@ a {
     transition: all 0.2s ease;
 }
 
-.theme-toggle:hover, .sound-toggle:hover {
+.theme-toggle:hover, .sound-toggle:hover, .feedback-toggle:hover {
     background: var(--bg-primary);
     border-color: var(--accent-blue);
 }
@@ -356,6 +357,10 @@ a {
     text-align: center;
 }
 
+.tp-modal:focus {
+    outline: none;
+}
+
 .tp-modal h3 {
     font-size: 1.3rem;
     margin-bottom: 10px;
@@ -427,6 +432,185 @@ a {
 
 .tp-input:focus {
     border-color: var(--accent-blue);
+}
+
+/* ─── Feedback form (js/feedback.js) ───────────────────────── */
+.feedback-modal {
+    max-width: 460px;
+}
+
+.fb-form {
+    text-align: left;
+}
+
+.fb-form .tp-modal-emoji,
+.fb-form h3,
+.fb-form > .tp-modal-text,
+.fb-thanks {
+    text-align: center;
+}
+
+.fb-form [hidden] {
+    display: none !important;
+}
+
+.fb-group {
+    border: 0;
+    padding: 0;
+    margin: 0 0 12px;
+    min-width: 0;
+}
+
+.fb-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.fb-chip {
+    position: relative;
+    cursor: pointer;
+}
+
+.fb-chip input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+}
+
+.fb-chip-face {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 999px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-weight: 700;
+    font-size: 0.85rem;
+    transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.fb-chip:hover .fb-chip-face {
+    border-color: var(--accent-blue);
+}
+
+.fb-chip input:checked + .fb-chip-face {
+    border-color: var(--accent-blue);
+    background: rgba(74, 144, 217, 0.14);
+}
+
+.fb-chip input:focus-visible + .fb-chip-face {
+    outline: 3px solid var(--accent-blue);
+    outline-offset: 2px;
+}
+
+.fb-rating .fb-options {
+    flex-wrap: nowrap;
+    gap: 6px;
+}
+
+.fb-rating .fb-chip {
+    flex: 1;
+    min-width: 0;
+}
+
+.fb-rating .fb-chip-face {
+    flex-direction: column;
+    gap: 3px;
+    width: 100%;
+    padding: 8px 2px 6px;
+    border-radius: var(--radius-md);
+}
+
+.fb-rating .fb-chip-icon {
+    font-size: 1.7rem;
+    line-height: 1;
+}
+
+.fb-rating .fb-chip-label {
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+    text-align: center;
+    line-height: 1.2;
+}
+
+.fb-rating .fb-chip input:checked + .fb-chip-face {
+    transform: scale(1.06);
+}
+
+.fb-message {
+    min-height: 96px;
+    resize: vertical;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    text-align: left;
+    line-height: 1.45;
+}
+
+.fb-input-left {
+    font-size: 1rem;
+    text-align: left;
+}
+
+.fb-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.fb-counter {
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.fb-contact {
+    margin-top: 10px;
+}
+
+.fb-link {
+    background: none;
+    border: none;
+    padding: 4px 0;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--accent-blue);
+    text-align: left;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+}
+
+.fb-note {
+    margin-top: 8px;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--text-secondary);
+}
+
+.fb-trap {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+@media (max-width: 400px) {
+    .tp-modal.feedback-modal {
+        padding: 22px 16px;
+    }
+    .fb-rating .fb-chip-icon {
+        font-size: 1.45rem;
+    }
 }
 
 .parent-gate-question {
@@ -1295,6 +1479,9 @@ button:not(:disabled):active, .btn:active {
         display: block;
         color: #B7791F;
     }
+    .main-nav.nav-open .nav-link-feedback {
+        display: block;
+    }
     .donate-heart {
         display: none;
     }
@@ -1403,7 +1590,8 @@ button:not(:disabled):active, .btn:active {
     .profile-menu,
     .tp-modal-overlay,
     .toast,
-    .goal-ring-fill {
+    .goal-ring-fill,
+    .fb-chip-face {
         animation: none !important;
         transition: none !important;
     }
@@ -1415,9 +1603,21 @@ button:not(:disabled):active, .btn:active {
     }
 }
 
-/* Phone nav: Support lives in the ☰ menu, so drop the header pill (the base rule above is declared later than the 600px block) */
+/* Phone nav: Support and Feedback live in the ☰ menu, so drop the header pill and button (the base rules above are declared later than the 600px block) */
 @media (max-width: 600px) {
+    .nav-right .donate-heart,
+    .nav-right .feedback-toggle {
+        display: none;
+    }
+}
+
+/* Tablet widths: the nav is tight, so the header Support pill shows just the heart */
+@media (min-width: 601px) and (max-width: 860px) {
     .nav-right .donate-heart {
+        padding: 6px 9px;
+        margin-right: 0;
+    }
+    .donate-heart-label {
         display: none;
     }
 }

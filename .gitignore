@@ -1,0 +1,6 @@
+# Local Cloudflare dev state (wrangler pages dev)
+.wrangler/
+node_modules/
+
+# Local Claude Code files (the repo root is the deploy root, so never publish these)
+.claude/
