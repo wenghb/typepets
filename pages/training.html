@@ -87,6 +87,7 @@
                     </div>
                     <div class="training-tools">
                         <button type="button" class="tool-toggle hidden" id="speechToggle" onclick="toggleSpeech(this)" aria-pressed="false" title="Say each key and finger out loud">🗣️ Voice</button>
+                        <button type="button" class="tool-toggle hidden" id="voicePick" onclick="switchVoice(this)">🎙️ Voice</button>
                         <button type="button" class="tool-toggle" id="noLookToggle" onclick="toggleNoLook(undefined, this)" aria-pressed="false" title="Hide the keyboard hints and type from memory (+50% XP)">🙈 No-look</button>
                         <span class="class-timer hidden" id="classTimer" role="timer"></span>
                     </div>
@@ -175,7 +176,8 @@
     <script src="../js/feedback.js?v=310f25f1"></script>
     <script src="../js/achievements.js?v=b6254226"></script>
     <script src="../js/keyboard.js?v=81ab4461"></script>
-    <script src="../js/speech.js?v=c79d0e0e"></script>
+    <script src="../js/speech.js?v=1aca4553"></script>
+    <script src="../js/voice-training.js?v=d8e03720"></script>
     <script>
     /**
      * Finger Training Mode — TypePets
@@ -249,6 +251,7 @@
         loadStage(currentStageIdx);
         document.addEventListener('keydown', handleKeydown);
         document.addEventListener('keyup', updateCapsBanner);
+        window.addEventListener('speechvoicechange', updateToolButtons);
         setInterval(tickTimers, 250);
         loadPetNudge();
     }
@@ -433,6 +436,7 @@
         updateStats();
         updateProgress();
         keyboard.setValidKeys(stage.keys);
+        if (speechAvailable()) window.speech.usePack(`training-${stage.id}`, speechActive());
         updateToolButtons();
         pendingIntro = opts && typeof opts.intro === 'string' ? opts.intro : `Stage ${stage.id}: ${stage.name}.`;
         generateChallenge();
@@ -522,16 +526,38 @@
         }
     }
 
+    // Next recorded voice (Michael → Hannah → Bella), heard right away on the current key
+    function switchVoice(btn) {
+        if (btn && btn.blur) btn.blur();
+        if (!speechActive()) return;
+        window.speech.nextVoice();
+        updateToolButtons();
+        if (window.sound && window.sound.enabled === false) {
+            showToast('🔇 Sound is off. Turn it on (🔊) to hear the voice.', 'info');
+        } else if (typedIndex < targetText.length) {
+            speakKey(targetText[typedIndex], keyboard.getFingerForKey(targetText[typedIndex]));
+        }
+        refocusTyping();
+    }
+
     function updateToolButtons() {
         const sBtn = document.getElementById('speechToggle');
+        const vBtn = document.getElementById('voicePick');
         if (speechAvailable()) {
             const on = speechActive();
             sBtn.classList.remove('hidden');
             sBtn.classList.toggle('on', on);
             sBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
             sBtn.textContent = on ? '🗣️ Voice on' : '🗣️ Voice off';
+            // Only offer voices while recordings play; the device's own voice can't be switched
+            const name = window.speech.currentVoice().name;
+            vBtn.classList.toggle('hidden', !on || !window.speech.hasRecordings());
+            vBtn.textContent = `🎙️ ${name}`;
+            vBtn.title = `Voice: ${name}. Click to hear another voice (${window.speech.voices.map(v => v.name).join(', ')}).`;
+            vBtn.setAttribute('aria-label', `Voice: ${name}. Switch voice`);
         } else {
             sBtn.classList.add('hidden');
+            vBtn.classList.add('hidden');
         }
         const nBtn = document.getElementById('noLookToggle');
         nBtn.classList.toggle('on', noLook);

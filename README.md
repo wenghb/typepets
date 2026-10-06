@@ -19,6 +19,7 @@ Free online typing practice for kids ages 7–12. Finger training, bubble pop ga
 - 🏫 **Classroom links** — `pages/training.html?stage=N&min=M` / `pages/articles.html?article=ID&min=M` open a lesson with a countdown timer
 - 🎓 **Certificates & report** — Printable certificates and a parent/teacher progress report
 - 💬 **Feedback** — Kid-friendly feedback form (💬 in the nav, or `/feedback.html`) with a private inbox at `/admin/feedback.html`
+- 🗣️ **Voice** — Spoken finger hints in Training and read-aloud in Articles, from natural-sounding recordings made ahead of time, in three voices kids can switch between (see [Voice recordings](#voice-recordings))
 - 🔒 **Privacy** — All progress in localStorage; the only things ever sent are feedback someone chooses to submit and, for players who get a save code, their progress without their name (no names, no IPs)
 - 🌙 **Dark Mode** — Easy on the eyes for longer sessions
 
@@ -74,6 +75,26 @@ Notes:
 - `_redirects` holds a few short-link redirects (`/app`, `/play`, `/pages/`). There is intentionally **no** SPA catch-all (`/* /index.html 200`): every page is a real file, so unknown URLs get a real 404 from `404.html` instead of a "soft 404" homepage.
 - Pages serves `404.html` with a 404 status for any missing URL, at any depth, so it only uses absolute paths (`/css/...`, `/img/...`).
 - Production branch, build settings (none; output dir = root), and the custom domain are configured in the Cloudflare dashboard, not in this repo.
+
+## Voice recordings
+
+Training's spoken hints ("Stage 1: Home Row. F, left index.") and the Articles read-aloud button play recordings from `audio/voice/`, made ahead of time with [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M) (an open, Apache-2.0 text-to-speech model that runs on your own computer, no account or API key). Each training stage and each article is one MP3 "pack" per voice; `js/voice-training.js` and `js/voice-articles.js` say where each line sits in it. `js/speech.js` splits a line into sentences and plays them back to back. A line with any sentence missing a recording falls back to the browser's built-in voice as a whole, so nothing goes silent, but it sounds robotic.
+
+There are three voices: **Michael** (`am_michael`, the default), **Hannah** (`af_heart`) and **Bella** (`af_bella`). While the voice is on, a 🎙️ button next to it (Training toolbar, Articles stats bar) shows the current voice; each click switches to the next one and re-reads the current key or word. The choice is saved per device in localStorage `typepets_voice`. The list is `VOICES` in `js/speech.js`; `build.py` records every voice in it, so adding or removing one there and re-running the build is all it takes.
+
+So **re-record after changing articles, training stages/words, or any spoken line**:
+
+```bash
+uv run scripts/voice/build.py              # records new or changed packs (needs uv, node, ffmpeg)
+python3 scripts/voice/build.py --check     # exits 1 if a pack is missing or out of date
+python3 scripts/version-assets.py          # the pack lists are JS, so restamp
+```
+
+- `scripts/voice/phrases.mjs` lists every line, read from the real sources: `STAGES` in `pages/training.html`, `js/articles-data.js`, key/finger names from `js/speech.js` and `js/keyboard.js`, and string literals in `say(...)` calls and `intro:` options. The sentence templates in training's `speakKey()`/`loadStage()` are mirrored there, so keep them in step.
+- Only packs whose lines changed are re-recorded; unchanged MP3s stay byte-for-byte the same. A full rebuild takes ~5 minutes per voice on an M-series Mac. The first run downloads the model (~350 MB) into `~/.cache/huggingface`; takes are cached in `~/.cache/typepets-voice`.
+- Other voices are listed in the model's VOICES.md (American English ones work as is). Each voice adds ~9 MB of MP3s.
+- The model garbles a word said on its own ("fox" comes out as "vox"), so single words and keys are read at the end of "Next word: …" and cut out using the model's word timings (`CARRIER`). Letter keys use fixed phonemes (`LETTER_PHONEMES`), because the model reads a lone "A" as the word "uh".
+- Packs download only when the voice is on, and only for the chosen voice: a training stage is 130–550 KB, an article 200–360 KB.
 
 ## Save codes
 
@@ -187,8 +208,10 @@ typepets/
 ├── terms.html
 ├── sitemap.xml
 ├── robots.txt
+├── audio/voice/        # Recorded voice packs (MP3), made by scripts/voice/build.py
 ├── scripts/
-│   └── version-assets.py # Stamps CSS/JS links with ?v=<content hash>
+│   ├── version-assets.py # Stamps CSS/JS links with ?v=<content hash>
+│   └── voice/          # phrases.mjs (every spoken line) + build.py (records them)
 ├── _routes.json        # Only /api/* runs as a Pages Function
 └── _redirects          # Cloudflare Pages redirect rules
 ```

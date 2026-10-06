@@ -12,7 +12,7 @@
     <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
     <link rel="stylesheet" href="../css/style.css?v=f2cf9942">
     <link rel="stylesheet" href="../css/keyboard.css?v=50280a82">
-    <link rel="stylesheet" href="../css/articles.css?v=81cd335c">
+    <link rel="stylesheet" href="../css/articles.css?v=d872b117">
 </head>
 <body>
     <nav class="main-nav">
@@ -69,6 +69,7 @@
                     <div class="ts-sparkline-wrap"><svg id="wpmSparkline" width="100" height="28" viewBox="0 0 100 28"></svg></div>
                     <div class="ts-sound-toggle">
                         <button class="ts-sound-btn off hidden" id="speechBtn" onclick="toggleArticleSpeech(this)" aria-pressed="false" title="Read the next word out loud">🗣️</button>
+                        <button class="ts-voice-btn hidden" id="voiceBtn" onclick="switchArticleVoice(this)">🎙️ Voice</button>
                         <button class="ts-sound-btn" id="typewriterSoundBtn" onclick="toggleTypewriterSound()" title="Toggle typewriter sounds">🔊</button>
                     </div>
                 </div>
@@ -137,9 +138,10 @@
     <script src="../js/feedback.js?v=310f25f1"></script>
     <script src="../js/achievements.js?v=b6254226"></script>
     <script src="../js/keyboard.js?v=81ab4461"></script>
-    <script src="../js/speech.js?v=c79d0e0e"></script>
+    <script src="../js/speech.js?v=1aca4553"></script>
+    <script src="../js/voice-articles.js?v=429be352"></script>
     <script src="../js/articles-data.js?v=062f93bf"></script>
-    <script src="../js/articles.js?v=9fa007e2"></script>
+    <script src="../js/articles.js?v=ef2d7711"></script>
     <script src="../js/donate-prompt.js?v=c619b8ba"></script>
 </body>
 </html>

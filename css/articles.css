@@ -257,6 +257,31 @@
     opacity: 0.45;
 }
 
+.ts-voice-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    height: 28px;
+    padding: 0 10px;
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.ts-voice-btn:hover {
+    background: var(--bg-primary);
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+.ts-voice-btn.hidden {
+    display: none;
+}
+
 /* ─── Article Text Display ─────────────────────────────────── */
 .article-text-display {
     background: var(--bg-card);

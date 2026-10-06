@@ -116,13 +116,35 @@
 
     function updateSpeechButton() {
         const btn = $('speechBtn');
-        if (!window.speech || !window.speech.supported) { btn.classList.add('hidden'); return; }
+        const voiceBtn = $('voiceBtn');
+        if (!window.speech || !window.speech.supported) {
+            btn.classList.add('hidden');
+            voiceBtn.classList.add('hidden');
+            return;
+        }
         const on = speechOn();
         btn.classList.remove('hidden');
         btn.classList.toggle('off', !on);
         btn.setAttribute('aria-pressed', on ? 'true' : 'false');
         btn.title = on ? 'Reading the next word out loud (click to stop)' : 'Read the next word out loud';
+        // Only offer voices while recordings play; the device's own voice can't be switched
+        const name = window.speech.currentVoice().name;
+        voiceBtn.classList.toggle('hidden', !on || !window.speech.hasRecordings());
+        voiceBtn.textContent = `🎙️ ${name}`;
+        voiceBtn.title = `Voice: ${name}. Click to hear another voice (${window.speech.voices.map(v => v.name).join(', ')}).`;
+        voiceBtn.setAttribute('aria-label', `Voice: ${name}. Switch voice`);
     }
+
+    // Next recorded voice (Michael → Hannah → Bella), heard right away on the next word
+    window.switchArticleVoice = function(btn) {
+        if (btn && btn.blur) btn.blur();
+        if (!speechOn()) return;
+        window.speech.nextVoice();
+        updateSpeechButton();
+        if (window.sound && window.sound.enabled === false) showToast('🔇 Sound is off. Turn it on (🔊) to hear the words.', 'info');
+        else speakWordAt(wordStart(charIndex));
+        focusTyping();
+    };
 
     window.toggleArticleSpeech = function(btn) {
         if (btn && btn.blur) btn.blur();
@@ -224,6 +246,7 @@
         clearSparkline();
         renderCharacters();
         setupGhost();
+        if (window.speech) window.speech.usePack(`article-${id}`, speechOn());
         updateSpeechButton();
         focusTyping();
         window.scrollTo(0, 0);
@@ -710,5 +733,6 @@
 
     renderArticleGrid();
     updateSpeechButton();
+    window.addEventListener('speechvoicechange', updateSpeechButton);
     applyClassLink();
 })();
