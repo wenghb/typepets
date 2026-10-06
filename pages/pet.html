@@ -10,8 +10,9 @@
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
-    <link rel="stylesheet" href="../css/style.css?v=f2cf9942">
-    <link rel="stylesheet" href="../css/pet.css?v=46653c9b">
+    <link rel="stylesheet" href="../css/style.css?v=75635951">
+    <link rel="stylesheet" href="../css/pet-art.css?v=2e573092">
+    <link rel="stylesheet" href="../css/pet.css?v=fda7a874">
 </head>
 <body>
     <nav class="main-nav">
@@ -50,7 +51,7 @@
                         <span class="species-level" id="speciesLevel">Level 1</span>
                     </div>
                     <p class="pet-mood" id="petMood" role="status"></p>
-                    <div><button type="button" class="pet-wardrobe-btn" id="wardrobeBtn" onclick="openWardrobe()"><span aria-hidden="true">🎨</span> Wardrobe</button></div>
+                    <div><button type="button" class="pet-wardrobe-btn" id="wardrobeBtn" onclick="openWardrobe()"><span aria-hidden="true">🎨</span> Wardrobe <span class="wd-btn-new" id="wardrobeBtnNew" hidden>NEW</span></button></div>
                 </div>
                 <div class="pet-xp-section">
                     <div class="xp-bar-outer"><div class="xp-bar-inner" id="xpBar" style="width:0%"></div></div>
@@ -70,6 +71,10 @@
             <div class="pet-sidebar">
                 <h3>Evolution Path</h3>
                 <div class="evolution-timeline" id="evolutionTimeline"></div>
+                <div class="wardrobe-next" id="wardrobeNext" hidden>
+                    <h4>Coming up in the wardrobe</h4>
+                    <div class="wardrobe-next-list" id="wardrobeNextList"></div>
+                </div>
                 <div class="pet-tips" id="petTips">
                     <h4>Tips</h4>
                     <ul>
@@ -104,14 +109,14 @@
 
     <div id="toast-container"></div>
 
-    <script src="../js/data.js?v=4cd52c44"></script>
+    <script src="../js/data.js?v=5efb85a6"></script>
     <script src="../js/articles-data.js?v=062f93bf"></script>
-    <script src="../js/wardrobe.js?v=34cc0d43"></script>
+    <script src="../js/wardrobe.js?v=7756b6c6"></script>
     <script src="../js/sound.js?v=e57a4213"></script>
     <script src="../js/app.js?v=4ba8e4a1"></script>
     <script src="../js/cloud-save.js?v=17283d3e"></script>
     <script src="../js/feedback.js?v=310f25f1"></script>
-    <script src="../js/achievements.js?v=b6254226"></script>
+    <script src="../js/achievements.js?v=226274c8"></script>
     <script>
     (function() {
         'use strict';
@@ -180,7 +185,9 @@
             happyBar.classList.toggle('low', happiness < 30);
             renderFood();
             renderMood();
-            renderCreature(petData.species, hunger, happiness);
+            const progress = TypePetsWardrobe.getProgress();
+            renderCreature(petData.species, hunger, happiness, progress);
+            renderWardrobeHints(progress);
         }
 
         function petDisplayName() {
@@ -221,11 +228,11 @@
             moodEl.className = 'pet-mood mood-' + (petData.mood || 'happy');
         }
 
-        function renderCreature(species, hunger, happiness) {
+        function renderCreature(species, hunger, happiness, progress) {
             const isHungry = hunger < 30;
             const isSleeping = happiness < 20;
             const expressionClass = isHungry ? 'expression-hungry' : isSleeping ? 'expression-sleeping' : '';
-            const look = TypePetsWardrobe.resolveLook(petData, TypePetsWardrobe.getProgress());
+            const look = TypePetsWardrobe.resolveLook(petData, progress || TypePetsWardrobe.getProgress());
             TypePetsWardrobe.applyPlace(petScene, look.place);
             petCreature.innerHTML = TypePetsWardrobe.creatureHTML(species, look, expressionClass);
             petExpression.innerHTML = '';
@@ -276,6 +283,7 @@
                 if (window.sound) window.sound.correct();
                 for (let i = 0; i < 3; i++) setTimeout(() => spawnParticle(i === 0 ? '🍎' : '💖'), i * 200);
                 showToast(`Yum! ${name} loved that 🍎`, 'success');
+                TypePetsWardrobe.announceNewUnlocks(); // e.g. the Hearts pattern after 20 snacks
             } else if (result.reason === 'full') {
                 showToast(`${name} is full and happy — save the food for later!`, 'info');
             } else {
@@ -349,16 +357,21 @@
 
         // ─── Wardrobe ────────────────────────────────────────
         // Tap an item to wear it (saved right away). A locked item can be tried on here;
-        // it comes off when the wardrobe closes.
+        // it comes off when the wardrobe closes. Items unlocked since the kid last looked are
+        // marked NEW until their section has been opened.
 
         const W = TypePetsWardrobe;
         const LOCK_ICON = '<svg class="wd-lock" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="8" rx="2" fill="currentColor"/><path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>';
         const SLOT_NOTES = {
             color: name => `Classic changes color each time ${name} grows. Any other color stays the same.`,
             pattern: () => 'Patterns use a darker shade of the color, so they go with every color.',
+            hat: () => 'Adult and Master pets wear a crown. A hat goes on instead of it.',
+            face: (name, species) => species === 'egg' ? `Eggs don't have eyes yet! Glasses show up once ${name} hatches.` : 'Glasses go on over the eyes.',
+            neck: (name, species) => species === 'egg' ? `These show up once ${name} hatches.` : 'Something to wear around the neck.',
             place: name => `The place is the background behind ${name} on this page.`
         };
-        let wardrobe = null; // the open wardrobe: { modal, tab, trying: { slot, id } | null, ...elements }
+        // the open wardrobe: { modal, tab, trying: { slot, id } | null, newKeys, viewed, ...elements }
+        let wardrobe = null;
 
         function el(tag, className, text) {
             const node = document.createElement(tag);
@@ -371,14 +384,54 @@
             return petData && petData.name && petData.name !== 'Unnamed' ? petData.name : 'your pet';
         }
 
-        window.openWardrobe = function() {
+        /** The NEW tag on the Wardrobe button and the "Coming up" card in the sidebar. */
+        function renderWardrobeHints(progress) {
+            progress = progress || W.getProgress();
+            document.getElementById('wardrobeBtnNew').hidden = W.newItemKeys(petData, progress).length === 0;
+            const card = document.getElementById('wardrobeNext');
+            const list = document.getElementById('wardrobeNextList');
+            const next = W.nextUp(progress, 3);
+            card.hidden = next.length === 0;
+            list.textContent = '';
+            const look = W.resolveLook(petData, progress);
+            next.forEach(({ item, req }) => {
+                const row = el('button', 'wardrobe-next-item');
+                row.type = 'button';
+                row.setAttribute('aria-label', `${item.name}: ${req.text}, ${req.have} of ${req.need}. Try it on`);
+                row.innerHTML = `<span class="wardrobe-next-thumb">${W.thumbHTML(item, petData.species, look)}</span>`;
+                const info = el('span');
+                info.appendChild(el('span', 'wardrobe-next-name', item.name));
+                info.appendChild(el('span', 'wardrobe-next-text', req.text));
+                const bar = el('span', 'wd-bar');
+                const fill = el('i');
+                fill.style.width = Math.round((req.have / req.need) * 100) + '%';
+                bar.appendChild(fill);
+                const barRow = el('span', 'wardrobe-next-row');
+                barRow.appendChild(bar);
+                barRow.appendChild(el('span', 'wd-bar-num', `${req.have.toLocaleString()} / ${req.need.toLocaleString()}`));
+                info.appendChild(barRow);
+                row.appendChild(info);
+                row.addEventListener('click', () => window.openWardrobe(item.slot, item.id));
+                list.appendChild(row);
+            });
+        }
+
+        /** Open the wardrobe, optionally on one section and trying on one locked item. */
+        window.openWardrobe = function(slotId, tryId) {
             if (wardrobe || typeof window.tpOpenModal !== 'function') return;
+            const startTab = W.SLOTS.some(s => s.id === slotId) ? slotId : 'color';
+            const pet = TypePetsData.getPet();
+            const progress = W.getProgress();
+            const tryItem = tryId ? W.find(startTab, tryId) : null;
+            const newKeys = new Set(W.newItemKeys(pet, progress));
             const modal = window.tpOpenModal({
                 className: 'wardrobe-modal',
                 label: 'Wardrobe',
                 onClose: () => {
                     wardrobe = null;
-                    if (location.hash === '#wardrobe') history.replaceState(null, '', location.pathname + location.search);
+                    if (/^#wardrobe/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search);
+                    petData = TypePetsData.getPet();
+                    renderWardrobeHints();
                 }
             });
             modal.overlay.classList.add('wardrobe-overlay');
@@ -436,6 +489,15 @@
                 selectTab(W.SLOTS[next].id, true);
             });
             const note = el('p', 'wd-note');
+            if (newKeys.size) {
+                const gift = el('p', 'wd-gift');
+                const icon = el('span', 'wd-gift-icon', '🎁');
+                icon.setAttribute('aria-hidden', 'true');
+                const who = wardrobeName();
+                const n = newKeys.size;
+                gift.append(icon, `${who.charAt(0).toUpperCase() + who.slice(1)} earned ${n} new thing${n === 1 ? '' : 's'} by practicing. Look for NEW!`);
+                panel.appendChild(gift);
+            }
             panel.appendChild(tabList);
             panel.appendChild(note);
             panel.appendChild(items);
@@ -462,9 +524,13 @@
             modal.card.appendChild(body);
             modal.card.appendChild(foot);
 
-            wardrobe = { modal, tab: 'color', trying: null, count, scene, creature, tryon, tabs, items, note, resetBtn };
+            wardrobe = {
+                modal, tab: startTab, newKeys, viewed: new Set(),
+                trying: tryItem && !W.isUnlocked(tryItem, progress) ? { slot: tryItem.slot, id: tryItem.id } : null,
+                count, scene, creature, tryon, tabs, items, note, resetBtn
+            };
             renderWardrobe();
-            tabs[0].focus();
+            tabs.find(t => t.dataset.slot === startTab).focus();
         };
 
         function selectTab(slotId, moveFocus) {
@@ -487,13 +553,30 @@
             wardrobe.count.textContent = `${c.unlocked} of ${c.total} unlocked`;
             wardrobe.resetBtn.disabled = W.SLOTS.every(s => look[s.id] === W.DEFAULT_LOOK[s.id]);
 
+            // Opening a section counts as seeing its NEW items (they keep the tag until the wardrobe closes)
+            if (!wardrobe.viewed.has(wardrobe.tab)) {
+                wardrobe.viewed.add(wardrobe.tab);
+                const seen = [...wardrobe.newKeys].filter(k => k.indexOf(wardrobe.tab + ':') === 0);
+                if (seen.length) TypePetsData.markPetItemsSeen(seen);
+            }
             wardrobe.tabs.forEach(t => {
-                const selected = t.dataset.slot === wardrobe.tab;
+                const slot = W.SLOTS.find(s => s.id === t.dataset.slot);
+                const selected = slot.id === wardrobe.tab;
+                const hasNew = !wardrobe.viewed.has(slot.id) && [...wardrobe.newKeys].some(k => k.indexOf(slot.id + ':') === 0);
                 t.setAttribute('aria-selected', String(selected));
                 t.tabIndex = selected ? 0 : -1;
+                t.textContent = slot.label;
+                if (hasNew) {
+                    const dot = el('span', 'wd-tab-dot');
+                    dot.setAttribute('aria-hidden', 'true');
+                    t.appendChild(dot);
+                    t.setAttribute('aria-label', `${slot.label}, new things inside`);
+                } else {
+                    t.removeAttribute('aria-label');
+                }
             });
             wardrobe.items.setAttribute('aria-labelledby', 'wardrobeTab-' + wardrobe.tab);
-            wardrobe.note.textContent = SLOT_NOTES[wardrobe.tab](wardrobeName());
+            wardrobe.note.textContent = SLOT_NOTES[wardrobe.tab](wardrobeName(), pet.species);
 
             // Rebuilding the tiles mustn't lose keyboard focus
             const focused = wardrobe.items.contains(document.activeElement) ? document.activeElement.dataset.id : null;
@@ -506,8 +589,10 @@
                 tile.type = 'button';
                 tile.dataset.id = it.id;
                 tile.setAttribute('aria-pressed', String(worn));
-                tile.setAttribute('aria-label', req.unlocked ? it.name : `${it.name}, locked. ${req.text}. Press to try it on.`);
-                tile.innerHTML = (req.unlocked ? '' : LOCK_ICON) + `<span class="wd-thumb">${W.thumbHTML(it, pet.species, shown)}</span>`;
+                const isNew = wardrobe.newKeys.has(W.keyOf(it));
+                tile.setAttribute('aria-label', req.unlocked ? (isNew ? `${it.name}, new` : it.name) : `${it.name}, locked. ${req.text}. Press to try it on.`);
+                tile.innerHTML = (isNew ? '<span class="wd-new" aria-hidden="true">NEW</span>' : '') + (req.unlocked ? '' : LOCK_ICON) +
+                    `<span class="wd-thumb">${W.thumbHTML(it, pet.species, shown)}</span>`;
                 tile.appendChild(el('span', 'wd-name', it.name));
                 if (!req.unlocked) tile.appendChild(el('span', 'wd-sub', req.label));
                 tile.addEventListener('click', () => pickItem(it));
@@ -572,9 +657,16 @@
             renderWardrobe();
         }
 
+        // pet.html#wardrobe or #wardrobe-hat (the "Try it on" link in unlock pop-ups)
+        function openWardrobeFromHash() {
+            const m = /^#wardrobe(?:-([a-z]+))?$/.exec(location.hash);
+            if (m) window.openWardrobe(m[1]);
+        }
+        window.addEventListener('hashchange', openWardrobeFromHash);
+
         loadPet();
         loadActivityFeed();
-        if (location.hash === '#wardrobe') window.openWardrobe();
+        openWardrobeFromHash();
     })();
     </script>
 </body>

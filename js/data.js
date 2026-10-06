@@ -56,8 +56,10 @@ const TypePetsData = (function() {
     const CLOUD_CODE_RE = /^[A-Z]{2,12}-\d{3}-[A-Z]{2,12}$/;   // TIGER-427-MOON (functions/api/save.js)
 
     // Wardrobe slots (js/wardrobe.js has the items). Item ids are checked there, against what's unlocked.
-    const LOOK_SLOTS = ['color', 'pattern', 'place'];
+    const LOOK_SLOTS = ['color', 'pattern', 'hat', 'face', 'neck', 'place'];
     const LOOK_ID_RE = /^[a-z0-9_]{1,24}$/;
+    const SEEN_ITEM_RE = /^[a-z]{1,12}:[a-z0-9_]{1,24}$/;   // 'hat:party'
+    const MAX_SEEN_ITEMS = 200;
 
     const MILESTONES = {
         5:  { id: 'golden_apple', name: 'Golden Apple', happiness: 50,  food: 2 },
@@ -167,6 +169,12 @@ const TypePetsData = (function() {
         return (typeof a === 'string' && a.length > 0 && a.length <= 8 && !/[<>&"']/.test(a)) ? a : PROFILE_AVATARS[0];
     }
 
+    /** Wardrobe items the kid has already seen marked NEW: unique 'slot:id' strings. */
+    function _cleanSeen(list) {
+        if (!Array.isArray(list)) return [];
+        return Array.from(new Set(list.filter(k => typeof k === 'string' && SEEN_ITEM_RE.test(k)))).slice(-MAX_SEEN_ITEMS);
+    }
+
     /** The pet's look with anything malformed dropped: { slot: itemId } for known slots only. */
     function _cleanLook(look) {
         const out = {};
@@ -262,9 +270,10 @@ const TypePetsData = (function() {
                 last_fed: nowIso,
                 food: PET_RULES.START_FOOD,
                 total_fed: 0
-                // look: { color, pattern, place } is added the first time a kid changes it. It isn't
-                // a default, so players who never open the wardrobe keep exactly the data they had
-                // (a save code would otherwise see every existing player as changed).
+                // look: { color, pattern, hat, face, neck, place } is added the first time a kid
+                // changes it, and seen_items: ['hat:party', …] once they've seen a NEW item. Neither
+                // is a default, so players who never open the wardrobe keep exactly the data they
+                // had (a save code would otherwise see every existing player as changed).
             },
             sessions: [],     // { mode, level, wpm, accuracy, duration_seconds, keys_pressed, errors, error_keys, score, speed_multiplier, passed?, no_look?, chars_correct?, timestamp }
             achievements: [],  // { badge_id, earned_at }
@@ -374,6 +383,7 @@ const TypePetsData = (function() {
         d.pet.happiness = clamp(num(d.pet.happiness, 100), 0, 100);
         d.pet.food = clamp(Math.floor(num(d.pet.food)), 0, PET_RULES.MAX_FOOD);
         if (d.pet.look !== undefined) d.pet.look = _cleanLook(d.pet.look);
+        if (d.pet.seen_items !== undefined) d.pet.seen_items = _cleanSeen(d.pet.seen_items);
         if (!isFinite(Date.parse(d.pet.stats_at))) d.pet.stats_at = _iso();
         d.sessions = d.sessions.filter(isPlainObject).slice(-MAX_SESSIONS);
         d.activities = d.activities.filter(isPlainObject).slice(-MAX_ACTIVITIES).map(a => ({
@@ -817,6 +827,7 @@ const TypePetsData = (function() {
         p.days_since_practice = _daysSincePractice(d);
         p.mood = _petMood(p.hunger, p.happiness, p.days_since_practice);
         p.look = _cleanLook(d.pet.look); // a copy; {} until the kid changes something
+        p.seen_items = _cleanSeen(d.pet.seen_items);
         return p;
     }
 
@@ -865,7 +876,16 @@ const TypePetsData = (function() {
         return getPet();
     }
 
-    /** Back to the classic look: the pet's data is as if the wardrobe was never opened. */
+    /** Remember that the kid has seen these wardrobe items ('slot:id'), so they stop showing NEW. */
+    function markPetItemsSeen(keys) {
+        const seen = new Set(_cleanSeen(_ensure().pet.seen_items));
+        const fresh = _cleanSeen(keys).filter(k => !seen.has(k));
+        if (!fresh.length) return getPet();
+        _tx(d => { d.pet.seen_items = _cleanSeen(_cleanSeen(d.pet.seen_items).concat(fresh)); });
+        return getPet();
+    }
+
+    /** Back to the classic look (what the kid has seen stays seen). */
     function resetPetLook() {
         if (_ensure().pet.look === undefined) return getPet();
         _tx(d => { delete d.pet.look; });
@@ -1311,6 +1331,9 @@ const TypePetsData = (function() {
             avg_accuracy: avgAccuracy,
             best_wpm: bestWpm,
             practice_days: practiceDays,
+            perfect_sessions: sessions.filter(s => num(s.accuracy) >= 100).length,
+            best_accuracy: accValues.length > 0 ? Math.max(...accValues) : 0,
+            goal_days: d.goals.completed_dates.length,
             badges: d.achievements.length,
             current_streak: streaks.current_streak,
             longest_streak: streaks.longest_streak,
@@ -1606,7 +1629,7 @@ const TypePetsData = (function() {
         getBubbleLevel, saveBubbleLevel, getBubblePassedLevels, getBubblePersonalBest, saveBubblePersonalBest,
         getSpeedPreference, saveSpeedPreference,
         // Pet
-        getPet, feedPet, namePet, addPetXp, addPetHappiness, setPetLook, resetPetLook,
+        getPet, feedPet, namePet, addPetXp, addPetHappiness, setPetLook, resetPetLook, markPetItemsSeen,
         // Sessions
         saveSession, getSessions,
         // Daily goal

@@ -12,7 +12,7 @@ Free online typing practice for kids ages 7–12. Finger training, bubble pop ga
 - 🫧 **Bubble Pop** — 20 levels of typing fun, from single letters to full words
 - 📖 **Read & Type** — Practice with real articles about science, animals, and space
 - 🐾 **Pet Evolution** — Grow a virtual pet from egg through 6 evolution stages
-- 🎨 **Pet Wardrobe** — Colors, patterns and places for the pet. The colors are free from day one; the rest unlock with practice milestones (no shop, no random rewards)
+- 🎨 **Pet Wardrobe** — Colors, patterns, hats, glasses, neck things and places for the pet. The colors are free from day one; the rest unlock with practice milestones (no shop, no random rewards)
 - 🎯 **Smart Difficulty** — Auto-adjusts to focus on weak keys
 - 📊 **Dashboard** — Speed charts, accuracy heatmaps, and achievement badges
 - 👨‍👩‍👧 **Profiles & save codes** — Up to 4 kids per browser. A short save code (`TIGER-427-MOON`) carries a player's progress to any computer and keeps it in sync; a Pet Passport backup file is the offline option
@@ -125,11 +125,13 @@ npx wrangler d1 execute typepets-feedback --remote --command "SELECT COUNT(*) AS
 
 ## Pet wardrobe
 
-The 🎨 Wardrobe button on the Pet page (or `pages/pet.html#wardrobe`) opens colors, patterns and places. A tap wears an item and saves it; a locked item can be tried on and shows what unlocks it, with progress.
+The 🎨 Wardrobe button on the Pet page (or `pages/pet.html#wardrobe`, `#wardrobe-hat` for one section) opens colors, patterns, hats, glasses, neck things and places: 39 items, 15 of them free. A tap wears an item and saves it; a locked item can be tried on and shows what unlocks it, with progress.
 
-- `js/wardrobe.js` holds the items, the unlock rules and the drawing (pet, patterns, place backgrounds). Unlocks aren't stored: they're worked out from progress the app already keeps (XP, badges, Bubble Pop levels, articles, practice days, times fed), so players who had progress before the wardrobe existed get their unlocks right away, and backups and save codes can't disagree about them.
-- The look is saved as `pet.look` (`{ color, pattern, place }`, see `js/data.js`). It's only written once a kid changes something, and "Back to classic look" removes it again. Keep it that way: adding it to the default data would change every existing player's progress on their next visit, and a save code linked on two computers would then ask the kid which copy to keep.
-- `css/pet.css` draws each stage from CSS variables; the Classic colors are the per-stage defaults there, and a wardrobe color sets the same variables inline.
+- `js/wardrobe.js` holds the items, the unlock rules and the drawing (pet, patterns, worn items, place backgrounds, the small avatar). Unlocks aren't stored: they're worked out from progress the app already keeps (XP, badges, Bubble Pop, training, articles, practice days, daily goals, times fed), so players who had progress before the wardrobe existed get their unlocks right away, and backups and save codes can't disagree about them. A badge item unlocks with the badge or with the badge's condition.
+- The look is saved as `pet.look` (`{ color, pattern, hat, face, neck, place }`) and the items a kid has seen marked NEW as `pet.seen_items` (see `js/data.js`). Both are only written once a kid does something in the wardrobe; "Back to classic look" removes the look again. Keep it that way: adding them to the default data would change every existing player's progress on their next visit, and a save code linked on two computers would then ask the kid which copy to keep.
+- After each practice `js/achievements.js` calls `TypePetsWardrobe.announceNewUnlocks()`, which compares what's unlocked with when the page opened and pops up "New for Pip: … · Try it on" (a link to `pet.html#wardrobe-<section>`). Pages where progress can change load `js/wardrobe.js` for this (training, bubbles, articles, pet); on the articles page it loads after `js/articles-data.js` so the space-article count is the same before and after.
+- The Pet page also shows a NEW tag on the Wardrobe button and a "Coming up in the wardrobe" card with the three nearest unlocks. Home's pet card and the certificates show the dressed-up pet (`avatarHTML`).
+- `css/pet-art.css` draws the scene, the six stages, patterns, worn items and the avatar, shared by the Pet page, Home and the report. Each stage's Classic colors are CSS variables there; a wardrobe color sets the same variables inline. Worn items are SVG (emoji look different on every device) placed with per-stage anchors in `GEAR_SPOTS`.
 - Rules for new items: unlock conditions count totals ("practice on 7 different days"), never streaks or anything that can be lost, and nothing is random, paid or time-limited.
 
 ## Feedback
@@ -202,6 +204,7 @@ typepets/
 │   ├── blog.css        # Blog styles
 │   ├── keyboard.css    # Keyboard visualization
 │   ├── articles.css    # Article mode styles
+│   ├── pet-art.css     # The pet, its looks and backgrounds (Pet page, Home, report)
 │   └── pet.css         # Pet page styles
 ├── js/                 # App JavaScript (data.js = localStorage, cloud-save.js = save code sync, wardrobe.js = pet looks)
 ├── privacy.html

@@ -10,7 +10,8 @@
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
-    <link rel="stylesheet" href="../css/style.css?v=f2cf9942">
+    <link rel="stylesheet" href="../css/style.css?v=75635951">
+    <link rel="stylesheet" href="../css/pet-art.css?v=2e573092">
     <style>
     .home-container { text-align: center; }
     .hero { padding: 24px 0 16px; }
@@ -63,6 +64,7 @@
     .journey-track.track-bubbles:hover { border-color: var(--accent-cyan); }
     .journey-track.track-pet:hover { border-color: var(--accent-green); }
     .journey-track.track-articles:hover { border-color: var(--accent-teal); }
+    .journey-track-icon .pet-avatar { display: block; margin: -6px auto 0; border-radius: 12px; }
     .pet-mini { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 4px; }
     .pet-mini-icon { font-size: 1.5rem; }
     .pet-mini-xp { width: 60px; height: 6px; background: var(--border-color); border-radius: 999px; overflow: hidden; }
@@ -167,7 +169,7 @@
                         <div class="journey-dots" id="bubbleDots"></div>
                     </a>
                     <a href="pet.html" class="journey-track track-pet">
-                        <div class="journey-track-icon">🐾</div>
+                        <div class="journey-track-icon" id="petTrackIcon">🐾</div>
                         <div class="journey-track-label">Pet</div>
                         <div class="journey-track-progress" id="petProgress">Loading...</div>
                         <div class="pet-mini" id="petMini">
@@ -218,12 +220,13 @@
 
     <div id="toast-container"></div>
 
-    <script src="../js/data.js?v=4cd52c44"></script>
+    <script src="../js/data.js?v=5efb85a6"></script>
+    <script src="../js/wardrobe.js?v=7756b6c6"></script>
     <script src="../js/sound.js?v=e57a4213"></script>
     <script src="../js/app.js?v=4ba8e4a1"></script>
     <script src="../js/cloud-save.js?v=17283d3e"></script>
     <script src="../js/feedback.js?v=310f25f1"></script>
-    <script src="../js/achievements.js?v=b6254226"></script>
+    <script src="../js/achievements.js?v=226274c8"></script>
     <script src="../js/donate-prompt.js?v=c619b8ba"></script>
     <script>
     (function() {
@@ -386,6 +389,10 @@
             const displayName = hasName ? pet.name : evoName;
             document.getElementById('petProgress').textContent = `${displayName} — Lv ${pet.level} ${evoName}`;
             document.getElementById('petMiniIcon').textContent = evo;
+            // The pet as the kid dressed it (js/wardrobe.js), instead of the paw print
+            if (typeof TypePetsWardrobe !== 'undefined') {
+                document.getElementById('petTrackIcon').innerHTML = TypePetsWardrobe.avatarHTML(pet, 44);
+            }
 
             const currentIdx = EVO_THRESHOLDS.findIndex(e => e.species === pet.species);
             const next = EVO_THRESHOLDS[currentIdx + 1];

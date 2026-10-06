@@ -1888,6 +1888,57 @@ a {
 .toast.error { border-left-color: var(--accent-red); }
 .toast.achievement { border-left-color: var(--accent-yellow); }
 
+/* "New for Pip: Party Hat — Try it on" (js/wardrobe.js) */
+.toast.wardrobe-unlock {
+    border-left-color: var(--accent-orange);
+    gap: 12px;
+    padding: 12px 14px 12px 16px;
+}
+
+.wardrobe-unlock-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+}
+
+.wardrobe-unlock-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.wardrobe-unlock-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--accent-orange);
+}
+
+.wardrobe-unlock-name {
+    font-family: var(--font-display);
+    font-size: 0.98rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.wardrobe-unlock-try {
+    flex-shrink: 0;
+    margin-left: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--accent-orange);
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.wardrobe-unlock-try:hover,
+.wardrobe-unlock-try:focus-visible {
+    filter: brightness(1.08);
+}
+
 @keyframes slideIn {
     from { transform: translateX(100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
