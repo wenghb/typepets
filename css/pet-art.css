@@ -1,0 +1,809 @@
+/*
+ * TypePets — pet art, shared by the Pet page, Home and the report.
+ * The scene (place background), the six stages drawn in CSS, patterns, worn items and the
+ * small avatar. Colors and places come from js/wardrobe.js through CSS variables.
+ */
+
+/* ─── Scene ────────────────────────────────────────────────── */
+.pet-scene {
+    position: relative;
+    width: 300px;
+    height: 280px;
+    /* --sky / --g1 / --g2 and the decor layers come from the place (js/wardrobe.js); the meadow is the default */
+    background: var(--sky, linear-gradient(180deg, #e0f2fe 0%, #bae6fd 40%, #7dd3fc 60%, #86efac 60%, #4ade80 100%));
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.pet-ground {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: linear-gradient(180deg, var(--g1, #86efac), var(--g2, #4ade80));
+    border-radius: 50% 50% 0 0 / 20% 20% 0 0;
+    z-index: 1;
+}
+
+.pet-decor {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.pet-decor svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.pet-decor-back { z-index: 0; }
+.pet-decor-front { z-index: 1; }
+
+.pet-twinkle { animation: petTwinkle 2.6s ease-in-out infinite; }
+@keyframes petTwinkle {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 1; }
+}
+
+.pet-bubble { transform-box: fill-box; animation: petBubble 4s linear infinite; }
+@keyframes petBubble {
+    0% { transform: translateY(0); opacity: 0; }
+    15% { opacity: 0.9; }
+    100% { transform: translateY(-150px); opacity: 0; }
+}
+
+.pet-creature {
+    position: absolute;
+    bottom: 25%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+}
+
+.pet-expression {
+    position: absolute;
+    bottom: 25%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    pointer-events: none;
+}
+
+/* ─── Pet Creatures (CSS art) ──────────────────────────────── */
+
+/*
+ * Each stage's Classic colors. A wardrobe color (js/wardrobe.js) sets the same variables inline
+ * on the creature, so nothing below hard-codes a body color. .wd-stage-* = wardrobe thumbnails.
+ */
+.creature-egg, .wd-stage-egg {
+    --skin-bg: linear-gradient(135deg, #fef3c7, #fde68a, #fbbf24);
+    --glow: rgba(251, 191, 36, 0.3);
+    --deep: #d97706;
+    --patt: rgba(217, 119, 6, 0.4);
+}
+.creature-baby, .wd-stage-baby {
+    --skin-bg: linear-gradient(135deg, #93c5fd, #60a5fa, #3b82f6);
+    --glow: rgba(59, 130, 246, 0.3);
+    --deep: #2563eb;
+    --ink: #1e293b;
+    --patt: rgba(37, 99, 235, 0.4);
+}
+.creature-kid, .wd-stage-kid {
+    --skin-bg: linear-gradient(135deg, #86efac, #4ade80, #22c55e);
+    --glow: rgba(34, 197, 94, 0.3);
+    --deep: #16a34a;
+    --mouth: #166534;
+    --patt: rgba(22, 163, 74, 0.45);
+}
+.creature-teen, .wd-stage-teen {
+    --skin-bg: linear-gradient(135deg, #c084fc, #a855f7, #7c3aed);
+    --glow: rgba(168, 85, 247, 0.3);
+    --deep: #6d28d9;
+    --horn: #7c3aed;
+    --smile: #ffffff;
+    --patt: rgba(109, 40, 217, 0.45);
+}
+.creature-adult, .wd-stage-adult {
+    --skin-bg: linear-gradient(135deg, #fbbf24, #f97316, #ef4444);
+    --glow: rgba(249, 115, 22, 0.4);
+    --deep: #c2410c;
+    --mouth: #991b1b;
+    --wing-bg: linear-gradient(135deg, rgba(251, 191, 36, 0.6), rgba(251, 191, 36, 0.2));
+    --patt: rgba(194, 65, 12, 0.45);
+}
+.creature-master, .wd-stage-master {
+    --skin-bg: linear-gradient(135deg, #fef08a, #fbbf24, #f59e0b, #ea580c);
+    --glow: rgba(251, 191, 36, 0.6);
+    --glow-2: rgba(251, 191, 36, 0.2);
+    --deep: #b45309;
+    --mouth: #92400e;
+    --wing-bg: linear-gradient(135deg, rgba(251, 191, 36, 0.7), rgba(234, 88, 12, 0.3));
+    --aura-bg: radial-gradient(circle, rgba(251, 191, 36, 0.2), transparent 70%);
+    --patt: rgba(180, 83, 9, 0.45);
+}
+
+/* Pattern and sparkle layers sit on the body, under the face */
+.pet-creature .body,
+.creature-egg,
+.creature-baby {
+    isolation: isolate;
+}
+
+.pet-creature .eye,
+.pet-creature .mouth,
+.pet-creature .cheek {
+    z-index: 2;
+}
+
+.pet-pattern,
+.pet-shine {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.pattern-belly {
+    background: radial-gradient(ellipse 34% 24% at 50% 90%, rgba(255, 255, 255, 0.55) 0 97%, transparent 100%);
+}
+
+.pattern-spots {
+    background:
+        radial-gradient(circle at 17% 62%, var(--patt) 0 8%, transparent 8.6%),
+        radial-gradient(circle at 84% 56%, var(--patt) 0 6.5%, transparent 7.1%),
+        radial-gradient(circle at 72% 86%, var(--patt) 0 5.5%, transparent 6.1%),
+        radial-gradient(circle at 28% 88%, var(--patt) 0 4.5%, transparent 5.1%),
+        radial-gradient(circle at 88% 26%, var(--patt) 0 4%, transparent 4.6%),
+        radial-gradient(circle at 11% 32%, var(--patt) 0 3.5%, transparent 4.1%);
+}
+
+.pattern-stripes {
+    background: repeating-linear-gradient(172deg, transparent 0 9px, var(--patt) 9px 15px);
+}
+
+/* Stars and hearts are masks over the pet's own light color; skipped where masks aren't supported */
+@supports (mask-image: none) or (-webkit-mask-image: none) {
+    .pattern-stripes {
+        -webkit-mask-image: linear-gradient(90deg, #000 0 22%, transparent 34% 66%, #000 78% 100%);
+        mask-image: linear-gradient(90deg, #000 0 22%, transparent 34% 66%, #000 78% 100%);
+    }
+    .pattern-stars,
+    .pattern-hearts {
+        background: var(--light, rgba(255, 255, 255, 0.78));
+        -webkit-mask-repeat: repeat;
+        mask-repeat: repeat;
+    }
+    .pattern-stars {
+        -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpolygon points='6,2.4 7,4.6 9.4,4.9 7.6,6.5 8.1,8.9 6,7.7 3.9,8.9 4.4,6.5 2.6,4.9 5,4.6'/%3E%3Cpolygon points='16.5,12.7 17.3,14.4 19.2,14.6 17.8,15.9 18.2,17.8 16.5,16.8 14.8,17.8 15.2,15.9 13.8,14.6 15.7,14.4'/%3E%3C/svg%3E");
+        mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpolygon points='6,2.4 7,4.6 9.4,4.9 7.6,6.5 8.1,8.9 6,7.7 3.9,8.9 4.4,6.5 2.6,4.9 5,4.6'/%3E%3Cpolygon points='16.5,12.7 17.3,14.4 19.2,14.6 17.8,15.9 18.2,17.8 16.5,16.8 14.8,17.8 15.2,15.9 13.8,14.6 15.7,14.4'/%3E%3C/svg%3E");
+        -webkit-mask-size: 22px 22px;
+        mask-size: 22px 22px;
+    }
+    .pattern-hearts {
+        -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath transform='translate(6.5 7.5) scale(0.5)' d='M0 6 C-7 1 -9 -4 -5 -7 C-2.5 -9 -0.5 -7.5 0 -5.5 C0.5 -7.5 2.5 -9 5 -7 C9 -4 7 1 0 6 Z'/%3E%3Cpath transform='translate(18 18.5) scale(0.42)' d='M0 6 C-7 1 -9 -4 -5 -7 C-2.5 -9 -0.5 -7.5 0 -5.5 C0.5 -7.5 2.5 -9 5 -7 C9 -4 7 1 0 6 Z'/%3E%3C/svg%3E");
+        mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath transform='translate(6.5 7.5) scale(0.5)' d='M0 6 C-7 1 -9 -4 -5 -7 C-2.5 -9 -0.5 -7.5 0 -5.5 C0.5 -7.5 2.5 -9 5 -7 C9 -4 7 1 0 6 Z'/%3E%3Cpath transform='translate(18 18.5) scale(0.42)' d='M0 6 C-7 1 -9 -4 -5 -7 C-2.5 -9 -0.5 -7.5 0 -5.5 C0.5 -7.5 2.5 -9 5 -7 C9 -4 7 1 0 6 Z'/%3E%3C/svg%3E");
+        -webkit-mask-size: 24px 24px;
+        mask-size: 24px 24px;
+    }
+}
+
+/* Special colors get a moving glint */
+.pet-shine {
+    background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.7) 47%, transparent 59%);
+    background-size: 260% 100%;
+    animation: petGlint 3.4s ease-in-out infinite;
+}
+
+@keyframes petGlint {
+    0% { background-position: 130% 0; }
+    60%, 100% { background-position: -30% 0; }
+}
+
+/* Egg */
+.creature-egg {
+    width: 80px;
+    height: 100px;
+    background: var(--skin-bg);
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    position: relative;
+    animation: eggWobble 3s ease-in-out infinite;
+    box-shadow: 0 4px 20px var(--glow);
+}
+
+.creature-egg::before {
+    content: '';
+    position: absolute;
+    top: 15%;
+    left: 15%;
+    width: 30%;
+    height: 20%;
+    background: rgba(255,255,255,0.5);
+    border-radius: 50%;
+    transform: rotate(-30deg);
+    z-index: 2;
+}
+
+.creature-egg::after {
+    content: '🥚';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0;
+}
+
+/* Zigzag crack pattern */
+.creature-egg .crack {
+    position: absolute;
+    top: 35%;
+    left: 10%;
+    right: 10%;
+    height: 3px;
+    background: repeating-linear-gradient(90deg, var(--deep), var(--deep) 8px, transparent 8px, transparent 12px);
+    transform: rotate(-3deg);
+    opacity: 0.5;
+    z-index: 2;
+}
+
+@keyframes eggWobble {
+    0%, 100% { transform: translateX(-50%) rotate(0deg); }
+    25% { transform: translateX(-50%) rotate(3deg); }
+    75% { transform: translateX(-50%) rotate(-3deg); }
+}
+
+/* Baby - small round creature */
+.creature-baby {
+    width: 70px;
+    height: 70px;
+    background: var(--skin-bg);
+    border-radius: 50%;
+    position: relative;
+    animation: babyBounce 1.5s ease-in-out infinite;
+    box-shadow: 0 4px 20px var(--glow);
+}
+
+.creature-baby .eye {
+    position: absolute;
+    width: 14px;
+    height: 16px;
+    background: white;
+    border-radius: 50%;
+    top: 28%;
+}
+
+.creature-baby .eye::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #1e293b;
+    border-radius: 50%;
+    top: 4px;
+    left: 3px;
+}
+
+.creature-baby .eye.left { left: 20%; }
+.creature-baby .eye.right { right: 20%; }
+
+.creature-baby .mouth {
+    position: absolute;
+    bottom: 25%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 16px;
+    height: 8px;
+    border-bottom: 3px solid var(--ink);
+    border-radius: 0 0 50% 50%;
+}
+
+.creature-baby .cheek {
+    position: absolute;
+    width: 12px;
+    height: 8px;
+    background: rgba(236, 72, 153, 0.3);
+    border-radius: 50%;
+    top: 50%;
+}
+
+.creature-baby .cheek.left { left: 8%; }
+.creature-baby .cheek.right { right: 8%; }
+
+@keyframes babyBounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-10px); }
+}
+
+/* Kid - bigger with small limbs */
+.creature-kid {
+    width: 80px;
+    height: 90px;
+    position: relative;
+    animation: kidBounce 2s ease-in-out infinite;
+}
+
+.creature-kid .body {
+    width: 80px;
+    height: 80px;
+    background: var(--skin-bg);
+    border-radius: 45% 45% 50% 50%;
+    position: relative;
+    box-shadow: 0 4px 20px var(--glow);
+}
+
+.creature-kid .eye {
+    position: absolute;
+    width: 16px;
+    height: 18px;
+    background: white;
+    border-radius: 50%;
+    top: 25%;
+}
+
+.creature-kid .eye::after {
+    content: '';
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    background: #1e293b;
+    border-radius: 50%;
+    top: 5px;
+    left: 3px;
+    animation: eyeSparkle 3s ease-in-out infinite;
+}
+
+.creature-kid .eye.left { left: 18%; }
+.creature-kid .eye.right { right: 18%; }
+
+.creature-kid .mouth {
+    position: absolute;
+    bottom: 22%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 12px;
+    background: var(--mouth);
+    border-radius: 0 0 50% 50%;
+}
+
+.creature-kid .foot {
+    position: absolute;
+    bottom: -8px;
+    width: 22px;
+    height: 14px;
+    background: var(--deep);
+    border-radius: 50%;
+}
+
+.creature-kid .foot.left { left: 15%; }
+.creature-kid .foot.right { right: 15%; }
+
+@keyframes kidBounce {
+    0%, 100% { transform: translateX(-50%) translateY(0) rotate(0deg); }
+    25% { transform: translateX(-50%) translateY(-8px) rotate(2deg); }
+    75% { transform: translateX(-50%) translateY(-5px) rotate(-2deg); }
+}
+
+@keyframes eyeSparkle {
+    0%, 90%, 100% { transform: scale(1); }
+    95% { transform: scale(0.1); }
+}
+
+/* Teen - taller with personality */
+.creature-teen {
+    width: 85px;
+    height: 110px;
+    position: relative;
+    animation: teenSway 2.5s ease-in-out infinite;
+}
+
+.creature-teen .body {
+    width: 85px;
+    height: 100px;
+    background: var(--skin-bg);
+    border-radius: 40% 40% 45% 45%;
+    position: relative;
+    box-shadow: 0 4px 20px var(--glow);
+}
+
+.creature-teen .eye {
+    position: absolute;
+    width: 18px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    top: 22%;
+}
+
+.creature-teen .eye::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #1e293b;
+    border-radius: 50%;
+    top: 5px;
+    left: 4px;
+}
+
+.creature-teen .eye::before {
+    content: '';
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: white;
+    border-radius: 50%;
+    top: 4px;
+    right: 4px;
+    z-index: 1;
+}
+
+.creature-teen .eye.left { left: 16%; }
+.creature-teen .eye.right { right: 16%; }
+
+.creature-teen .mouth {
+    position: absolute;
+    bottom: 25%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 12px;
+    border-bottom: 3px solid var(--smile);
+    border-radius: 0 0 50% 50%;
+}
+
+.creature-teen .horn {
+    position: absolute;
+    top: -12px;
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 18px solid var(--horn);
+}
+
+.creature-teen .horn.left { left: 20%; }
+.creature-teen .horn.right { right: 20%; }
+
+.creature-teen .foot {
+    position: absolute;
+    bottom: -8px;
+    width: 24px;
+    height: 15px;
+    background: var(--deep);
+    border-radius: 50%;
+}
+
+.creature-teen .foot.left { left: 12%; }
+.creature-teen .foot.right { right: 12%; }
+
+@keyframes teenSway {
+    0%, 100% { transform: translateX(-50%) rotate(0deg); }
+    33% { transform: translateX(-50%) rotate(3deg); }
+    66% { transform: translateX(-50%) rotate(-3deg); }
+}
+
+/* Adult - majestic with wings */
+.creature-adult {
+    width: 100px;
+    height: 120px;
+    position: relative;
+    animation: adultFloat 3s ease-in-out infinite;
+}
+
+.creature-adult .body {
+    width: 100px;
+    height: 110px;
+    background: var(--skin-bg);
+    border-radius: 40% 40% 45% 45%;
+    position: relative;
+    box-shadow: 0 6px 30px var(--glow);
+}
+
+.creature-adult .eye {
+    position: absolute;
+    width: 20px;
+    height: 22px;
+    background: white;
+    border-radius: 50%;
+    top: 20%;
+}
+
+.creature-adult .eye::after {
+    content: '';
+    position: absolute;
+    width: 11px;
+    height: 11px;
+    background: #1e293b;
+    border-radius: 50%;
+    top: 5px;
+    left: 4px;
+}
+
+.creature-adult .eye::before {
+    content: '';
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    background: white;
+    border-radius: 50%;
+    top: 4px;
+    right: 4px;
+    z-index: 1;
+}
+
+.creature-adult .eye.left { left: 15%; }
+.creature-adult .eye.right { right: 15%; }
+
+.creature-adult .mouth {
+    position: absolute;
+    bottom: 24%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 14px;
+    background: var(--mouth);
+    border-radius: 0 0 50% 50%;
+}
+
+.creature-adult .wing {
+    position: absolute;
+    top: 15%;
+    width: 35px;
+    height: 50px;
+    background: var(--wing-bg);
+    border-radius: 50% 50% 20% 50%;
+    animation: wingFlap 1.5s ease-in-out infinite;
+}
+
+.creature-adult .wing.left {
+    left: -25px;
+    transform-origin: right center;
+}
+
+.creature-adult .wing.right {
+    right: -25px;
+    transform-origin: left center;
+    border-radius: 50% 50% 50% 20%;
+    animation-delay: 0.1s;
+}
+
+.creature-adult .crown {
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 24px;
+}
+
+.creature-adult .foot {
+    position: absolute;
+    bottom: -8px;
+    width: 28px;
+    height: 16px;
+    background: var(--deep);
+    border-radius: 50%;
+}
+
+.creature-adult .foot.left { left: 15%; }
+.creature-adult .foot.right { right: 15%; }
+
+@keyframes adultFloat {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-12px); }
+}
+
+@keyframes wingFlap {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(-15deg); }
+}
+
+/* Master - ultimate form with sparkles */
+.creature-master {
+    width: 110px;
+    height: 130px;
+    position: relative;
+    animation: masterFloat 3s ease-in-out infinite;
+}
+
+.creature-master .body {
+    width: 110px;
+    height: 120px;
+    background: var(--skin-bg);
+    border-radius: 40% 40% 45% 45%;
+    position: relative;
+    box-shadow: 0 0 40px var(--glow), 0 0 80px var(--glow-2);
+}
+
+.creature-master .eye {
+    position: absolute;
+    width: 22px;
+    height: 24px;
+    background: white;
+    border-radius: 50%;
+    top: 18%;
+    box-shadow: 0 0 10px rgba(255,255,255,0.5);
+}
+
+.creature-master .eye::after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    border-radius: 50%;
+    top: 6px;
+    left: 5px;
+}
+
+.creature-master .eye::before {
+    content: '';
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    background: white;
+    border-radius: 50%;
+    top: 5px;
+    right: 5px;
+    z-index: 1;
+}
+
+.creature-master .eye.left { left: 14%; }
+.creature-master .eye.right { right: 14%; }
+
+.creature-master .mouth {
+    position: absolute;
+    bottom: 22%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 14px;
+    background: var(--mouth);
+    border-radius: 0 0 50% 50%;
+}
+
+.creature-master .wing {
+    position: absolute;
+    top: 10%;
+    width: 45px;
+    height: 60px;
+    background: var(--wing-bg);
+    border-radius: 50% 50% 20% 50%;
+    animation: wingFlap 1.2s ease-in-out infinite;
+}
+
+.creature-master .wing.left {
+    left: -35px;
+    transform-origin: right center;
+}
+
+.creature-master .wing.right {
+    right: -35px;
+    transform-origin: left center;
+    border-radius: 50% 50% 50% 20%;
+    animation-delay: 0.1s;
+}
+
+.creature-master .crown {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 30px;
+    animation: crownGlow 2s ease-in-out infinite;
+}
+
+.creature-master .aura {
+    position: absolute;
+    inset: -20px;
+    border-radius: 50%;
+    background: var(--aura-bg);
+    animation: auraPulse 2s ease-in-out infinite;
+}
+
+.creature-master .foot {
+    position: absolute;
+    bottom: -8px;
+    width: 30px;
+    height: 18px;
+    background: var(--deep);
+    border-radius: 50%;
+}
+
+.creature-master .foot.left { left: 12%; }
+.creature-master .foot.right { right: 12%; }
+
+@keyframes masterFloat {
+    0%, 100% { transform: translateX(-50%) translateY(0) scale(1); }
+    50% { transform: translateX(-50%) translateY(-15px) scale(1.02); }
+}
+
+@keyframes crownGlow {
+    0%, 100% { filter: brightness(1) drop-shadow(0 0 5px gold); }
+    50% { filter: brightness(1.3) drop-shadow(0 0 15px gold); }
+}
+
+@keyframes auraPulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+/* Expression overlays */
+.expression-hungry {
+    animation: hungryShake 1s ease-in-out infinite;
+}
+
+@keyframes hungryShake {
+    0%, 100% { transform: translateX(-50%) rotate(0); }
+    25% { transform: translateX(-50%) rotate(-5deg); }
+    75% { transform: translateX(-50%) rotate(5deg); }
+}
+
+.expression-sleeping .body {
+    opacity: 0.8;
+}
+
+.zzz-bubble {
+    position: absolute;
+    top: -30px;
+    right: -20px;
+    font-size: 24px;
+    animation: zzzFloat 2s ease-in-out infinite;
+}
+
+@keyframes zzzFloat {
+    0%, 100% { transform: translateY(0) scale(1); opacity: 1; }
+    50% { transform: translateY(-15px) scale(1.2); opacity: 0.6; }
+}
+
+
+/* ─── Worn items (hats, glasses, neck) ─────────────────────── */
+/* Placed per stage by js/wardrobe.js, inside the creature so they move with it */
+.pet-gear {
+    position: absolute;
+    z-index: 6;
+    pointer-events: none;
+}
+
+.pet-gear svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+}
+
+/* ─── Avatar: the dressed-up pet in a still square (Home, certificates) ── */
+.pet-avatar {
+    position: relative;
+    display: inline-block;
+    flex-shrink: 0;
+    width: var(--avatar-size);
+    height: var(--avatar-size);
+    overflow: hidden;
+    border-radius: 14px;
+    vertical-align: middle;
+}
+
+.pet-avatar > .pet-scene {
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin: 0;
+    border-radius: 0;
+    transform-origin: 0 0;
+    transform: scale(var(--avatar-scale)) translate(var(--avatar-x), var(--avatar-y));
+}
+
+.pet-avatar * {
+    animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pet-scene *,
+    .pet-shine {
+        animation: none !important;
+        transition: none !important;
+    }
+}

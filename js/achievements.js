@@ -82,6 +82,13 @@ function checkAchievements(sessionData) {
         showAchievementUnlock(badgeId);
     }
 
+    // Wardrobe items this practice (or a new badge) unlocked: "New for Pip: …" (js/wardrobe.js)
+    if (typeof TypePetsWardrobe !== 'undefined') {
+        setTimeout(() => {
+            try { TypePetsWardrobe.announceNewUnlocks(); } catch (e) { console.error('TypePets: wardrobe check failed', e); }
+        }, 600);
+    }
+
     return newBadges;
 }
 

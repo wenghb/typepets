@@ -11,7 +11,8 @@
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
-    <link rel="stylesheet" href="../css/style.css?v=f2cf9942">
+    <link rel="stylesheet" href="../css/style.css?v=75635951">
+    <link rel="stylesheet" href="../css/pet-art.css?v=2e573092">
     <style>
     .report-page { max-width: 900px; }
     .report-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
@@ -84,7 +85,8 @@
     .cert-name { font-family: var(--font-display); font-size: 2.6rem; font-weight: 700; color: #2D3748; border-bottom: 2px solid #D4A843; padding: 0 24px 2px; margin: 4px 0; max-width: 100%; overflow-wrap: anywhere; }
     .cert-achievement { font-family: var(--font-display); font-size: 1.45rem; font-weight: 600; color: #2D3748; }
     .cert-detail { font-size: 1rem; font-weight: 700; color: #4A5568; }
-    .cert-pet { font-size: 0.9rem; color: #4A5568; font-weight: 600; margin-top: 4px; }
+    .cert-pet { font-size: 0.9rem; color: #4A5568; font-weight: 600; margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 12px; }
+    .cert-pet .pet-avatar { border-radius: 12px; box-shadow: 0 0 0 2px #D4A843; }
     .cert-footer { display: flex; justify-content: space-between; align-items: flex-end; width: 100%; margin-top: 18px; gap: 20px; }
     .cert-sign { flex: 1; text-align: center; font-size: 0.78rem; color: #718096; font-weight: 700; }
     .cert-sign-line { border-top: 1.5px solid #A0AEC0; padding-top: 4px; margin-top: 26px; }
@@ -148,13 +150,14 @@
 
     <div id="toast-container"></div>
 
-    <script src="../js/data.js?v=4cd52c44"></script>
+    <script src="../js/data.js?v=5efb85a6"></script>
     <script src="../js/sound.js?v=e57a4213"></script>
     <script src="../js/app.js?v=4ba8e4a1"></script>
     <script src="../js/cloud-save.js?v=17283d3e"></script>
     <script src="../js/feedback.js?v=310f25f1"></script>
-    <script src="../js/achievements.js?v=b6254226"></script>
+    <script src="../js/achievements.js?v=226274c8"></script>
     <script src="../js/articles-data.js?v=062f93bf"></script>
+    <script src="../js/wardrobe.js?v=7756b6c6"></script>
     <script>
     (function() {
         'use strict';
@@ -541,9 +544,19 @@
             buildToolbar(h('label', null, 'Name on certificate:', nameInput));
 
             const dateText = fmtDate(cert.date || new Date(), { year: 'numeric', month: 'long', day: 'numeric' });
+            // The pet as the kid dressed it (js/wardrobe.js); the species emoji where that isn't loaded
+            const hasAvatar = typeof TypePetsWardrobe !== 'undefined';
+            const petIcon = hasAvatar ? '' : `${EVOS[pet.species] || '🥚'} `;
             const petLine = pet.name && pet.name !== 'Unnamed'
-                ? `${EVOS[pet.species] || '🥚'} ${pet.name} the pet cheered all the way!`
-                : `${EVOS[pet.species] || '🥚'} Your TypePets pet is proud of you!`;
+                ? `${petIcon}${pet.name} the pet cheered all the way!`
+                : `${petIcon}Your TypePets pet is proud of you!`;
+            const petEl = h('div', { class: 'cert-pet' });
+            if (hasAvatar) {
+                const holder = document.createElement('span');
+                holder.innerHTML = TypePetsWardrobe.avatarHTML(pet, 64);
+                petEl.appendChild(holder.firstChild);
+            }
+            petEl.appendChild(h('span', { text: petLine }));
             append(root, h('div', { class: 'certificate' },
                 h('div', { class: 'certificate-inner' },
                     h('div', { class: 'cert-emoji', 'aria-hidden': 'true', text: cert.emoji }),
@@ -554,7 +567,7 @@
                     h('div', { class: 'cert-small', text: 'has successfully completed' }),
                     h('div', { class: 'cert-achievement', text: cert.achievement }),
                     h('div', { class: 'cert-detail', text: cert.detail }),
-                    h('div', { class: 'cert-pet', text: petLine }),
+                    petEl,
                     h('div', { class: 'cert-footer' },
                         h('div', { class: 'cert-sign' }, h('div', { text: dateText }), h('div', { class: 'cert-sign-line', text: 'Date' })),
                         h('div', { class: 'cert-seal', 'aria-hidden': 'true', text: '🏅' }),
