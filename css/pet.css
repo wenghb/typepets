@@ -27,7 +27,8 @@
     width: 300px;
     height: 280px;
     margin: 0 auto 20px;
-    background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 40%, #7dd3fc 60%, #86efac 60%, #4ade80 100%);
+    /* --sky / --g1 / --g2 and the decor layers come from the place (js/wardrobe.js); the meadow is the default */
+    background: var(--sky, linear-gradient(180deg, #e0f2fe 0%, #bae6fd 40%, #7dd3fc 60%, #86efac 60%, #4ade80 100%));
     border-radius: var(--radius-lg);
     overflow: hidden;
 }
@@ -38,8 +39,37 @@
     left: 0;
     right: 0;
     height: 40%;
-    background: linear-gradient(180deg, #86efac, #4ade80);
+    background: linear-gradient(180deg, var(--g1, #86efac), var(--g2, #4ade80));
     border-radius: 50% 50% 0 0 / 20% 20% 0 0;
+    z-index: 1;
+}
+
+.pet-decor {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.pet-decor svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.pet-decor-back { z-index: 0; }
+.pet-decor-front { z-index: 1; }
+
+.pet-twinkle { animation: petTwinkle 2.6s ease-in-out infinite; }
+@keyframes petTwinkle {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 1; }
+}
+
+.pet-bubble { transform-box: fill-box; animation: petBubble 4s linear infinite; }
+@keyframes petBubble {
+    0% { transform: translateY(0); opacity: 0; }
+    15% { opacity: 0.9; }
+    100% { transform: translateY(-150px); opacity: 0; }
 }
 
 .pet-creature {
@@ -68,15 +98,144 @@
 
 /* ─── Pet Creatures (CSS art) ──────────────────────────────── */
 
+/*
+ * Each stage's Classic colors. A wardrobe color (js/wardrobe.js) sets the same variables inline
+ * on the creature, so nothing below hard-codes a body color. .wd-stage-* = wardrobe thumbnails.
+ */
+.creature-egg, .wd-stage-egg {
+    --skin-bg: linear-gradient(135deg, #fef3c7, #fde68a, #fbbf24);
+    --glow: rgba(251, 191, 36, 0.3);
+    --deep: #d97706;
+    --patt: rgba(217, 119, 6, 0.4);
+}
+.creature-baby, .wd-stage-baby {
+    --skin-bg: linear-gradient(135deg, #93c5fd, #60a5fa, #3b82f6);
+    --glow: rgba(59, 130, 246, 0.3);
+    --deep: #2563eb;
+    --ink: #1e293b;
+    --patt: rgba(37, 99, 235, 0.4);
+}
+.creature-kid, .wd-stage-kid {
+    --skin-bg: linear-gradient(135deg, #86efac, #4ade80, #22c55e);
+    --glow: rgba(34, 197, 94, 0.3);
+    --deep: #16a34a;
+    --mouth: #166534;
+    --patt: rgba(22, 163, 74, 0.45);
+}
+.creature-teen, .wd-stage-teen {
+    --skin-bg: linear-gradient(135deg, #c084fc, #a855f7, #7c3aed);
+    --glow: rgba(168, 85, 247, 0.3);
+    --deep: #6d28d9;
+    --horn: #7c3aed;
+    --smile: #ffffff;
+    --patt: rgba(109, 40, 217, 0.45);
+}
+.creature-adult, .wd-stage-adult {
+    --skin-bg: linear-gradient(135deg, #fbbf24, #f97316, #ef4444);
+    --glow: rgba(249, 115, 22, 0.4);
+    --deep: #c2410c;
+    --mouth: #991b1b;
+    --wing-bg: linear-gradient(135deg, rgba(251, 191, 36, 0.6), rgba(251, 191, 36, 0.2));
+    --patt: rgba(194, 65, 12, 0.45);
+}
+.creature-master, .wd-stage-master {
+    --skin-bg: linear-gradient(135deg, #fef08a, #fbbf24, #f59e0b, #ea580c);
+    --glow: rgba(251, 191, 36, 0.6);
+    --glow-2: rgba(251, 191, 36, 0.2);
+    --deep: #b45309;
+    --mouth: #92400e;
+    --wing-bg: linear-gradient(135deg, rgba(251, 191, 36, 0.7), rgba(234, 88, 12, 0.3));
+    --aura-bg: radial-gradient(circle, rgba(251, 191, 36, 0.2), transparent 70%);
+    --patt: rgba(180, 83, 9, 0.45);
+}
+
+/* Pattern and sparkle layers sit on the body, under the face */
+.pet-creature .body,
+.creature-egg,
+.creature-baby {
+    isolation: isolate;
+}
+
+.pet-creature .eye,
+.pet-creature .mouth,
+.pet-creature .cheek {
+    z-index: 2;
+}
+
+.pet-pattern,
+.pet-shine {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.pattern-belly {
+    background: radial-gradient(ellipse 34% 24% at 50% 90%, rgba(255, 255, 255, 0.55) 0 97%, transparent 100%);
+}
+
+.pattern-spots {
+    background:
+        radial-gradient(circle at 17% 62%, var(--patt) 0 8%, transparent 8.6%),
+        radial-gradient(circle at 84% 56%, var(--patt) 0 6.5%, transparent 7.1%),
+        radial-gradient(circle at 72% 86%, var(--patt) 0 5.5%, transparent 6.1%),
+        radial-gradient(circle at 28% 88%, var(--patt) 0 4.5%, transparent 5.1%),
+        radial-gradient(circle at 88% 26%, var(--patt) 0 4%, transparent 4.6%),
+        radial-gradient(circle at 11% 32%, var(--patt) 0 3.5%, transparent 4.1%);
+}
+
+.pattern-stripes {
+    background: repeating-linear-gradient(172deg, transparent 0 9px, var(--patt) 9px 15px);
+}
+
+/* Stars and hearts are masks over the pet's own light color; skipped where masks aren't supported */
+@supports (mask-image: none) or (-webkit-mask-image: none) {
+    .pattern-stripes {
+        -webkit-mask-image: linear-gradient(90deg, #000 0 22%, transparent 34% 66%, #000 78% 100%);
+        mask-image: linear-gradient(90deg, #000 0 22%, transparent 34% 66%, #000 78% 100%);
+    }
+    .pattern-stars,
+    .pattern-hearts {
+        background: var(--light, rgba(255, 255, 255, 0.78));
+        -webkit-mask-repeat: repeat;
+        mask-repeat: repeat;
+    }
+    .pattern-stars {
+        -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpolygon points='6,2.4 7,4.6 9.4,4.9 7.6,6.5 8.1,8.9 6,7.7 3.9,8.9 4.4,6.5 2.6,4.9 5,4.6'/%3E%3Cpolygon points='16.5,12.7 17.3,14.4 19.2,14.6 17.8,15.9 18.2,17.8 16.5,16.8 14.8,17.8 15.2,15.9 13.8,14.6 15.7,14.4'/%3E%3C/svg%3E");
+        mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpolygon points='6,2.4 7,4.6 9.4,4.9 7.6,6.5 8.1,8.9 6,7.7 3.9,8.9 4.4,6.5 2.6,4.9 5,4.6'/%3E%3Cpolygon points='16.5,12.7 17.3,14.4 19.2,14.6 17.8,15.9 18.2,17.8 16.5,16.8 14.8,17.8 15.2,15.9 13.8,14.6 15.7,14.4'/%3E%3C/svg%3E");
+        -webkit-mask-size: 22px 22px;
+        mask-size: 22px 22px;
+    }
+    .pattern-hearts {
+        -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath transform='translate(6.5 7.5) scale(0.5)' d='M0 6 C-7 1 -9 -4 -5 -7 C-2.5 -9 -0.5 -7.5 0 -5.5 C0.5 -7.5 2.5 -9 5 -7 C9 -4 7 1 0 6 Z'/%3E%3Cpath transform='translate(18 18.5) scale(0.42)' d='M0 6 C-7 1 -9 -4 -5 -7 C-2.5 -9 -0.5 -7.5 0 -5.5 C0.5 -7.5 2.5 -9 5 -7 C9 -4 7 1 0 6 Z'/%3E%3C/svg%3E");
+        mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath transform='translate(6.5 7.5) scale(0.5)' d='M0 6 C-7 1 -9 -4 -5 -7 C-2.5 -9 -0.5 -7.5 0 -5.5 C0.5 -7.5 2.5 -9 5 -7 C9 -4 7 1 0 6 Z'/%3E%3Cpath transform='translate(18 18.5) scale(0.42)' d='M0 6 C-7 1 -9 -4 -5 -7 C-2.5 -9 -0.5 -7.5 0 -5.5 C0.5 -7.5 2.5 -9 5 -7 C9 -4 7 1 0 6 Z'/%3E%3C/svg%3E");
+        -webkit-mask-size: 24px 24px;
+        mask-size: 24px 24px;
+    }
+}
+
+/* Special colors get a moving glint */
+.pet-shine {
+    background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.7) 47%, transparent 59%);
+    background-size: 260% 100%;
+    animation: petGlint 3.4s ease-in-out infinite;
+}
+
+@keyframes petGlint {
+    0% { background-position: 130% 0; }
+    60%, 100% { background-position: -30% 0; }
+}
+
 /* Egg */
 .creature-egg {
     width: 80px;
     height: 100px;
-    background: linear-gradient(135deg, #fef3c7, #fde68a, #fbbf24);
+    background: var(--skin-bg);
     border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
     position: relative;
     animation: eggWobble 3s ease-in-out infinite;
-    box-shadow: 0 4px 20px rgba(251, 191, 36, 0.3);
+    box-shadow: 0 4px 20px var(--glow);
 }
 
 .creature-egg::before {
@@ -89,6 +248,7 @@
     background: rgba(255,255,255,0.5);
     border-radius: 50%;
     transform: rotate(-30deg);
+    z-index: 2;
 }
 
 .creature-egg::after {
@@ -107,9 +267,10 @@
     left: 10%;
     right: 10%;
     height: 3px;
-    background: repeating-linear-gradient(90deg, #d97706, #d97706 8px, transparent 8px, transparent 12px);
+    background: repeating-linear-gradient(90deg, var(--deep), var(--deep) 8px, transparent 8px, transparent 12px);
     transform: rotate(-3deg);
     opacity: 0.5;
+    z-index: 2;
 }
 
 @keyframes eggWobble {
@@ -122,11 +283,11 @@
 .creature-baby {
     width: 70px;
     height: 70px;
-    background: linear-gradient(135deg, #93c5fd, #60a5fa, #3b82f6);
+    background: var(--skin-bg);
     border-radius: 50%;
     position: relative;
     animation: babyBounce 1.5s ease-in-out infinite;
-    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 4px 20px var(--glow);
 }
 
 .creature-baby .eye {
@@ -159,7 +320,7 @@
     transform: translateX(-50%);
     width: 16px;
     height: 8px;
-    border-bottom: 3px solid #1e293b;
+    border-bottom: 3px solid var(--ink);
     border-radius: 0 0 50% 50%;
 }
 
@@ -191,10 +352,10 @@
 .creature-kid .body {
     width: 80px;
     height: 80px;
-    background: linear-gradient(135deg, #86efac, #4ade80, #22c55e);
+    background: var(--skin-bg);
     border-radius: 45% 45% 50% 50%;
     position: relative;
-    box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3);
+    box-shadow: 0 4px 20px var(--glow);
 }
 
 .creature-kid .eye {
@@ -228,7 +389,7 @@
     transform: translateX(-50%);
     width: 24px;
     height: 12px;
-    background: #166534;
+    background: var(--mouth);
     border-radius: 0 0 50% 50%;
 }
 
@@ -237,7 +398,7 @@
     bottom: -8px;
     width: 22px;
     height: 14px;
-    background: #16a34a;
+    background: var(--deep);
     border-radius: 50%;
 }
 
@@ -266,10 +427,10 @@
 .creature-teen .body {
     width: 85px;
     height: 100px;
-    background: linear-gradient(135deg, #c084fc, #a855f7, #7c3aed);
+    background: var(--skin-bg);
     border-radius: 40% 40% 45% 45%;
     position: relative;
-    box-shadow: 0 4px 20px rgba(168, 85, 247, 0.3);
+    box-shadow: 0 4px 20px var(--glow);
 }
 
 .creature-teen .eye {
@@ -314,7 +475,7 @@
     transform: translateX(-50%);
     width: 20px;
     height: 12px;
-    border-bottom: 3px solid white;
+    border-bottom: 3px solid var(--smile);
     border-radius: 0 0 50% 50%;
 }
 
@@ -325,7 +486,7 @@
     height: 0;
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
-    border-bottom: 18px solid #7c3aed;
+    border-bottom: 18px solid var(--horn);
 }
 
 .creature-teen .horn.left { left: 20%; }
@@ -336,7 +497,7 @@
     bottom: -8px;
     width: 24px;
     height: 15px;
-    background: #6d28d9;
+    background: var(--deep);
     border-radius: 50%;
 }
 
@@ -360,10 +521,10 @@
 .creature-adult .body {
     width: 100px;
     height: 110px;
-    background: linear-gradient(135deg, #fbbf24, #f97316, #ef4444);
+    background: var(--skin-bg);
     border-radius: 40% 40% 45% 45%;
     position: relative;
-    box-shadow: 0 6px 30px rgba(249, 115, 22, 0.4);
+    box-shadow: 0 6px 30px var(--glow);
 }
 
 .creature-adult .eye {
@@ -408,7 +569,7 @@
     transform: translateX(-50%);
     width: 24px;
     height: 14px;
-    background: #991b1b;
+    background: var(--mouth);
     border-radius: 0 0 50% 50%;
 }
 
@@ -417,7 +578,7 @@
     top: 15%;
     width: 35px;
     height: 50px;
-    background: linear-gradient(135deg, rgba(251, 191, 36, 0.6), rgba(251, 191, 36, 0.2));
+    background: var(--wing-bg);
     border-radius: 50% 50% 20% 50%;
     animation: wingFlap 1.5s ease-in-out infinite;
 }
@@ -447,7 +608,7 @@
     bottom: -8px;
     width: 28px;
     height: 16px;
-    background: #c2410c;
+    background: var(--deep);
     border-radius: 50%;
 }
 
@@ -475,10 +636,10 @@
 .creature-master .body {
     width: 110px;
     height: 120px;
-    background: linear-gradient(135deg, #fef08a, #fbbf24, #f59e0b, #ea580c);
+    background: var(--skin-bg);
     border-radius: 40% 40% 45% 45%;
     position: relative;
-    box-shadow: 0 0 40px rgba(251, 191, 36, 0.6), 0 0 80px rgba(251, 191, 36, 0.2);
+    box-shadow: 0 0 40px var(--glow), 0 0 80px var(--glow-2);
 }
 
 .creature-master .eye {
@@ -524,7 +685,7 @@
     transform: translateX(-50%);
     width: 28px;
     height: 14px;
-    background: #92400e;
+    background: var(--mouth);
     border-radius: 0 0 50% 50%;
 }
 
@@ -533,7 +694,7 @@
     top: 10%;
     width: 45px;
     height: 60px;
-    background: linear-gradient(135deg, rgba(251, 191, 36, 0.7), rgba(234, 88, 12, 0.3));
+    background: var(--wing-bg);
     border-radius: 50% 50% 20% 50%;
     animation: wingFlap 1.2s ease-in-out infinite;
 }
@@ -563,7 +724,7 @@
     position: absolute;
     inset: -20px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(251,191,36,0.2), transparent 70%);
+    background: var(--aura-bg);
     animation: auraPulse 2s ease-in-out infinite;
 }
 
@@ -572,7 +733,7 @@
     bottom: -8px;
     width: 30px;
     height: 18px;
-    background: #b45309;
+    background: var(--deep);
     border-radius: 50%;
 }
 
@@ -1135,6 +1296,396 @@
     .floating-heart,
     .pet-stat-bar-fill,
     .xp-bar-inner {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* ─── Wardrobe (colors, patterns, places — js/wardrobe.js) ──── */
+.pet-wardrobe-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    padding: 9px 20px 8px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 999px;
+    background: var(--bg-card);
+    box-shadow: 0 3px 0 var(--border-color);
+    color: var(--text-primary);
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.pet-wardrobe-btn:hover {
+    border-color: var(--accent-blue);
+}
+
+.pet-wardrobe-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 var(--border-color);
+}
+
+.pet-wardrobe-btn:focus-visible {
+    outline: 3px solid rgba(74, 144, 217, 0.45);
+    outline-offset: 3px;
+}
+
+.tp-modal.wardrobe-modal {
+    display: flex;
+    flex-direction: column;
+    max-width: 880px;
+    padding: 0;
+    overflow: hidden;
+    text-align: left;
+}
+
+.wd-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 22px 0;
+}
+
+.wd-title {
+    font-size: 1.4rem;
+    color: var(--text-primary);
+}
+
+.wd-count {
+    margin-left: auto;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.wd-close {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.wd-close:hover {
+    color: var(--text-primary);
+    background: var(--border-color);
+}
+
+.wd-body {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 24px;
+    flex: 1;
+    min-height: 0;
+    padding: 16px 22px 18px;
+}
+
+.wd-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.wd-preview .pet-scene {
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.wd-tryon {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    background: rgba(237, 137, 54, 0.12);
+    font-size: 0.86rem;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--text-primary);
+}
+
+.wd-tryon b {
+    font-family: var(--font-display);
+    font-weight: 600;
+}
+
+.wd-tryon-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 9px;
+}
+
+.wd-tryon-off {
+    margin-left: auto;
+    flex-shrink: 0;
+    border: none;
+    border-radius: 999px;
+    padding: 6px 13px;
+    background: var(--accent-orange);
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.wd-bar {
+    flex: 1;
+    min-width: 50px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--border-color);
+    overflow: hidden;
+}
+
+.wd-bar > i {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--accent-teal);
+}
+
+.wd-bar-num {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.wd-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 2px 4px 8px 2px;
+}
+
+.wd-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.wd-tab {
+    border: 1.5px solid var(--border-color);
+    border-radius: 999px;
+    padding: 7px 16px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.wd-tab:hover {
+    border-color: var(--accent-blue);
+}
+
+.wd-tab[aria-selected="true"] {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: #fff;
+}
+
+.wd-tab:focus-visible,
+.wd-tile:focus-visible {
+    outline: 3px solid rgba(74, 144, 217, 0.45);
+    outline-offset: 3px;
+}
+
+.wd-note {
+    margin: 0;
+    font-size: 0.86rem;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--text-secondary);
+}
+
+.wd-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(98px, 1fr));
+    gap: 12px 10px;
+    align-content: start;
+    padding-bottom: 4px;
+}
+
+/* Each item is a keycap, like the feedback form's choices: it sinks when worn */
+.wd-tile {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 10px 4px 9px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 14px;
+    background: var(--bg-primary);
+    box-shadow: 0 4px 0 var(--border-color);
+    color: var(--text-primary);
+    font: inherit;
+    text-align: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease, background-color 0.12s ease;
+}
+
+.wd-tile:hover {
+    border-color: var(--accent-blue);
+}
+
+.wd-tile[aria-pressed="true"] {
+    transform: translateY(3px);
+    border-color: var(--accent-blue);
+    background: rgba(74, 144, 217, 0.13);
+    box-shadow: 0 1px 0 var(--accent-blue);
+}
+
+.wd-tile.is-trying {
+    border-style: dashed;
+    border-color: var(--accent-orange);
+    background: rgba(237, 137, 54, 0.12);
+}
+
+.wd-thumb {
+    width: 64px;
+    height: 54px;
+    display: grid;
+    place-items: center;
+}
+
+.wd-tile.is-locked .wd-thumb {
+    opacity: 0.5;
+    filter: grayscale(0.5);
+}
+
+.wd-name {
+    font-family: var(--font-display);
+    font-size: 0.86rem;
+    font-weight: 600;
+    line-height: 1.15;
+}
+
+.wd-sub {
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--text-secondary);
+}
+
+.wd-lock {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 14px;
+    height: 14px;
+    color: var(--text-secondary);
+}
+
+.wd-swatch {
+    position: relative;
+    display: block;
+    width: 46px;
+    height: 46px;
+    border-radius: 45% 45% 50% 50%;
+    background: var(--skin-bg);
+    box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.08);
+    isolation: isolate;
+}
+
+.wd-swatch-classic {
+    background: conic-gradient(#fbbf24 0 60deg, #60a5fa 0 120deg, #4ade80 0 180deg, #a855f7 0 240deg, #f97316 0 300deg, #fde047 0 360deg);
+}
+
+.wd-mini-scene {
+    position: relative;
+    display: block;
+    width: 64px;
+    height: 54px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--sky);
+}
+
+.wd-foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 14px 22px;
+    border-top: 1px solid var(--border-color);
+}
+
+.wd-foot .btn-secondary {
+    margin-left: 0;
+}
+
+.wd-foot .btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+    transform: none;
+    box-shadow: none;
+}
+
+.wd-foot .btn-secondary:disabled:hover {
+    background: var(--bg-primary);
+}
+
+@media (max-width: 760px) {
+    .tp-modal-overlay.wardrobe-overlay {
+        align-items: flex-end;
+        padding: 0;
+    }
+    .tp-modal.wardrobe-modal {
+        max-width: none;
+        max-height: calc(100vh - 20px);
+        max-height: calc(100dvh - 20px);
+        border-radius: 22px 22px 0 0;
+        animation: fbSheetUp 0.22s ease-out;
+    }
+    .wd-head {
+        padding: 16px 18px 0;
+    }
+    .wd-body {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: 12px;
+        padding: 12px 18px 12px;
+    }
+    .wd-preview .pet-scene {
+        width: 100%;
+        max-width: 300px;
+        height: 200px;
+    }
+    .wd-items {
+        grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+    }
+    .wd-foot {
+        padding: 12px 18px;
+        padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    }
+    .wd-foot .btn {
+        flex: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pet-shine,
+    .wd-tile,
+    .pet-wardrobe-btn {
         animation: none !important;
         transition: none !important;
     }

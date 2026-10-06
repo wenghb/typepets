@@ -10,6 +10,7 @@
  *  - every mutation re-reads storage first, so two tabs never overwrite each other
  *  - backup / restore ("Pet Passport")
  *  - optional save code link (`cloud`): js/cloud-save.js keeps an online copy in step
+ *  - the pet's look (`pet.look`, see js/wardrobe.js): only stored once a kid changes it
  */
 
 const TypePetsData = (function() {
@@ -53,6 +54,10 @@ const TypePetsData = (function() {
     const CODE_PREFIX_PLAIN = 'TP1.';
     const CODE_PREFIX_GZIP = 'TP1z.';
     const CLOUD_CODE_RE = /^[A-Z]{2,12}-\d{3}-[A-Z]{2,12}$/;   // TIGER-427-MOON (functions/api/save.js)
+
+    // Wardrobe slots (js/wardrobe.js has the items). Item ids are checked there, against what's unlocked.
+    const LOOK_SLOTS = ['color', 'pattern', 'place'];
+    const LOOK_ID_RE = /^[a-z0-9_]{1,24}$/;
 
     const MILESTONES = {
         5:  { id: 'golden_apple', name: 'Golden Apple', happiness: 50,  food: 2 },
@@ -162,6 +167,16 @@ const TypePetsData = (function() {
         return (typeof a === 'string' && a.length > 0 && a.length <= 8 && !/[<>&"']/.test(a)) ? a : PROFILE_AVATARS[0];
     }
 
+    /** The pet's look with anything malformed dropped: { slot: itemId } for known slots only. */
+    function _cleanLook(look) {
+        const out = {};
+        if (!isPlainObject(look)) return out;
+        for (const slot of LOOK_SLOTS) {
+            if (typeof look[slot] === 'string' && LOOK_ID_RE.test(look[slot])) out[slot] = look[slot];
+        }
+        return out;
+    }
+
     // ─── Guarded storage access ──────────────────────────────
 
     function _storage() {
@@ -247,6 +262,9 @@ const TypePetsData = (function() {
                 last_fed: nowIso,
                 food: PET_RULES.START_FOOD,
                 total_fed: 0
+                // look: { color, pattern, place } is added the first time a kid changes it. It isn't
+                // a default, so players who never open the wardrobe keep exactly the data they had
+                // (a save code would otherwise see every existing player as changed).
             },
             sessions: [],     // { mode, level, wpm, accuracy, duration_seconds, keys_pressed, errors, error_keys, score, speed_multiplier, passed?, no_look?, chars_correct?, timestamp }
             achievements: [],  // { badge_id, earned_at }
@@ -355,6 +373,7 @@ const TypePetsData = (function() {
         d.pet.hunger = clamp(num(d.pet.hunger, 100), 0, 100);
         d.pet.happiness = clamp(num(d.pet.happiness, 100), 0, 100);
         d.pet.food = clamp(Math.floor(num(d.pet.food)), 0, PET_RULES.MAX_FOOD);
+        if (d.pet.look !== undefined) d.pet.look = _cleanLook(d.pet.look);
         if (!isFinite(Date.parse(d.pet.stats_at))) d.pet.stats_at = _iso();
         d.sessions = d.sessions.filter(isPlainObject).slice(-MAX_SESSIONS);
         d.activities = d.activities.filter(isPlainObject).slice(-MAX_ACTIVITIES).map(a => ({
@@ -797,6 +816,7 @@ const TypePetsData = (function() {
         p.food = Math.max(0, Math.floor(num(p.food)));
         p.days_since_practice = _daysSincePractice(d);
         p.mood = _petMood(p.hunger, p.happiness, p.days_since_practice);
+        p.look = _cleanLook(d.pet.look); // a copy; {} until the kid changes something
         return p;
     }
 
@@ -829,6 +849,26 @@ const TypePetsData = (function() {
         const clean = cleanName(name);
         if (!clean) return getPet();
         _tx(d => { d.pet.name = clean; });
+        return getPet();
+    }
+
+    /** Wear one wardrobe item, e.g. setPetLook('color', 'mint'). js/wardrobe.js decides what's allowed. */
+    function setPetLook(slot, itemId) {
+        if (!LOOK_SLOTS.includes(slot) || typeof itemId !== 'string' || !LOOK_ID_RE.test(itemId)) return getPet();
+        // Re-picking what's already on isn't a change (a save code would sync it for nothing)
+        if (_cleanLook(_ensure().pet.look)[slot] === itemId) return getPet();
+        _tx(d => {
+            const look = _cleanLook(d.pet.look);
+            look[slot] = itemId;
+            d.pet.look = look;
+        });
+        return getPet();
+    }
+
+    /** Back to the classic look: the pet's data is as if the wardrobe was never opened. */
+    function resetPetLook() {
+        if (_ensure().pet.look === undefined) return getPet();
+        _tx(d => { delete d.pet.look; });
         return getPet();
     }
 
@@ -1566,7 +1606,7 @@ const TypePetsData = (function() {
         getBubbleLevel, saveBubbleLevel, getBubblePassedLevels, getBubblePersonalBest, saveBubblePersonalBest,
         getSpeedPreference, saveSpeedPreference,
         // Pet
-        getPet, feedPet, namePet, addPetXp, addPetHappiness,
+        getPet, feedPet, namePet, addPetXp, addPetHappiness, setPetLook, resetPetLook,
         // Sessions
         saveSession, getSessions,
         // Daily goal

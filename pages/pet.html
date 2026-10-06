@@ -50,6 +50,7 @@
                         <span class="species-level" id="speciesLevel">Level 1</span>
                     </div>
                     <p class="pet-mood" id="petMood" role="status"></p>
+                    <div><button type="button" class="pet-wardrobe-btn" id="wardrobeBtn" onclick="openWardrobe()"><span aria-hidden="true">🎨</span> Wardrobe</button></div>
                 </div>
                 <div class="pet-xp-section">
                     <div class="xp-bar-outer"><div class="xp-bar-inner" id="xpBar" style="width:0%"></div></div>
@@ -104,6 +105,8 @@
     <div id="toast-container"></div>
 
     <script src="../js/data.js?v=5035de87"></script>
+    <script src="../js/articles-data.js"></script>
+    <script src="../js/wardrobe.js"></script>
     <script src="../js/sound.js?v=e57a4213"></script>
     <script src="../js/app.js?v=4ba8e4a1"></script>
     <script src="../js/cloud-save.js?v=17283d3e"></script>
@@ -124,6 +127,7 @@
 
         let petData = null;
 
+        const petScene = document.getElementById('petScene');
         const petCreature = document.getElementById('petCreature');
         const petExpression = document.getElementById('petExpression');
         const petParticles = document.getElementById('petParticles');
@@ -218,19 +222,12 @@
         }
 
         function renderCreature(species, hunger, happiness) {
-            let html = '';
             const isHungry = hunger < 30;
             const isSleeping = happiness < 20;
             const expressionClass = isHungry ? 'expression-hungry' : isSleeping ? 'expression-sleeping' : '';
-            switch (species) {
-                case 'egg': html = `<div class="creature-egg ${expressionClass}"><div class="crack"></div></div>`; break;
-                case 'baby': html = `<div class="creature-baby ${expressionClass}"><div class="eye left"></div><div class="eye right"></div><div class="mouth"></div><div class="cheek left"></div><div class="cheek right"></div></div>`; break;
-                case 'kid': html = `<div class="creature-kid ${expressionClass}"><div class="body"><div class="eye left"></div><div class="eye right"></div><div class="mouth"></div></div><div class="foot left"></div><div class="foot right"></div></div>`; break;
-                case 'teen': html = `<div class="creature-teen ${expressionClass}"><div class="body"><div class="eye left"></div><div class="eye right"></div><div class="mouth"></div></div><div class="horn left"></div><div class="horn right"></div><div class="foot left"></div><div class="foot right"></div></div>`; break;
-                case 'adult': html = `<div class="creature-adult ${expressionClass}"><div class="body"><div class="eye left"></div><div class="eye right"></div><div class="mouth"></div></div><div class="wing left"></div><div class="wing right"></div><div class="crown">👑</div><div class="foot left"></div><div class="foot right"></div></div>`; break;
-                case 'master': html = `<div class="creature-master ${expressionClass}"><div class="aura"></div><div class="body"><div class="eye left"></div><div class="eye right"></div><div class="mouth"></div></div><div class="wing left"></div><div class="wing right"></div><div class="crown">👑</div><div class="foot left"></div><div class="foot right"></div></div>`; break;
-            }
-            petCreature.innerHTML = html;
+            const look = TypePetsWardrobe.resolveLook(petData, TypePetsWardrobe.getProgress());
+            TypePetsWardrobe.applyPlace(petScene, look.place);
+            petCreature.innerHTML = TypePetsWardrobe.creatureHTML(species, look, expressionClass);
             petExpression.innerHTML = '';
         }
 
@@ -350,8 +347,234 @@
             });
         }
 
+        // ─── Wardrobe ────────────────────────────────────────
+        // Tap an item to wear it (saved right away). A locked item can be tried on here;
+        // it comes off when the wardrobe closes.
+
+        const W = TypePetsWardrobe;
+        const LOCK_ICON = '<svg class="wd-lock" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="8" rx="2" fill="currentColor"/><path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>';
+        const SLOT_NOTES = {
+            color: name => `Classic changes color each time ${name} grows. Any other color stays the same.`,
+            pattern: () => 'Patterns use a darker shade of the color, so they go with every color.',
+            place: name => `The place is the background behind ${name} on this page.`
+        };
+        let wardrobe = null; // the open wardrobe: { modal, tab, trying: { slot, id } | null, ...elements }
+
+        function el(tag, className, text) {
+            const node = document.createElement(tag);
+            if (className) node.className = className;
+            if (text !== undefined) node.textContent = text;
+            return node;
+        }
+
+        function wardrobeName() {
+            return petData && petData.name && petData.name !== 'Unnamed' ? petData.name : 'your pet';
+        }
+
+        window.openWardrobe = function() {
+            if (wardrobe || typeof window.tpOpenModal !== 'function') return;
+            const modal = window.tpOpenModal({
+                className: 'wardrobe-modal',
+                label: 'Wardrobe',
+                onClose: () => {
+                    wardrobe = null;
+                    if (location.hash === '#wardrobe') history.replaceState(null, '', location.pathname + location.search);
+                }
+            });
+            modal.overlay.classList.add('wardrobe-overlay');
+
+            const head = el('div', 'wd-head');
+            head.appendChild(el('h3', 'wd-title', 'Wardrobe'));
+            const count = el('span', 'wd-count');
+            head.appendChild(count);
+            const closeBtn = el('button', 'wd-close', '✕');
+            closeBtn.type = 'button';
+            closeBtn.setAttribute('aria-label', 'Close the wardrobe');
+            closeBtn.addEventListener('click', () => modal.close());
+            head.appendChild(closeBtn);
+
+            const body = el('div', 'wd-body');
+            const preview = el('div', 'wd-preview');
+            const scene = el('div', 'pet-scene');
+            scene.appendChild(el('div', 'pet-ground'));
+            const creature = el('div', 'pet-creature');
+            scene.appendChild(creature);
+            preview.appendChild(scene);
+            const tryon = el('div', 'wd-tryon');
+            tryon.setAttribute('role', 'status');
+            tryon.hidden = true;
+            preview.appendChild(tryon);
+
+            const panel = el('div', 'wd-panel');
+            const tabList = el('div', 'wd-tabs');
+            tabList.setAttribute('role', 'tablist');
+            tabList.setAttribute('aria-label', 'Wardrobe sections');
+            const items = el('div', 'wd-items');
+            items.id = 'wardrobeItems';
+            items.setAttribute('role', 'tabpanel');
+            const tabs = W.SLOTS.map(slot => {
+                const t = el('button', 'wd-tab', slot.label);
+                t.type = 'button';
+                t.id = 'wardrobeTab-' + slot.id;
+                t.dataset.slot = slot.id;
+                t.setAttribute('role', 'tab');
+                t.setAttribute('aria-controls', items.id);
+                t.addEventListener('click', () => selectTab(slot.id, false));
+                tabList.appendChild(t);
+                return t;
+            });
+            // Arrow keys move between the tabs
+            tabList.addEventListener('keydown', (e) => {
+                const i = W.SLOTS.findIndex(s => s.id === wardrobe.tab);
+                let next = -1;
+                if (e.key === 'ArrowRight') next = (i + 1) % W.SLOTS.length;
+                else if (e.key === 'ArrowLeft') next = (i - 1 + W.SLOTS.length) % W.SLOTS.length;
+                else if (e.key === 'Home') next = 0;
+                else if (e.key === 'End') next = W.SLOTS.length - 1;
+                if (next < 0) return;
+                e.preventDefault();
+                selectTab(W.SLOTS[next].id, true);
+            });
+            const note = el('p', 'wd-note');
+            panel.appendChild(tabList);
+            panel.appendChild(note);
+            panel.appendChild(items);
+            body.appendChild(preview);
+            body.appendChild(panel);
+
+            const foot = el('div', 'wd-foot');
+            const resetBtn = el('button', 'btn btn-secondary', 'Back to classic look');
+            resetBtn.type = 'button';
+            resetBtn.addEventListener('click', () => {
+                wardrobe.trying = null;
+                petData = TypePetsData.resetPetLook();
+                renderPet();
+                renderWardrobe();
+                showToast(`${wardrobeName()} is back to the classic look`, 'info');
+            });
+            const doneBtn = el('button', 'btn btn-primary', 'Done');
+            doneBtn.type = 'button';
+            doneBtn.addEventListener('click', () => modal.close());
+            foot.appendChild(resetBtn);
+            foot.appendChild(doneBtn);
+
+            modal.card.appendChild(head);
+            modal.card.appendChild(body);
+            modal.card.appendChild(foot);
+
+            wardrobe = { modal, tab: 'color', trying: null, count, scene, creature, tryon, tabs, items, note, resetBtn };
+            renderWardrobe();
+            tabs[0].focus();
+        };
+
+        function selectTab(slotId, moveFocus) {
+            wardrobe.tab = slotId;
+            renderWardrobe();
+            if (moveFocus) wardrobe.tabs.find(t => t.dataset.slot === slotId).focus();
+        }
+
+        function renderWardrobe() {
+            if (!wardrobe) return;
+            const pet = TypePetsData.getPet();
+            const progress = W.getProgress();
+            const look = W.resolveLook(pet, progress);
+            const shown = Object.assign({}, look);
+            if (wardrobe.trying) shown[wardrobe.trying.slot] = wardrobe.trying.id;
+
+            W.applyPlace(wardrobe.scene, shown.place);
+            wardrobe.creature.innerHTML = W.creatureHTML(pet.species, shown, '');
+            const c = W.counts(progress);
+            wardrobe.count.textContent = `${c.unlocked} of ${c.total} unlocked`;
+            wardrobe.resetBtn.disabled = W.SLOTS.every(s => look[s.id] === W.DEFAULT_LOOK[s.id]);
+
+            wardrobe.tabs.forEach(t => {
+                const selected = t.dataset.slot === wardrobe.tab;
+                t.setAttribute('aria-selected', String(selected));
+                t.tabIndex = selected ? 0 : -1;
+            });
+            wardrobe.items.setAttribute('aria-labelledby', 'wardrobeTab-' + wardrobe.tab);
+            wardrobe.note.textContent = SLOT_NOTES[wardrobe.tab](wardrobeName());
+
+            // Rebuilding the tiles mustn't lose keyboard focus
+            const focused = wardrobe.items.contains(document.activeElement) ? document.activeElement.dataset.id : null;
+            wardrobe.items.textContent = '';
+            W.ITEMS.filter(it => it.slot === wardrobe.tab).forEach(it => {
+                const req = W.requirement(it, progress);
+                const trying = !!wardrobe.trying && wardrobe.trying.slot === it.slot && wardrobe.trying.id === it.id;
+                const worn = look[it.slot] === it.id && !(wardrobe.trying && wardrobe.trying.slot === it.slot);
+                const tile = el('button', 'wd-tile' + (req.unlocked ? '' : ' is-locked') + (trying ? ' is-trying' : ''));
+                tile.type = 'button';
+                tile.dataset.id = it.id;
+                tile.setAttribute('aria-pressed', String(worn));
+                tile.setAttribute('aria-label', req.unlocked ? it.name : `${it.name}, locked. ${req.text}. Press to try it on.`);
+                tile.innerHTML = (req.unlocked ? '' : LOCK_ICON) + `<span class="wd-thumb">${W.thumbHTML(it, pet.species, shown)}</span>`;
+                tile.appendChild(el('span', 'wd-name', it.name));
+                if (!req.unlocked) tile.appendChild(el('span', 'wd-sub', req.label));
+                tile.addEventListener('click', () => pickItem(it));
+                wardrobe.items.appendChild(tile);
+                if (focused === it.id) tile.focus();
+            });
+
+            renderTryOn(progress);
+        }
+
+        function renderTryOn(progress) {
+            const box = wardrobe.tryon;
+            const it = wardrobe.trying && W.find(wardrobe.trying.slot, wardrobe.trying.id);
+            if (!it) {
+                box.hidden = true;
+                box.textContent = '';
+                return;
+            }
+            const req = W.requirement(it, progress);
+            box.textContent = '';
+            const line = el('div');
+            line.append('Trying on ', el('b', null, it.name), `. To keep it: ${req.text}.`);
+            box.appendChild(line);
+            const row = el('div', 'wd-tryon-row');
+            if (req.need) {
+                const bar = el('span', 'wd-bar');
+                const fill = el('i');
+                fill.style.width = Math.round((req.have / req.need) * 100) + '%';
+                bar.appendChild(fill);
+                row.appendChild(bar);
+                row.appendChild(el('span', 'wd-bar-num', `${req.have.toLocaleString()} / ${req.need.toLocaleString()}`));
+            }
+            const off = el('button', 'wd-tryon-off', 'Take it off');
+            off.type = 'button';
+            off.addEventListener('click', () => {
+                const slot = wardrobe.trying.slot;
+                wardrobe.trying = null;
+                renderWardrobe();
+                const tile = wardrobe.tab === slot && wardrobe.items.querySelector(`[data-id="${it.id}"]`);
+                if (tile) tile.focus();
+            });
+            row.appendChild(off);
+            box.appendChild(row);
+            box.hidden = false;
+        }
+
+        function pickItem(it) {
+            const progress = W.getProgress();
+            if (!W.isUnlocked(it, progress)) {
+                const same = wardrobe.trying && wardrobe.trying.slot === it.slot && wardrobe.trying.id === it.id;
+                wardrobe.trying = same ? null : { slot: it.slot, id: it.id };
+                renderWardrobe();
+                return;
+            }
+            if (wardrobe.trying && wardrobe.trying.slot === it.slot) wardrobe.trying = null;
+            const look = W.resolveLook(TypePetsData.getPet(), progress);
+            if (look[it.slot] !== it.id) {
+                petData = TypePetsData.setPetLook(it.slot, it.id);
+                if (window.sound) window.sound.keyClick();
+                renderPet();
+            }
+            renderWardrobe();
+        }
+
         loadPet();
         loadActivityFeed();
+        if (location.hash === '#wardrobe') window.openWardrobe();
     })();
     </script>
 </body>

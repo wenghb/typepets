@@ -12,6 +12,7 @@ Free online typing practice for kids ages 7–12. Finger training, bubble pop ga
 - 🫧 **Bubble Pop** — 20 levels of typing fun, from single letters to full words
 - 📖 **Read & Type** — Practice with real articles about science, animals, and space
 - 🐾 **Pet Evolution** — Grow a virtual pet from egg through 6 evolution stages
+- 🎨 **Pet Wardrobe** — Colors, patterns and places for the pet. The colors are free from day one; the rest unlock with practice milestones (no shop, no random rewards)
 - 🎯 **Smart Difficulty** — Auto-adjusts to focus on weak keys
 - 📊 **Dashboard** — Speed charts, accuracy heatmaps, and achievement badges
 - 👨‍👩‍👧 **Profiles & save codes** — Up to 4 kids per browser. A short save code (`TIGER-427-MOON`) carries a player's progress to any computer and keeps it in sync; a Pet Passport backup file is the offline option
@@ -101,6 +102,15 @@ Setup: none beyond the feedback setup below. The save tables (`saves`, `save_gue
 npx wrangler d1 execute typepets-feedback --remote --command "SELECT COUNT(*) AS codes, SUM(updated_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-7 days')) AS active_this_week FROM saves"
 ```
 
+## Pet wardrobe
+
+The 🎨 Wardrobe button on the Pet page (or `pages/pet.html#wardrobe`) opens colors, patterns and places. A tap wears an item and saves it; a locked item can be tried on and shows what unlocks it, with progress.
+
+- `js/wardrobe.js` holds the items, the unlock rules and the drawing (pet, patterns, place backgrounds). Unlocks aren't stored: they're worked out from progress the app already keeps (XP, badges, Bubble Pop levels, articles, practice days, times fed), so players who had progress before the wardrobe existed get their unlocks right away, and backups and save codes can't disagree about them.
+- The look is saved as `pet.look` (`{ color, pattern, place }`, see `js/data.js`). It's only written once a kid changes something, and "Back to classic look" removes it again. Keep it that way: adding it to the default data would change every existing player's progress on their next visit, and a save code linked on two computers would then ask the kid which copy to keep.
+- `css/pet.css` draws each stage from CSS variables; the Classic colors are the per-stage defaults there, and a wardrobe color sets the same variables inline.
+- Rules for new items: unlock conditions count totals ("practice on 7 different days"), never streaks or anything that can be lost, and nothing is random, paid or time-limited.
+
 ## Feedback
 
 Users send feedback from the 💬 button in the app nav (it's in the ☰ menu on phones) or from `/feedback.html`, which the landing page, blog and 404 footers link to. The form has a 1–5 face rating, a topic (broken / idea / too hard or easy / love it / other) and a message. Each message also records the page, the browser and screen size, the country (from Cloudflare), and progress levels (sessions, average WPM and accuracy, training stage, bubble level). That makes it easy to spot patterns like "Bubble level 12 is too hard on Chromebooks".
@@ -172,7 +182,7 @@ typepets/
 │   ├── keyboard.css    # Keyboard visualization
 │   ├── articles.css    # Article mode styles
 │   └── pet.css         # Pet page styles
-├── js/                 # App JavaScript (data.js = localStorage, cloud-save.js = save code sync)
+├── js/                 # App JavaScript (data.js = localStorage, cloud-save.js = save code sync, wardrobe.js = pet looks)
 ├── privacy.html
 ├── terms.html
 ├── sitemap.xml
