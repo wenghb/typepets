@@ -233,9 +233,11 @@ document.addEventListener('keydown', () => {
             if (isTop() && !card.contains(e.target)) card.focus();
         }
         function close() {
+            if (!overlay.isConnected) return;
             overlay.remove();
             document.removeEventListener('keydown', onKey, true);
             document.removeEventListener('focusin', onFocusIn, true);
+            if (typeof opts.onClose === 'function') opts.onClose();
             if (prevFocus && typeof prevFocus.focus === 'function') {
                 try { prevFocus.focus(); } catch (e) { /* ignore */ }
             }
@@ -486,7 +488,31 @@ document.addEventListener('keydown', () => {
         });
         add.disabled = full;
         menu.appendChild(add);
-        menu.appendChild(el('div', 'profile-menu-note', 'Each player gets their own pet and progress on this device.'));
+        // Save codes carry one player's progress to another computer (js/cloud-save.js):
+        // load one right here, or see / get this player's on the Stats page
+        const cloud = typeof TypePetsCloud !== 'undefined' ? TypePetsCloud : null;
+        const code = typeof TypePetsData.getCloudLink === 'function' ? TypePetsData.getCloudLink().code : null;
+        const saveCodes = el('div', 'profile-savecodes');
+        saveCodes.appendChild(el('div', 'profile-menu-title', 'Save code'));
+        let load;
+        if (cloud) {
+            load = button('profile-savecode', '🔑 Load a code', () => {
+                closeProfileMenu();
+                cloud.openLoadDialog();
+            });
+        } else {
+            load = el('a', 'profile-savecode', '🔑 Load a code'); // pages without save code support
+            load.href = '/pages/dashboard.html#savecode';
+        }
+        load.setAttribute('role', 'menuitem');
+        saveCodes.appendChild(load);
+        const saveLink = el('a', 'profile-savecode', code ? `☁️ ${code}` : '☁️ Get my code');
+        if (code) saveLink.setAttribute('aria-label', `My save code: ${code.split('-').join(' ')}`);
+        saveLink.href = '/pages/dashboard.html#savecode';
+        saveLink.setAttribute('role', 'menuitem');
+        saveCodes.appendChild(saveLink);
+        menu.appendChild(saveCodes);
+        menu.appendChild(el('div', 'profile-menu-note', 'Each player gets their own pet and progress on this device. A save code takes it to another computer.'));
 
         menu.addEventListener('click', (e) => e.stopPropagation());
         document.body.appendChild(menu);

@@ -9,6 +9,7 @@
  *  - daily practice goal + streak freeze, local-time dates everywhere
  *  - every mutation re-reads storage first, so two tabs never overwrite each other
  *  - backup / restore ("Pet Passport")
+ *  - optional save code link (`cloud`): js/cloud-save.js keeps an online copy in step
  */
 
 const TypePetsData = (function() {
@@ -46,11 +47,12 @@ const TypePetsData = (function() {
     const DEFAULT_GOAL_MINUTES = 10;
     const FREEZE_COOLDOWN_DAYS = 7;
     const BACKUP_REMIND_DAYS = 14;
-    const BACKUP_REMIND_MIN_SESSIONS = 5;
+    const BACKUP_REMIND_MIN_SESSIONS = 2;
 
     const BACKUP_FORMAT = 'typepets-backup';
     const CODE_PREFIX_PLAIN = 'TP1.';
     const CODE_PREFIX_GZIP = 'TP1z.';
+    const CLOUD_CODE_RE = /^[A-Z]{2,12}-\d{3}-[A-Z]{2,12}$/;   // TIGER-427-MOON (functions/api/save.js)
 
     const MILESTONES = {
         5:  { id: 'golden_apple', name: 'Golden Apple', happiness: 50,  food: 2 },
@@ -112,6 +114,42 @@ const TypePetsData = (function() {
     function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
     function num(v, fallback) { v = Number(v); return isFinite(v) ? v : (fallback || 0); }
     function round2(v) { return Math.round(v * 100) / 100; }
+
+    /** Fast 53-bit string fingerprint (cyrb53). Only used to notice changes, never for security. */
+    function _fingerprint(str) {
+        let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+        for (let i = 0; i < str.length; i++) {
+            const ch = str.charCodeAt(i);
+            h1 = Math.imul(h1 ^ ch, 2654435761);
+            h2 = Math.imul(h2 ^ ch, 1597334677);
+        }
+        h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+        h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+        return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+    }
+
+    /**
+     * The link to a save code, anything malformed reset (no code = not linked):
+     * code, token (lets this computer skip the server's guess limit), rev + synced_hash (the
+     * online revision and what this computer last saved to it), and pending_rev + pending_hashes
+     * (saves sent on top of `pending_rev` whose replies haven't arrived, so a lost reply isn't
+     * taken for another computer's progress).
+     */
+    function _cleanCloud(c) {
+        c = isPlainObject(c) ? c : {};
+        const code = typeof c.code === 'string' && CLOUD_CODE_RE.test(c.code) ? c.code : null;
+        const str = (v) => (code && typeof v === 'string' && v.length <= 80 ? v : null);
+        const pending = Array.isArray(c.pending_hashes) ? c.pending_hashes.map(str).filter(Boolean).slice(-5) : [];
+        return {
+            code: code,
+            token: str(c.token),
+            rev: code ? Math.max(0, Math.floor(num(c.rev))) : 0,
+            synced_at: str(c.synced_at),
+            synced_hash: str(c.synced_hash),
+            pending_rev: pending.length ? Math.max(0, Math.floor(num(c.pending_rev))) : null,
+            pending_hashes: pending
+        };
+    }
 
     function cleanName(name, maxLen) {
         if (typeof name !== 'string') return '';
@@ -231,7 +269,8 @@ const TypePetsData = (function() {
             backup: {
                 last_backup_at: null,
                 reminder_snoozed_at: null
-            }
+            },
+            cloud: _cleanCloud(null)   // this device's link to a save code
         };
     }
 
@@ -355,6 +394,7 @@ const TypePetsData = (function() {
             };
         }
         d.articles.bests = bests;
+        d.cloud = _cleanCloud(d.cloud);
         return d;
     }
 
@@ -462,12 +502,25 @@ const TypePetsData = (function() {
         return _data;
     }
 
+    const _savedListeners = [];
+    let _quietSave = false; // saving only the save code link isn't a progress change
+
     function _save() {
         if (_profileGone || !_data) return false;
         let ok = false;
         try { ok = _setItem(_key, JSON.stringify(_data)); } catch (e) { ok = false; }
         if (!ok) _warnSaveFailed();
+        if (ok && !_quietSave) {
+            _savedListeners.forEach(fn => {
+                try { fn(); } catch (e) { console.error('TypePets: save listener failed', e); }
+            });
+        }
         return ok;
+    }
+
+    /** Call `fn` after every successful save of this profile's progress (js/cloud-save.js syncs then). */
+    function onSaved(fn) {
+        if (typeof fn === 'function') _savedListeners.push(fn);
     }
 
     /**
@@ -619,9 +672,14 @@ const TypePetsData = (function() {
 
     function getTrainingProgress() {
         const d = _ensure();
+        const stages = JSON.parse(JSON.stringify(d.training.stages));
+        // Stage 1 is always open. Derived rather than saved on page load, so just opening the
+        // Training page never counts as a change (a save code would see it as new progress).
+        if (!isPlainObject(stages[1])) stages[1] = { bestAccuracy: 0, stars: 0, unlocked: true };
+        else stages[1].unlocked = true;
         return {
             max_stage: d.training.max_stage,
-            stages: JSON.parse(JSON.stringify(d.training.stages))
+            stages: stages
         };
     }
 
@@ -1274,7 +1332,8 @@ const TypePetsData = (function() {
     // ─── Backup / restore (Pet Passport) ─────────────────────
 
     function exportBackup() {
-        const d = _ensure();
+        const d = JSON.parse(JSON.stringify(_ensure()));
+        delete d.cloud; // a restored copy shouldn't start writing to this device's save code
         const prof = getActiveProfile();
         return {
             format: BACKUP_FORMAT,
@@ -1282,7 +1341,7 @@ const TypePetsData = (function() {
             data_version: DATA_VERSION,
             exported_at: _iso(),
             profile: { name: prof.name, avatar: prof.avatar },
-            data: JSON.parse(JSON.stringify(d))
+            data: d
         };
     }
 
@@ -1306,7 +1365,7 @@ const TypePetsData = (function() {
         return new Uint8Array(await out.arrayBuffer());
     }
 
-    /** Compact copy-paste save code (gzip + base64 when the browser supports it). */
+    /** Compact copy-paste backup text (gzip + base64 when the browser supports it). */
     async function exportSaveCode() {
         const bytes = new TextEncoder().encode(JSON.stringify(exportBackup()));
         if (typeof CompressionStream === 'function' && typeof Response === 'function' && typeof Blob === 'function') {
@@ -1353,17 +1412,17 @@ const TypePetsData = (function() {
         return { ok: true, data: clean, summary, profile: profile ? { name: summary.name, avatar: summary.avatar } : null };
     }
 
-    /** Parse a save code, JSON text, or object. Always resolves; check `.ok`. */
+    /** Parse backup text, JSON text, or object. Always resolves; check `.ok`. */
     async function parseBackup(input) {
         try {
             if (typeof input !== 'string') return validateBackup(input);
             const text = input.trim();
-            if (!text) return { ok: false, error: 'Paste a save code or pick a backup file first.' };
+            if (!text) return { ok: false, error: 'Paste backup text or pick a backup file first.' };
             if (text.charAt(0) === '{') return validateBackup(JSON.parse(text));
             const compact = text.replace(/\s+/g, '');
             if (compact.indexOf(CODE_PREFIX_GZIP) === 0) {
                 if (typeof DecompressionStream !== 'function') {
-                    return { ok: false, error: 'This browser is too old to open compressed save codes. Try the backup file instead.' };
+                    return { ok: false, error: 'This browser is too old to open compressed backup text. Try the backup file instead.' };
                 }
                 const bytes = await _pipeThrough(_b64ToBytes(compact.slice(CODE_PREFIX_GZIP.length)), new DecompressionStream('gzip'));
                 return validateBackup(JSON.parse(new TextDecoder().decode(bytes)));
@@ -1372,9 +1431,9 @@ const TypePetsData = (function() {
                 const bytes = _b64ToBytes(compact.slice(CODE_PREFIX_PLAIN.length));
                 return validateBackup(JSON.parse(new TextDecoder().decode(bytes)));
             }
-            return { ok: false, error: "That save code isn't complete or isn't a TypePets code." };
+            return { ok: false, error: "That backup text isn't complete or isn't from TypePets." };
         } catch (e) {
-            return { ok: false, error: "That save code isn't complete or isn't a TypePets code." };
+            return { ok: false, error: "That backup text isn't complete or isn't from TypePets." };
         }
     }
 
@@ -1387,6 +1446,8 @@ const TypePetsData = (function() {
         // Be kind: the pet resumes from the backed-up mood instead of decaying for the time the backup sat in a drawer.
         v.data.pet.stats_at = _iso();
         if (_txDepth !== 0) return { ok: false, error: 'busy' };
+        _reload();
+        v.data.cloud = _cleanCloud(_data.cloud); // a linked player stays linked; the restored progress syncs up
         _data = v.data;
         if (!_save()) return { ok: false, error: 'storage' };
         const reg = loadRegistry();
@@ -1417,21 +1478,77 @@ const TypePetsData = (function() {
         const sessions = d.sessions.length;
         const stale = daysSince === null || daysSince >= BACKUP_REMIND_DAYS;
         const snoozedRecently = isFinite(snoozed) && (now - snoozed) < BACKUP_REMIND_DAYS * DAY_MS;
+        const linked = !!d.cloud.code; // a save code already keeps an online copy
         return {
             last_backup_at: d.backup.last_backup_at,
             days_since: daysSince,
             sessions: sessions,
-            should_remind: sessions >= BACKUP_REMIND_MIN_SESSIONS && stale && !snoozedRecently
+            linked: linked,
+            should_remind: !linked && sessions >= BACKUP_REMIND_MIN_SESSIONS && stale && !snoozedRecently
         };
+    }
+
+    // ─── Save code link (js/cloud-save.js talks to the server) ─
+
+    function getCloudLink() {
+        return { ..._ensure().cloud };
+    }
+
+    /** Link this player to a save code (or unlink with null). Doesn't count as a progress change. */
+    function setCloudLink(link) {
+        const outer = _quietSave;
+        _quietSave = true;
+        try {
+            return _tx(d => {
+                d.cloud = _cleanCloud(link);
+                return { ...d.cloud };
+            });
+        } finally {
+            _quietSave = outer;
+        }
+    }
+
+    /** What a save code stores: this player's progress without their name or this device's bookkeeping. */
+    function cloudPayload() {
+        const d = JSON.parse(JSON.stringify(_ensure()));
+        delete d.cloud;
+        delete d.backup;
+        d.user.nickname = 'Player';
+        return d;
+    }
+
+    /** Fingerprint of a payload (default: the current one), to tell whether anything changed since a sync. */
+    function cloudHash(payload) {
+        return _fingerprint(JSON.stringify(payload === undefined ? cloudPayload() : payload));
+    }
+
+    /**
+     * Replace this player's progress with progress loaded from a save code and link the code.
+     * The player's name stays as it is on this computer (save codes never hold names).
+     */
+    function applyCloudData(data, link) {
+        const v = validateBackup(data);
+        if (!v.ok) return v;
+        if (_txDepth !== 0) return { ok: false, error: 'busy' };
+        _reload();
+        v.data.user = { ..._data.user };
+        v.data.backup = { ..._data.backup };
+        v.data.cloud = _cleanCloud(link);
+        _data = v.data;
+        _data.cloud.synced_hash = cloudHash();
+        if (!_save()) return { ok: false, error: 'storage' };
+        return { ok: true, summary: v.summary };
     }
 
     // ─── Reset ───────────────────────────────────────────────
 
     function resetAllData() {
         const nickname = _ensure().user.nickname;
-        return _tx(() => {
+        return _tx(d => {
+            const cloud = d.cloud; // a linked player's save code starts over too
             _data = getDefaultData();
             _data.user.nickname = nickname;
+            _data.cloud = cloud;
             return _data;
         });
     }
@@ -1469,6 +1586,8 @@ const TypePetsData = (function() {
         // Backup
         exportBackup, exportSaveCode, parseBackup, validateBackup, restoreBackup,
         markBackupDone, snoozeBackupReminder, getBackupStatus,
+        // Save code (js/cloud-save.js)
+        getCloudLink, setCloudLink, cloudPayload, cloudHash, applyCloudData, onSaved,
         // Reset
         resetAllData,
         // Helpers

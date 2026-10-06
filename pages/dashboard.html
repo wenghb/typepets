@@ -10,7 +10,7 @@
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
-    <link rel="stylesheet" href="../css/style.css?v=9d3e6722">
+    <link rel="stylesheet" href="../css/style.css?v=f2cf9942">
     <link rel="stylesheet" href="../css/keyboard.css?v=50280a82">
     <style>
     .dashboard-container { display:flex; flex-direction:column; gap:20px; }
@@ -79,6 +79,9 @@
     .passport-code { width:100%; min-height:80px; margin-top:12px; padding:10px; border:2px solid var(--border-color); border-radius:var(--radius-sm); font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:0.72rem; background:var(--bg-primary); color:var(--text-primary); resize:vertical; word-break:break-all; }
     .passport-restore { margin-top:16px; border-top:1px solid var(--border-color); padding-top:14px; }
     .passport-restore summary { cursor:pointer; font-family:var(--font-display); font-weight:700; font-size:0.98rem; }
+    .passport-restore > .passport-intro { margin-top:10px; }
+    .savecode-fine { font-size:0.78rem; color:var(--text-secondary); line-height:1.5; margin-top:14px; font-weight:600; }
+    .savecode-fine a { color:var(--accent-purple); font-weight:800; }
     .restore-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px; font-size:0.85rem; font-weight:700; color:var(--text-secondary); }
     .restore-row .btn-secondary { margin-left:0; }
     .file-btn { position:relative; overflow:hidden; }
@@ -136,39 +139,43 @@
                 </div>
             </div>
             <div class="quick-stats" id="quickStats"><div class="quick-stat-card"><div class="quick-stat-value" id="statSessions">-</div><div class="quick-stat-label">Sessions</div></div><div class="quick-stat-card"><div class="quick-stat-value" id="statTotalKeys">-</div><div class="quick-stat-label">Keys Pressed</div></div><div class="quick-stat-card"><div class="quick-stat-value" id="statBestWpm">-</div><div class="quick-stat-label">Best WPM</div></div><div class="quick-stat-card"><div class="quick-stat-value" id="statAvgAccuracy">-</div><div class="quick-stat-label">Avg Accuracy</div></div><div class="quick-stat-card"><div class="quick-stat-value" id="statTime">-</div><div class="quick-stat-label">Total Time</div></div></div>
+            <section class="passport-section" id="savecode" aria-labelledby="savecodeTitle">
+                <h2 class="section-title" id="savecodeTitle">☁️ Save code <small>play on any computer</small></h2>
+                <div id="savecodePanel"></div>
+                <p class="savecode-fine">A save code keeps typing progress and your pet's name online, never your own name. Anyone who has the code can open that progress, so keep it like a password. Codes nobody uses for a year are deleted. <a href="../privacy.html#save-codes">How save codes work</a></p>
+                <details class="passport-restore" id="passport">
+                    <summary>🛂 Backup file (Pet Passport)</summary>
+                    <p class="passport-intro">Rather keep a copy yourself? A backup file is made on this computer and never sent to us. School Chromebooks, Safari (after about a week without a visit) and "clear browsing data" can wipe progress, so save one now and then, or use it to move <span id="passportName">this player</span> to another computer.</p>
+                    <p class="passport-status" id="passportStatus">Last backup: never</p>
+                    <div class="passport-actions">
+                        <button type="button" class="btn btn-primary" id="downloadBackupBtn">⬇️ Download backup file</button>
+                        <button type="button" class="btn btn-secondary" id="copyCodeBtn">📋 Copy backup text</button>
+                    </div>
+                    <textarea class="passport-code" id="saveCodeOut" readonly hidden aria-label="Backup text"></textarea>
+                    <details class="passport-restore" id="restoreDetails">
+                        <summary>♻️ Restore from a backup</summary>
+                        <textarea class="passport-code" id="restoreCode" placeholder="Paste backup text here…" aria-label="Paste backup text"></textarea>
+                        <div class="restore-row">
+                            <button type="button" class="btn btn-primary" id="checkCodeBtn">Check backup text</button>
+                            <span>or</span>
+                            <span class="btn btn-secondary file-btn">📁 Choose backup file<input type="file" id="restoreFile" accept=".json,application/json" aria-label="Choose backup file"></span>
+                        </div>
+                        <div class="restore-error" id="restoreError" role="alert"></div>
+                        <div class="restore-preview" id="restorePreview" hidden>
+                            <div class="restore-preview-title" id="restorePreviewTitle"></div>
+                            <div class="restore-preview-sub" id="restorePreviewSub"></div>
+                            <div class="passport-actions">
+                                <button type="button" class="btn btn-danger" id="confirmRestoreBtn">Replace progress</button>
+                                <button type="button" class="btn btn-secondary" id="cancelRestoreBtn">Cancel</button>
+                            </div>
+                        </div>
+                    </details>
+                </details>
+            </section>
             <div class="chart-row"><div class="chart-card"><h3>WPM Trend <span style="font-size:0.72rem;color:var(--text-secondary)">(last 30)</span></h3><div class="chart-canvas-wrap"><canvas id="wpmChart"></canvas></div></div><div class="chart-card"><h3>Accuracy Trend <span style="font-size:0.72rem;color:var(--text-secondary)">(last 30)</span></h3><div class="chart-canvas-wrap"><canvas id="accuracyChart"></canvas></div></div></div>
             <div class="heatmap-section"><h3>Error Heatmap</h3><div class="heatmap-legend"><span>Few errors</span><div class="heatmap-gradient"></div><span>Many errors</span></div><div id="heatmapKeyboard"></div></div>
             <div class="weakness-section" id="weaknessSection"><h3>Weak Keys</h3><div id="weaknessContent">Loading...</div></div>
             <div class="badge-section"><h2 class="section-title">Badges</h2><div id="badgeGallery">Loading badges...</div></div>
-
-            <section class="passport-section" id="passport" aria-labelledby="passportTitle">
-                <h2 class="section-title" id="passportTitle">🛂 Pet Passport <small>backup &amp; restore</small></h2>
-                <p class="passport-intro">All progress lives only in this browser — nothing is sent to us. School Chromebooks, Safari (after about a week without a visit) and "clear browsing data" can wipe it. Save a backup now and then, or use it to move <span id="passportName">this player</span> to another computer.</p>
-                <p class="passport-status" id="passportStatus">Last backup: never</p>
-                <div class="passport-actions">
-                    <button type="button" class="btn btn-primary" id="downloadBackupBtn">⬇️ Download backup</button>
-                    <button type="button" class="btn btn-secondary" id="copyCodeBtn">📋 Copy save code</button>
-                </div>
-                <textarea class="passport-code" id="saveCodeOut" readonly hidden aria-label="Save code"></textarea>
-                <details class="passport-restore" id="restoreDetails">
-                    <summary>♻️ Restore from a backup</summary>
-                    <textarea class="passport-code" id="restoreCode" placeholder="Paste a save code here…" aria-label="Paste a save code"></textarea>
-                    <div class="restore-row">
-                        <button type="button" class="btn btn-primary" id="checkCodeBtn">Check save code</button>
-                        <span>or</span>
-                        <span class="btn btn-secondary file-btn">📁 Choose backup file<input type="file" id="restoreFile" accept=".json,application/json" aria-label="Choose backup file"></span>
-                    </div>
-                    <div class="restore-error" id="restoreError" role="alert"></div>
-                    <div class="restore-preview" id="restorePreview" hidden>
-                        <div class="restore-preview-title" id="restorePreviewTitle"></div>
-                        <div class="restore-preview-sub" id="restorePreviewSub"></div>
-                        <div class="passport-actions">
-                            <button type="button" class="btn btn-danger" id="confirmRestoreBtn">Replace progress</button>
-                            <button type="button" class="btn btn-secondary" id="cancelRestoreBtn">Cancel</button>
-                        </div>
-                    </div>
-                </details>
-            </section>
 
             <div id="donateSlot"></div>
         </div>
@@ -176,9 +183,10 @@
 
     <div id="toast-container"></div>
 
-    <script src="../js/data.js?v=39eeb82f"></script>
+    <script src="../js/data.js?v=5035de87"></script>
     <script src="../js/sound.js?v=e57a4213"></script>
-    <script src="../js/app.js?v=e572dd59"></script>
+    <script src="../js/app.js?v=4ba8e4a1"></script>
+    <script src="../js/cloud-save.js?v=17283d3e"></script>
     <script src="../js/feedback.js?v=310f25f1"></script>
     <script src="../js/achievements.js?v=b6254226"></script>
     <script src="../js/keyboard.js?v=81ab4461"></script>
@@ -201,6 +209,7 @@
             renderHeatmap(weakness);
             renderWeakness(weakness);
             renderBadgeGallery(document.getElementById('badgeGallery'));
+            TypePetsCloud.mountPanel(document.getElementById('savecodePanel'));
             initPassport();
         }
 
@@ -419,7 +428,7 @@
             container.appendChild(msg);
         }
 
-        // ─── Pet Passport (backup & restore) ────────────────
+        // ─── Pet Passport (backup file & text) ──────────────
 
         let pendingRestore = null;
 
@@ -492,9 +501,9 @@
                 }
                 TypePetsData.markBackupDone();
                 renderPassportStatus();
-                showToast(copied ? 'Save code copied! Paste it into an email or note to keep it safe.' : 'Select the code below and copy it (Ctrl+C / ⌘C).', copied ? 'success' : 'info', 5000);
+                showToast(copied ? 'Backup text copied! Paste it into an email or note to keep it safe.' : 'Select the text below and copy it (Ctrl+C / ⌘C).', copied ? 'success' : 'info', 5000);
             } catch (e) {
-                showToast("Couldn't make a save code. Try Download backup instead.", 'error');
+                showToast("Couldn't make the backup text. Try Download backup file instead.", 'error');
             } finally {
                 btn.disabled = false;
             }
@@ -563,9 +572,11 @@
                 showToast('Progress restored! 🎉', 'success');
                 setTimeout(() => location.reload(), 600);
             });
-            if (location.hash === '#passport') {
-                const section = document.getElementById('passport');
-                setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+            // The panel and charts render after load, so scroll to a linked section once they have
+            if (location.hash === '#passport' || location.hash === '#savecode') {
+                const target = document.getElementById(location.hash.slice(1));
+                if (target.tagName === 'DETAILS') target.open = true;
+                setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
             }
         }
 

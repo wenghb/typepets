@@ -10,7 +10,7 @@
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
-    <link rel="stylesheet" href="../css/style.css?v=9d3e6722">
+    <link rel="stylesheet" href="../css/style.css?v=f2cf9942">
     <style>
     .home-container { text-align: center; }
     .hero { padding: 24px 0 16px; }
@@ -88,6 +88,16 @@
     .backup-reminder-text { flex: 1; }
     .backup-reminder a { color: var(--accent-purple); font-weight: 800; text-decoration: underline; text-underline-offset: 2px; }
     .backup-reminder-close { background: none; border: none; font-size: 1rem; cursor: pointer; color: var(--text-secondary); padding: 4px 8px; }
+    .savecode-welcome {
+        background: var(--bg-card); border: 2px dashed var(--accent-purple); border-radius: var(--radius-lg);
+        padding: 18px 22px; margin-bottom: 20px; box-shadow: var(--shadow-sm);
+    }
+    .savecode-welcome[hidden] { display: none; }
+    .savecode-welcome .savecode-form-label { font-size: 1.05rem; }
+    .savecode-welcome-sub { font-size: 0.85rem; color: var(--text-secondary); font-weight: 600; margin: -4px 0 12px; }
+    .savecode-welcome .savecode-row,
+    .savecode-welcome .savecode-preview { margin-left: auto; margin-right: auto; }
+    .savecode-welcome .savecode-actions { justify-content: center; }
     .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 12px; }
     @media (max-width: 700px) { .journey-tracks { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 480px) {
@@ -138,6 +148,7 @@
                 <span id="nextActionText"></span>
             </div>
 
+            <section class="savecode-welcome" id="savecodeWelcome" aria-label="Load a save code" hidden></section>
             <div class="backup-reminder" id="backupReminder" hidden></div>
 
             <div class="journey-map">
@@ -207,9 +218,10 @@
 
     <div id="toast-container"></div>
 
-    <script src="../js/data.js?v=39eeb82f"></script>
+    <script src="../js/data.js?v=5035de87"></script>
     <script src="../js/sound.js?v=e57a4213"></script>
-    <script src="../js/app.js?v=e572dd59"></script>
+    <script src="../js/app.js?v=4ba8e4a1"></script>
+    <script src="../js/cloud-save.js?v=17283d3e"></script>
     <script src="../js/feedback.js?v=310f25f1"></script>
     <script src="../js/achievements.js?v=b6254226"></script>
     <script src="../js/donate-prompt.js?v=c619b8ba"></script>
@@ -300,6 +312,23 @@
             chips.appendChild(chip(`🍎 ${pet.food} food`, null, 'pet.html'));
         }
 
+        /** A brand-new player on this computer may have progress elsewhere: offer their save code first. */
+        function renderSaveCodeWelcome() {
+            const box = document.getElementById('savecodeWelcome');
+            const fresh = TypePetsData.getSessions(1).length === 0 && TypePetsData.getPet().xp === 0;
+            if (!fresh || TypePetsData.getCloudLink().code) { box.hidden = true; return; }
+            if (!box.hidden) return; // already showing (keep whatever is being typed)
+            box.textContent = '';
+            const form = document.createElement('div');
+            TypePetsCloud.mountLoadForm(form, { label: '☁️ Played TypePets on another computer?' });
+            const sub = document.createElement('p');
+            sub.className = 'savecode-welcome-sub';
+            sub.textContent = 'Type your save code to bring your pet and progress here.';
+            form.querySelector('.savecode-form-label').after(sub);
+            box.appendChild(form);
+            box.hidden = false;
+        }
+
         function renderBackupReminder(pet) {
             const status = TypePetsData.getBackupStatus();
             const box = document.getElementById('backupReminder');
@@ -307,14 +336,14 @@
             box.textContent = '';
             const icon = document.createElement('span');
             icon.className = 'backup-reminder-icon';
-            icon.textContent = '💾';
+            icon.textContent = '☁️';
             const text = document.createElement('span');
             text.className = 'backup-reminder-text';
             const petName = pet.name && pet.name !== 'Unnamed' ? pet.name : 'your pet';
             fillParts(text, [
-                `Grown-ups: keep ${petName} safe — `,
-                { text: 'save a backup', href: 'dashboard.html#passport' },
-                '. School Chromebooks and Safari can wipe browser data.'
+                `Keep ${petName} safe on any computer: `,
+                { text: 'get a save code', href: 'dashboard.html#savecode' },
+                '. School Chromebooks can wipe progress.'
             ]);
             const close = document.createElement('button');
             close.type = 'button';
@@ -373,6 +402,7 @@
             makeDots(document.getElementById('articleDots'), data.articles_completed, data.articles_total, 'filled-purple');
 
             renderToday(pet);
+            renderSaveCodeWelcome();
             renderBackupReminder(pet);
 
             // Next action suggestion — pet care first, then the learning path
@@ -417,6 +447,11 @@
         }
 
         loadProgress();
+        // A save code found gone (or linked) after the page drew: update the box and the nudge
+        window.addEventListener('typepets:cloud', () => {
+            renderSaveCodeWelcome();
+            renderBackupReminder(TypePetsData.getPet());
+        });
         if (window.maybeDonatePrompt) window.maybeDonatePrompt();
     })();
     </script>
