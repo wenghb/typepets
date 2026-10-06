@@ -96,33 +96,13 @@
     opacity: 0.4;
 }
 
-/* Hand overlay — ghostly/subtle */
-.hand-overlay {
-    width: 100%;
-    max-width: 500px;
-    margin-top: 6px;
-    opacity: 0.3;
+/* Glove hands resting on the keyboard */
+.glove-hands {
+    pointer-events: none;
 }
 
-.hand-overlay svg {
-    width: 100%;
-    height: auto;
-}
-
-.finger-shape {
-    fill: #F0DCA0;
-    stroke: #C4A060;
-    stroke-width: 0.8;
-    transition: all 0.2s ease;
-    opacity: 0.5;
-}
-
-.finger-shape.active {
-    fill: #E8C860;
-    stroke: #B08C30;
-    stroke-width: 1.5;
-    opacity: 0.8;
-    filter: drop-shadow(0 0 3px rgba(200, 160, 60, 0.3));
+.glove-rest {
+    display: none;
 }
 
 /* ─── Responsive Keyboard ──────────────────────────────────── */
@@ -144,12 +124,13 @@
     filter: none;
 }
 
-.no-look .finger-shape.active {
-    fill: #F0DCA0;
-    stroke: #C4A060;
-    stroke-width: 0.8;
-    opacity: 0.5;
-    filter: none;
+/* Hands stay on the home row and don't point at the next key */
+.no-look .glove-live {
+    display: none;
+}
+
+.no-look .glove-rest {
+    display: inline;
 }
 
 .no-look .finger-hint {

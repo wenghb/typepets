@@ -1,5 +1,5 @@
 /**
- * Virtual Keyboard — SVG rendered with 8 color-coded finger zones + hand overlay
+ * Virtual Keyboard — SVG rendered with 8 color-coded finger zones + glove hands resting on it
  */
 
 const KEYBOARD_LAYOUT = [
@@ -114,10 +114,198 @@ const FINGER_COLORS = {
     'thumb': '#64748b',
 };
 
+/**
+ * Cartoon glove hands drawn on top of the keyboard, fingertips resting on the home row.
+ * Each hand is one smooth outline (so the gaps between fingers are soft curves), with the
+ * fingertips colored like that finger's key zone. The finger for the next key is tinted and
+ * reaches toward that key.
+ *
+ * Geometry lives in "hand space": 21 units per key, origin at the A key's fingertip spot,
+ * y growing toward the wrist. The left hand is drawn there; the right hand is its mirror image.
+ */
+const GloveHands = (() => {
+    const UNITS_PER_KEY = 21;
+    const U = UNITS_PER_KEY;
+    const INK = '#52617A';
+    const TIP = {
+        'l-pinky': '#E8A3C8', 'l-ring': '#B9A3E8', 'l-middle': '#8DBBEA', 'l-index': '#86D6A4',
+        'r-index': '#E8D27A', 'r-middle': '#F0AE7E', 'r-ring': '#EE9A9A', 'r-pinky': '#CFA0E6',
+        'thumb': '#A9B6C8',
+    };
+    const TINT = {
+        'l-pinky': '#F7DCEA', 'l-ring': '#E6DDF7', 'l-middle': '#DCEAF8', 'l-index': '#DAF2E3',
+        'r-index': '#F7F0D2', 'r-middle': '#FBE5D5', 'r-ring': '#F9DCDC', 'r-pinky': '#EFDDF8',
+        'thumb': '#E3E8EF',
+    };
+    // Left hand at rest. `home` is the key index (0 = A) the fingertip sits on; `base` is the knuckle.
+    const FINGERS = [
+        { name: 'pinky', home: 0, base: [7, 33], w0: 15.1, w1: 13.6 },
+        { name: 'ring', home: 1, base: [25, 36], w0: 16.6, w1: 15.1 },
+        { name: 'middle', home: 2, base: [42, 37], w0: 17.1, w1: 15.6 },
+        { name: 'index', home: 3, base: [59, 36], w0: 16.6, w1: 15.1 },
+    ];
+    const THUMB = { base: [71, 64], tip: [86, 31], w0: 20.6, w1: 15.6 };
+    const WRIST_L = [13, 86];
+    const WRIST_R = [70, 86];
+    const MIRROR_X = 9 * U; // A ↔ ; (the two home rows mirror each other)
+    const MAX_REACH = 2 * U; // far keys (Enter, Backspace) get a point in their direction
+    const HAND_FOLLOW = 0.3; // share of a reach done by moving the whole hand, like real typing
+    const MIN_LENGTH = 0.62; // a curled finger never gets shorter than this share of its rest length
+
+    let clipSeq = 0;
+
+    const add = (a, b, k = 1) => [a[0] + b[0] * k, a[1] + b[1] * k];
+    const pt = p => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`;
+
+    // A finger from knuckle B to fingertip `tip`, w0 wide at the knuckle and w1 at the tip.
+    function finger(B, tip, w0, w1) {
+        const len = Math.hypot(tip[0] - B[0], tip[1] - B[1]);
+        const d = [(tip[0] - B[0]) / len, (tip[1] - B[1]) / len]; // toward the tip
+        const n = [-d[1], d[0]]; // toward the finger's right side
+        const r = w1 / 2;
+        const T = add(B, d, len - r); // center of the rounded tip
+        return {
+            B, d, n, r, len, w0,
+            angle: Math.atan2(d[0], -d[1]) * 180 / Math.PI,
+            T, lb: add(B, n, -w0 / 2), rb: add(B, n, w0 / 2), lt: add(T, n, -r), rt: add(T, n, r),
+        };
+    }
+
+    // Left side up, around the tip, right side down — sides bow out slightly.
+    function fingerEdges(f) {
+        const ml = add([(f.lb[0] + f.lt[0]) / 2, (f.lb[1] + f.lt[1]) / 2], f.n, -0.7);
+        const mr = add([(f.rt[0] + f.rb[0]) / 2, (f.rt[1] + f.rb[1]) / 2], f.n, 0.7);
+        return `Q ${pt(ml)} ${pt(f.lt)} A ${f.r} ${f.r} 0 0 1 ${pt(f.rt)} Q ${pt(mr)} ${pt(f.rb)} `;
+    }
+
+    function outline(fingers, t) {
+        const [pinky, , , index] = fingers;
+        let s = `M ${WRIST_L[0]} ${WRIST_L[1] + 60} L ${pt(WRIST_L)} `;
+        s += `C ${WRIST_L[0] - 5} ${WRIST_L[1] - 20} ${pt(add(pinky.lb, [-1.5, 30]))} ${pt(pinky.lb)} `;
+        fingers.forEach((f, i) => {
+            s += fingerEdges(f);
+            const next = fingers[i + 1];
+            if (next) {
+                const mid = [(f.rb[0] + next.lb[0]) / 2, (f.rb[1] + next.lb[1]) / 2 + 4.5];
+                s += `Q ${pt(mid)} ${pt(next.lb)} `;
+            }
+        });
+        // Web between index and thumb, the thumb, then the heel of the hand down to the wrist.
+        const ml = add([(t.lb[0] + t.lt[0]) / 2, (t.lb[1] + t.lt[1]) / 2], t.n, -0.7);
+        const heel = add(t.rb, t.d, 10);
+        s += `C ${pt(add(index.rb, [2.5, 14]))} ${pt(add(t.lb, t.d, -10))} ${pt(t.lb)} `;
+        s += `Q ${pt(ml)} ${pt(t.lt)} A ${t.r} ${t.r} 0 0 1 ${pt(t.rt)} L ${pt(heel)} `;
+        s += `C ${pt(add(heel, [1.5, 10]))} ${pt([WRIST_R[0] + 4, WRIST_R[1] - 10])} ${pt(WRIST_R)} `;
+        s += `L ${WRIST_R[0]} ${WRIST_R[1] + 60} Z`;
+        return s;
+    }
+
+    // The part of a finger from its tip back `depth` units, a bit oversized (it is drawn clipped
+    // to the outline). `pad` widens the cut end; keep it 0 when the cut reaches the knuckles.
+    function fingerPart(f, depth, pad = 3) {
+        const a = add(f.T, f.d, -(depth - f.r));
+        return `M ${pt(add(a, f.n, -f.w0 / 2 - pad))} L ${pt(add(f.lt, f.n, -3))} `
+            + `A ${f.r + 3} ${f.r + 3} 0 0 1 ${pt(add(f.rt, f.n, 3))} L ${pt(add(a, f.n, f.w0 / 2 + pad))} Z`;
+    }
+
+    function tapLines(f, color) {
+        // Two little "tap" marks beside the fingertip (not above it, where the key letter is)
+        const lines = [-62, 62].map(a =>
+            `<line transform="rotate(${a})" x1="0" y1="${-f.r - 3}" x2="0" y2="${-f.r - 7.5}" stroke="${color}" stroke-width="2" stroke-linecap="round"/>`
+        ).join('');
+        return `<g transform="translate(${pt(f.T)}) rotate(${f.angle.toFixed(1)})">${lines}</g>`;
+    }
+
+    // The reach from a finger's home key toward `target`, capped at MAX_REACH.
+    function reachVector(def, target) {
+        const v = [target[0] - def.home * U, target[1]];
+        const dist = Math.hypot(v[0], v[1]);
+        return dist > MAX_REACH ? v.map(c => c * MAX_REACH / dist) : v;
+    }
+
+    // Where a finger's tip goes: its home key, or `reach` away from it (curled no shorter than MIN_LENGTH).
+    function tipFor(def, reach) {
+        const rest = [def.home * U, 0];
+        if (!reach) return rest;
+        let tip = add(rest, reach);
+        const restLen = Math.hypot(rest[0] - def.base[0], rest[1] - def.base[1]);
+        const len = Math.hypot(tip[0] - def.base[0], tip[1] - def.base[1]) || 1;
+        if (len < restLen * MIN_LENGTH) {
+            tip = add(def.base, [(tip[0] - def.base[0]) / len, (tip[1] - def.base[1]) / len], restLen * MIN_LENGTH);
+        }
+        return tip;
+    }
+
+    // One hand in left-hand space. `target` is already mirrored for the right hand.
+    function hand(side, active, target) {
+        // Part of the reach moves the whole hand; the active finger stretches the rest of the way
+        const activeDef = target && FINGERS.find(def => `${side}-${def.name}` === active);
+        const reach = activeDef ? reachVector(activeDef, target) : null;
+        const shift = reach ? reach.map(c => c * HAND_FOLLOW) : [0, 0];
+        const fingers = FINGERS.map(def => {
+            const zone = `${side}-${def.name}`;
+            const on = def === activeDef;
+            const tip = tipFor(def, on ? reach.map(c => c * (1 - HAND_FOLLOW)) : null);
+            return Object.assign(finger(def.base, tip, def.w0, def.w1), { zone, on: zone === active });
+        });
+        const thumb = Object.assign(finger(THUMB.base, THUMB.tip, THUMB.w0, THUMB.w1), { zone: 'thumb', on: active === 'thumb' });
+        const all = fingers.concat([thumb]);
+        const path = outline(fingers, thumb);
+        const clip = `glove-clip-${clipSeq++}`;
+
+        let s = `<g transform="translate(${pt(shift)})">`;
+        s += `<defs><clipPath id="${clip}"><path d="${path}"/></clipPath></defs>`;
+        s += `<path d="${path}" fill="#FFFFFF" fill-opacity="0.72"/>`;
+        s += `<g clip-path="url(#${clip})">`;
+        all.forEach(f => {
+            if (f.on) s += `<path d="${fingerPart(f, f === thumb ? f.len - 12 : f.len, 0)}" fill="${TINT[f.zone]}" fill-opacity="0.9"/>`;
+            s += `<path d="${fingerPart(f, f.r * 2.1)}" fill="${TIP[f.zone]}"/>`;
+        });
+        s += `</g>`;
+        s += `<path d="${path}" fill="none" stroke="${INK}" stroke-width="1.3" stroke-linejoin="round"/>`;
+        // Stitching on the back of the glove
+        for (let i = 0; i < 3; i++) {
+            const a = fingers[i], b = fingers[i + 1];
+            const m = [(a.rb[0] + b.lb[0]) / 2, (a.rb[1] + b.lb[1]) / 2 + 12];
+            s += `<path d="M ${pt(m)} q 0.8 7 ${0.4 + (i - 1) * 1.2} 15" stroke="${INK}" stroke-width="1.1" fill="none" stroke-linecap="round" opacity="0.8"/>`;
+        }
+        all.forEach(f => { if (f.on) s += tapLines(f, TIP[f.zone]); });
+        // Rolled cuff
+        const cw = WRIST_R[0] - WRIST_L[0];
+        s += `<rect x="${WRIST_L[0] - 3}" y="${WRIST_L[1] + 10}" width="${cw + 6}" height="30" fill="#FFFFFF" stroke="${INK}" stroke-width="1.3"/>`;
+        s += `<rect x="${WRIST_L[0] - 7}" y="${WRIST_L[1] - 4}" width="${cw + 14}" height="15" rx="7.5" fill="#FFFFFF" stroke="${INK}" stroke-width="1.3"/>`;
+        return s + `</g>`;
+    }
+
+    /**
+     * Both hands as an SVG group.
+     * origin: where the A fingertip sits, in keyboard coordinates; scale: keyboard px per hand unit.
+     * active: finger id ('l-index', 'thumb', …) or null; target: [x, y] of the key to reach, or null.
+     */
+    function render({ origin, scale, active = null, target = null }) {
+        const t = target ? [(target[0] - origin[0]) / scale, (target[1] - origin[1]) / scale] : null;
+        const right = active && active.startsWith('r-');
+        return `<g transform="translate(${pt(origin)}) scale(${scale.toFixed(4)})">`
+            + hand('l', active, right ? null : t)
+            + `<g transform="translate(${MIRROR_X} 0) scale(-1 1)">${hand('r', active, right && t ? [MIRROR_X - t[0], t[1]] : null)}</g>`
+            + `</g>`;
+    }
+
+    /** How far below the home-row fingertips the cuffs can reach (hands slide down for bottom-row keys). */
+    const DEPTH = WRIST_L[1] + 11 + MAX_REACH * HAND_FOLLOW;
+
+    return { render, UNITS_PER_KEY, DEPTH };
+})();
+
 class VirtualKeyboard {
-    constructor(containerId) {
+    /**
+     * options.hands — draw the glove hands over the keyboard (default true)
+     */
+    constructor(containerId, options = {}) {
         this.container = document.getElementById(containerId);
+        this.showHands = options.hands !== false;
         this.keyElements = {};
+        this.keyCenters = {};
         this.activeKey = null;
         this.activeFinger = null;
         this.validKeys = null; // null = all keys valid
@@ -133,10 +321,16 @@ class VirtualKeyboard {
         const totalW = 15 * (keyW + gap) + padX * 2;
         const totalH = 5 * (keyH + gap) + padY * 2 + 10;
 
-        let svg = `<svg viewBox="0 0 ${totalW} ${totalH}" xmlns="http://www.w3.org/2000/svg" class="keyboard-svg">`;
+        // Hands rest on the home row: fingertips sit just below the key letters, palms below the keys
+        const homeY = padY + 2 * (keyH + gap) + keyH / 2;
+        const handScale = (keyW + gap) / GloveHands.UNITS_PER_KEY;
+        const handOriginY = homeY + keyH * 0.24;
+        const viewH = this.showHands ? Math.ceil(handOriginY + (GloveHands.DEPTH + 4) * handScale) : totalH;
 
-        // Background
-        svg += `<rect x="0" y="0" width="${totalW}" height="${totalH}" rx="16" ry="16" fill="#f8fafc" stroke="#e2e8f0" stroke-width="2"/>`;
+        let svg = `<svg viewBox="0 0 ${totalW} ${viewH}" xmlns="http://www.w3.org/2000/svg" class="keyboard-svg">`;
+
+        // Background (also under the palms, so the gloves look the same in light and dark mode)
+        svg += `<rect x="1" y="1" width="${totalW - 2}" height="${viewH - 2}" rx="16" ry="16" fill="#f8fafc" stroke="#e2e8f0" stroke-width="2"/>`;
 
         KEYBOARD_LAYOUT.forEach((row, rowIdx) => {
             let x = padX;
@@ -160,22 +354,32 @@ class VirtualKeyboard {
                 const fontSize = label.length > 3 ? 10 : label.length > 1 ? 11 : 14;
                 svg += `<text class="key-label" x="${x + w/2}" y="${y + keyH/2}" font-size="${fontSize}">${this._escapeXml(label)}</text>`;
                 svg += `</g>`;
+                this.keyCenters[keyDef.key.toLowerCase()] = [x + w / 2, y + keyH / 2];
 
                 x += w + gap;
             });
         });
 
-        svg += `</svg>`;
+        if (this.showHands) {
+            const a = this.keyCenters['a'];
+            this.handOrigin = [a[0], handOriginY];
+            this.handScale = handScale;
+            // Two copies: the live one follows the next key; No-look mode shows the resting one instead.
+            // Rendered separately so each copy gets its own clipPath ids.
+            const rest = () => GloveHands.render({ origin: this.handOrigin, scale: handScale });
+            svg += `<g class="glove-hands" aria-hidden="true">`
+                + `<g class="glove-rest">${rest()}</g><g class="glove-live">${rest()}</g></g>`;
+        }
 
-        // Hand overlay SVG
-        const handSvg = this._renderHands();
+        svg += `</svg>`;
 
         this.container.innerHTML = `
             <div class="keyboard-wrapper">
                 <div class="keyboard-svg-wrap">${svg}</div>
-                <div class="hand-overlay">${handSvg}</div>
             </div>
         `;
+
+        this.handsLive = this.container.querySelector('.glove-live');
 
         // Cache key elements
         this.container.querySelectorAll('.key-group').forEach(g => {
@@ -189,55 +393,11 @@ class VirtualKeyboard {
             .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
-    _renderHands() {
-        // Simple stylized hand SVG with labeled fingers
-        const w = 500, h = 160;
-        let svg = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
-
-        // Left hand fingers (from left to right: pinky, ring, middle, index, thumb)
-        const leftFingers = [
-            { id: 'l-pinky', x: 25, y: 20, w: 22, h: 55, label: 'P' },
-            { id: 'l-ring', x: 55, y: 10, w: 22, h: 60, label: 'R' },
-            { id: 'l-middle', x: 85, y: 5, w: 22, h: 65, label: 'M' },
-            { id: 'l-index', x: 115, y: 12, w: 22, h: 58, label: 'I' },
-            { id: 'l-thumb', x: 148, y: 60, w: 28, h: 42, label: 'T', rx: 14 },
-        ];
-
-        // Left palm
-        svg += `<rect x="20" y="70" width="140" height="80" rx="20" ry="20" fill="#fde68a" stroke="#d97706" stroke-width="1.5" opacity="0.5"/>`;
-
-        leftFingers.forEach(f => {
-            const fingerZone = f.id === 'l-thumb' ? 'thumb' : f.id;
-            const rx = f.rx || 10;
-            svg += `<rect class="finger-shape" data-finger="${fingerZone}" x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}" rx="${rx}" ry="${rx}"/>`;
-            svg += `<text x="${f.x + f.w/2}" y="${f.y + f.h/2 + 2}" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="700" fill="#92400e" pointer-events="none">${f.label}</text>`;
+    _drawHands(finger, target) {
+        if (!this.handsLive) return;
+        this.handsLive.innerHTML = GloveHands.render({
+            origin: this.handOrigin, scale: this.handScale, active: finger, target,
         });
-
-        // Right hand fingers (mirrored)
-        const rightFingers = [
-            { id: 'r-thumb', x: w - 176, y: 60, w: 28, h: 42, label: 'T', rx: 14 },
-            { id: 'r-index', x: w - 137, y: 12, w: 22, h: 58, label: 'I' },
-            { id: 'r-middle', x: w - 107, y: 5, w: 22, h: 65, label: 'M' },
-            { id: 'r-ring', x: w - 77, y: 10, w: 22, h: 60, label: 'R' },
-            { id: 'r-pinky', x: w - 47, y: 20, w: 22, h: 55, label: 'P' },
-        ];
-
-        // Right palm
-        svg += `<rect x="${w - 160}" y="70" width="140" height="80" rx="20" ry="20" fill="#fde68a" stroke="#d97706" stroke-width="1.5" opacity="0.5"/>`;
-
-        rightFingers.forEach(f => {
-            const fingerZone = f.id === 'r-thumb' ? 'thumb' : f.id;
-            const rx = f.rx || 10;
-            svg += `<rect class="finger-shape" data-finger="${fingerZone}" x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}" rx="${rx}" ry="${rx}"/>`;
-            svg += `<text x="${f.x + f.w/2}" y="${f.y + f.h/2 + 2}" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="700" fill="#92400e" pointer-events="none">${f.label}</text>`;
-        });
-
-        // Labels
-        svg += `<text x="90" y="${h - 5}" text-anchor="middle" font-size="12" font-weight="700" fill="#92400e" font-family="Fredoka, sans-serif">Left Hand</text>`;
-        svg += `<text x="${w - 90}" y="${h - 5}" text-anchor="middle" font-size="12" font-weight="700" fill="#92400e" font-family="Fredoka, sans-serif">Right Hand</text>`;
-
-        svg += `</svg>`;
-        return svg;
     }
 
     /**
@@ -263,7 +423,7 @@ class VirtualKeyboard {
             el.classList.remove('dimmed');
             el.classList.add('active');
             const finger = el.getAttribute('data-finger');
-            this._highlightFinger(finger);
+            this._highlightFinger(finger, lookupKey);
         }
     }
 
@@ -308,17 +468,16 @@ class VirtualKeyboard {
         };
     }
 
-    _highlightFinger(finger) {
+    _highlightFinger(finger, key) {
         this.activeFinger = finger;
-        this.container.querySelectorAll(`.finger-shape[data-finger="${finger}"]`).forEach(el => {
-            el.classList.add('active');
-        });
+        // Fingertips rest below the letters, so aim at the same spot on the target key
+        const c = this.keyCenters[key];
+        const target = c && this.handOrigin ? [c[0], c[1] + (this.handOrigin[1] - this.keyCenters['a'][1])] : null;
+        this._drawHands(finger, target);
     }
 
     _clearFingerHighlight() {
-        this.container.querySelectorAll('.finger-shape.active').forEach(el => {
-            el.classList.remove('active');
-        });
+        if (this.activeFinger) this._drawHands(null, null);
         this.activeFinger = null;
     }
 }
