@@ -374,6 +374,95 @@ body {
     flex-shrink: 0;
 }
 
+/* ── Who makes TypePets ───────────────────────────────── */
+.maker {
+    padding: 88px 0 8px;
+}
+
+.maker-card {
+    max-width: 860px;
+    margin: 0 auto;
+    display: flex;
+    gap: 28px;
+    align-items: flex-start;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 40px 44px;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.04);
+}
+
+.maker-avatar {
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.9rem;
+    background: rgba(246, 194, 85, 0.18);
+    box-shadow: inset 0 0 0 2px rgba(246, 194, 85, 0.5);
+}
+
+.maker-copy .eyebrow {
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #B7791F;
+    margin-bottom: 6px;
+}
+
+.maker-copy h2 {
+    font-family: var(--font-display);
+    font-size: clamp(1.45rem, 3.4vw, 1.9rem);
+    font-weight: 700;
+    line-height: 1.25;
+    margin-bottom: 14px;
+    color: var(--text);
+}
+
+.maker-copy p {
+    color: var(--text-muted);
+    font-size: 1.02rem;
+    margin-bottom: 12px;
+}
+
+.maker-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 22px;
+    margin-top: 20px;
+}
+
+.maker-actions .btn-secondary {
+    color: #8A5A00;
+    border-color: rgba(246, 194, 85, 0.7);
+    background: rgba(246, 194, 85, 0.12);
+    padding: 12px 24px;
+    font-size: 1rem;
+}
+
+.maker-actions .btn-secondary:hover { border-color: #E5A800; background: rgba(246, 194, 85, 0.22); }
+
+.maker-link {
+    color: var(--accent);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.maker-link:hover { text-decoration: underline; }
+
+.faq-item p a {
+    color: var(--accent);
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
 /* ── CTA Section ──────────────────────────────────────── */
 .cta-section {
     padding: 80px 0;
@@ -963,6 +1052,12 @@ section[id] { scroll-margin-top: 72px; }
     }
 
     .footer-links { justify-content: center; }
+}
+
+@media (max-width: 600px) {
+    .maker { padding-top: 64px; }
+    .maker-card { flex-direction: column; gap: 14px; padding: 28px 22px; }
+    .maker-avatar { width: 52px; height: 52px; font-size: 1.6rem; }
 }
 
 @media (max-width: 480px) {

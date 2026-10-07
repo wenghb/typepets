@@ -5,7 +5,7 @@
  *   element (home + dashboard). On every other page `maybeDonatePrompt()` is a no-op.
  * - At most once every 7 days, and only after real progress
  *   (10+ sessions on 3+ different days and 2+ badges).
- * - The Stripe link sits behind the grown-up gate (see app.js `openDonate`).
+ * - The donate link sits behind the grown-up gate (see app.js `openDonate`).
  */
 (function() {
     const STORAGE_KEY = 'typepets_donate';
@@ -60,8 +60,8 @@
         card.appendChild(el('h3', 'donate-card-title',
             `💛 ${name} has practiced ${stats.total_sessions} times and earned ${stats.badges} badges`));
         card.appendChild(el('p', 'donate-card-text',
-            "TypePets is free, with no ads, no accounts and no tracking. If it's helping with typing, " +
-            'a small donation keeps it that way.'));
+            "I'm Henry, a parent who built TypePets for my own kids. It's free, with no ads, no accounts " +
+            "and no tracking. If it's helping with typing, a small donation keeps it that way."));
 
         const actions = el('div', 'donate-card-actions');
         const support = el('button', 'btn btn-primary', 'Support TypePets');
@@ -91,6 +91,13 @@
         s.lastShown = Date.now();
         saveState(s);
     }
+
+    /** After a donation (support.html?thanks=1): this browser isn't asked again for a while. */
+    window.tpMarkSupported = function() {
+        const s = getState();
+        s.supported = Date.now();
+        saveState(s);
+    };
 
     /**
      * Safe to call from anywhere. Only home/dashboard (pages with #donateSlot) ever show anything.

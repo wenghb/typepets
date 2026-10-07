@@ -10,3 +10,7 @@
 /play     /pages/home.html  302
 /pages    /pages/home.html  302
 /pages/   /pages/home.html  302
+
+# Donations: the one place the Stripe Payment Link lives. Every "Donate" button on the site
+# points at /donate, so a new link only needs changing here. (The parent-facing page is /support.html.)
+/donate   https://buy.stripe.com/bJecN7fDM1eSeNigYH8EM00  302

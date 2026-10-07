@@ -72,7 +72,7 @@ New pages need nothing special: link the files normally and run the script.
 
 Notes:
 - `_routes.json` limits Pages Functions to `/api/*`, so every other URL is served as a plain static file (no Function invocations, real 404s).
-- `_redirects` holds a few short-link redirects (`/app`, `/play`, `/pages/`). There is intentionally **no** SPA catch-all (`/* /index.html 200`): every page is a real file, so unknown URLs get a real 404 from `404.html` instead of a "soft 404" homepage.
+- `_redirects` holds a few short-link redirects (`/app`, `/play`, `/pages/`) and `/donate`, the Stripe donation link (see [Donations](#donations)). There is intentionally **no** SPA catch-all (`/* /index.html 200`): every page is a real file, so unknown URLs get a real 404 from `404.html` instead of a "soft 404" homepage.
 - Pages serves `404.html` with a 404 status for any missing URL, at any depth, so it only uses absolute paths (`/css/...`, `/img/...`).
 - Production branch, build settings (none; output dir = root), and the custom domain are configured in the Cloudflare dashboard, not in this repo.
 
@@ -163,6 +163,15 @@ For ad-hoc questions you can also query D1 directly:
 npx wrangler d1 execute typepets-feedback --remote --command "SELECT category, COUNT(*) AS n, ROUND(AVG(rating), 1) AS avg_rating FROM feedback GROUP BY category"
 ```
 
+## Donations
+
+TypePets is funded by optional, one-time donations through a Stripe Payment Link where the donor chooses the amount.
+
+- **The Stripe link lives in one place:** the `/donate` line in `_redirects`. Every donate button on the site points at `/donate`, so a new Payment Link only needs that one line changed. A plain `python3 -m http.server` doesn't read `_redirects`, so test `/donate` with `npx wrangler pages dev .`.
+- **`/support.html`** is the page for grown-ups: a note from the maker, the Donate button, and free ways to help (share, feedback). The landing page and blog link here, not straight to Stripe.
+- **Inside the app** (`pages/*.html`), every `/donate` link goes through the grown-up gate first (`openDonate` in `js/app.js`), then a short note with the Donate button. The progress report and certificates end with a "For grown-ups" note (never printed). `js/donate-prompt.js` shows an occasional note on Home and Stats after real progress.
+- **Stripe settings to keep in step with the copy:** "Customers choose what to pay" (the site says the donor picks the amount), the public business name and statement descriptor set to TypePets, and *After payment → Redirect* to `https://typepets.com/support.html?thanks=1`. That address shows a thank-you and stops the in-app note on that browser for six months.
+
 ## Structure
 
 ```
@@ -178,6 +187,7 @@ typepets/
 │   └── report.html     # Printable parent/teacher report & certificates
 ├── 404.html            # Friendly not-found page (served with 404 status by Pages)
 ├── feedback.html       # Standalone feedback form (linked from footers)
+├── support.html        # Support TypePets: note from the maker + Donate button (see Donations)
 ├── admin/
 │   └── feedback.html   # Private feedback inbox (needs FEEDBACK_ADMIN_TOKEN)
 ├── functions/

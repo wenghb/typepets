@@ -179,7 +179,9 @@ document.addEventListener('keydown', () => {
 (function() {
     'use strict';
 
-    const DONATE_URL = 'https://buy.stripe.com/bJecN7fDM1eSeNigYH8EM00';
+    // /donate redirects to the Stripe Payment Link (see _redirects); /support.html is the page for grown-ups
+    const DONATE_URL = '/donate';
+    const SUPPORT_URL = '/support.html';
 
     function el(tag, className, text) {
         const node = document.createElement(tag);
@@ -313,12 +315,15 @@ document.addEventListener('keydown', () => {
         // id="donatePrompt": Bubble Pop pauses its game while this element exists
         const m = openModal({ className: 'donate-final', label: 'Support TypePets', id: 'donatePrompt' });
         m.card.appendChild(el('div', 'tp-modal-emoji', '💛'));
-        m.card.appendChild(el('h3', null, 'Thank you for supporting TypePets'));
+        m.card.appendChild(el('h3', null, 'Support TypePets'));
         m.card.appendChild(el('p', 'tp-modal-text',
-            'TypePets is free, ad-free and has no tracking. Donations pay for hosting and new lessons. ' +
-            "You'll choose an amount on Stripe's secure page — TypePets never sees card details."));
+            "Hi, I'm Henry, a parent. I built TypePets for my own kids, and it's free for every child: " +
+            'no ads, no accounts, no premium tier.'));
+        m.card.appendChild(el('p', 'tp-modal-text',
+            "If it's helping your family, you can give any amount on Stripe's secure page. " +
+            'TypePets never sees card details.'));
         const actions = el('div', 'tp-modal-actions');
-        const link = el('a', 'btn btn-primary', 'Continue to Stripe ↗');
+        const link = el('a', 'btn btn-primary', 'Donate with Stripe ↗');
         link.href = DONATE_URL;
         link.target = '_blank';
         link.rel = 'noopener';
@@ -327,6 +332,11 @@ document.addEventListener('keydown', () => {
         actions.appendChild(link);
         actions.appendChild(button('btn btn-secondary', 'Close', m.close));
         m.card.appendChild(actions);
+        const more = el('a', 'tp-modal-more', 'Why it\u2019s free, and other ways to help ↗');
+        more.href = SUPPORT_URL;
+        more.target = '_blank';
+        more.rel = 'noopener';
+        m.card.appendChild(more);
         setTimeout(() => link.focus(), 50);
     }
 
@@ -334,11 +344,12 @@ document.addEventListener('keydown', () => {
         showParentGate(showDonateLink, { reason: 'This link is for grown-ups. Please ask one to answer:', id: 'donatePrompt' });
     }
 
-    // Every Stripe link on app pages goes through the grown-up gate first. The static links lose their
+    // Every donate link on app pages goes through the grown-up gate first. The static links lose their
     // href so middle-click, "open in new tab" and long-press can't skip the gate.
-    const GATED_LINK = 'a[href*="buy.stripe.com"]:not([data-gate-passed]), a[data-donate-gated]';
+    const DONATE_LINK = 'a[href="/donate"]:not([data-gate-passed]), a[href*="buy.stripe.com"]:not([data-gate-passed])';
+    const GATED_LINK = DONATE_LINK + ', a[data-donate-gated]';
     function gateDonateLinks() {
-        document.querySelectorAll('a[href*="buy.stripe.com"]:not([data-gate-passed])').forEach(a => {
+        document.querySelectorAll(DONATE_LINK).forEach(a => {
             a.removeAttribute('href');
             a.removeAttribute('target');
             a.setAttribute('data-donate-gated', '');
@@ -396,12 +407,14 @@ document.addEventListener('keydown', () => {
             pill.setAttribute('aria-label', 'Support TypePets');
         }
 
-        // Support link inside the mobile menu (the nav button is hidden on phones)
-        const support = el('a', 'nav-link nav-link-support', '💛 Support TypePets');
-        support.href = DONATE_URL;
-        support.target = '_blank';
-        support.rel = 'noopener';
-        links.appendChild(support);
+        // Support link inside the mobile menu (the nav button is hidden on phones). Not on the
+        // Support page itself, which has its own Donate button.
+        if (!document.getElementById('supportPage')) {
+            const support = el('a', 'nav-link nav-link-support', '💛 Support TypePets');
+            support.href = DONATE_URL;
+            links.appendChild(support);
+            gateDonateLinks();
+        }
 
         const burger = button('nav-burger', '☰');
         burger.setAttribute('aria-label', 'Menu');

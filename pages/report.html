@@ -11,7 +11,7 @@
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
-    <link rel="stylesheet" href="../css/style.css?v=75635951">
+    <link rel="stylesheet" href="../css/style.css?v=514f4158">
     <link rel="stylesheet" href="../css/pet-art.css?v=2e573092">
     <style>
     .report-page { max-width: 900px; }
@@ -65,6 +65,19 @@
     .r-badge-emoji { font-size: 1.4rem; }
     .r-badge small { display: block; color: var(--text-secondary); font-weight: 600; font-size: 0.7rem; }
     .r-footer { text-align: center; font-size: 0.75rem; color: var(--text-secondary); margin: 18px 0 8px; }
+    .r-support {
+        display: flex; gap: 16px; align-items: flex-start; margin: 22px 0 8px; padding: 20px 22px;
+        background: var(--bg-card); border: 1px dashed var(--accent-yellow); border-radius: var(--radius-lg);
+    }
+    .r-support-emoji { font-size: 1.8rem; line-height: 1; }
+    .r-support-label { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: var(--accent-yellow); margin-bottom: 2px; }
+    .r-support h2 { font-size: 1.05rem; margin-bottom: 6px; }
+    .r-support p { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.55; margin-bottom: 12px; max-width: 64ch; }
+    .r-support-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
+    .r-support-actions .btn { margin-left: 0; }
+    .r-support-actions a.r-support-more { font-size: 0.85rem; font-weight: 700; color: var(--accent-blue); text-decoration: underline; text-underline-offset: 2px; }
+    .certificate + .r-support { max-width: 820px; margin-left: auto; margin-right: auto; }
+    @media (max-width: 480px) { .r-support { flex-direction: column; gap: 8px; padding: 18px 16px; } }
 
     /* Certificate */
     .certificate {
@@ -136,7 +149,7 @@
             <a href="dashboard.html" class="nav-link">Stats</a>
         </div>
         <div class="nav-right">
-            <a href="https://buy.stripe.com/bJecN7fDM1eSeNigYH8EM00" target="_blank" rel="noopener" title="Support TypePets" class="donate-heart">💛 Support</a>
+            <a href="/donate" title="Support TypePets" class="donate-heart">💛 Support</a>
             <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light theme">🌙</button>
             <button class="sound-toggle" id="soundToggle" onclick="toggleSound()" title="Toggle sound">🔊</button>
             <div class="nav-user"><span id="userName">Player</span></div>
@@ -152,7 +165,7 @@
 
     <script src="../js/data.js?v=5efb85a6"></script>
     <script src="../js/sound.js?v=e57a4213"></script>
-    <script src="../js/app.js?v=4ba8e4a1"></script>
+    <script src="../js/app.js?v=bf000586"></script>
     <script src="../js/cloud-save.js?v=17283d3e"></script>
     <script src="../js/feedback.js?v=310f25f1"></script>
     <script src="../js/achievements.js?v=226274c8"></script>
@@ -271,6 +284,24 @@
             append(toolbar, extra);
             append(toolbar, h('span', { class: 'spacer' }));
             append(toolbar, h('button', { type: 'button', class: 'btn btn-primary', onclick: () => window.print(), text: '🖨️ Print' }));
+        }
+
+        // A note for the grown-up reading this page (never printed). The button goes through the
+        // grown-up gate in js/app.js, like every other donate link in the app.
+        function supportNote(childName) {
+            const who = childName && childName !== 'Player' ? childName : 'your child';
+            return h('aside', { class: 'r-support no-print', 'aria-label': 'A note for grown-ups' },
+                h('div', { class: 'r-support-emoji', 'aria-hidden': 'true', text: '💛' }),
+                h('div', null,
+                    h('div', { class: 'r-support-label', text: 'For grown-ups' }),
+                    h('h2', { text: 'TypePets is free, and made by a parent' }),
+                    h('p', { text: `I'm Henry. I built TypePets for my own kids, and it's free for every child: no ads, ` +
+                        `no accounts and no premium tier. If it's helping ${who}, you can support it with a donation of any amount.` }),
+                    h('div', { class: 'r-support-actions' },
+                        h('button', { type: 'button', class: 'btn btn-secondary', text: '💛 Support TypePets',
+                            onclick: () => { if (typeof window.openDonate === 'function') window.openDonate(); } }),
+                        h('a', { class: 'r-support-more', href: '/support.html', target: '_blank', rel: 'noopener',
+                            text: 'Other ways to help ↗' }))));
         }
 
         function renderReport() {
@@ -462,6 +493,7 @@
                 ? 'Progress saved online with a save code (no names)'
                 : 'All TypePets data stays on this device';
             append(root, h('p', { class: 'r-footer', text: `Printed ${fmtDate(new Date())} · ${where} · typepets.com` }));
+            append(root, supportNote(profile.name));
             document.title = `TypePets — ${profile.name}'s report`;
         }
 
@@ -573,6 +605,7 @@
                         h('div', { class: 'cert-seal', 'aria-hidden': 'true', text: '🏅' }),
                         h('div', { class: 'cert-sign' }, h('div', { text: ' ' }), h('div', { class: 'cert-sign-line', text: 'Teacher / parent' }))),
                     h('div', { class: 'cert-brand', text: '🐾 typepets.com' }))));
+            append(root, supportNote(cert.name));
             document.title = `TypePets — Certificate for ${cert.name}`;
         }
 
