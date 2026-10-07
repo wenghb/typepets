@@ -320,7 +320,7 @@ document.addEventListener('keydown', () => {
             "Hi, I'm Henry, a parent. I built TypePets for my own kids, and it's free for every child: " +
             'no ads, no accounts, no premium tier.'));
         m.card.appendChild(el('p', 'tp-modal-text',
-            "If it's helping your family, you can give any amount on Stripe's secure page. " +
+            "If it's helping your family, you can make a one-time donation on Stripe's secure page. " +
             'TypePets never sees card details.'));
         const actions = el('div', 'tp-modal-actions');
         const link = el('a', 'btn btn-primary', 'Donate with Stripe ↗');

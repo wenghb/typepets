@@ -165,12 +165,12 @@ npx wrangler d1 execute typepets-feedback --remote --command "SELECT category, C
 
 ## Donations
 
-TypePets is funded by optional, one-time donations through a Stripe Payment Link where the donor chooses the amount.
+TypePets is funded by optional, one-time donations through a Stripe Payment Link (on the TypePets Stripe account, so checkout and card statements say TypePets).
 
 - **The Stripe link lives in one place:** the `/donate` line in `_redirects`. Every donate button on the site points at `/donate`, so a new Payment Link only needs that one line changed. A plain `python3 -m http.server` doesn't read `_redirects`, so test `/donate` with `npx wrangler pages dev .`.
 - **`/support.html`** is the page for grown-ups: a note from the maker, the Donate button, and free ways to help (share, feedback). The landing page and blog link here, not straight to Stripe.
 - **Inside the app** (`pages/*.html`), every `/donate` link goes through the grown-up gate first (`openDonate` in `js/app.js`), then a short note with the Donate button. The progress report and certificates end with a "For grown-ups" note (never printed). `js/donate-prompt.js` shows an occasional note on Home and Stats after real progress.
-- **Stripe settings to keep in step with the copy:** "Customers choose what to pay" (the site says the donor picks the amount), the public business name and statement descriptor set to TypePets, and *After payment → Redirect* to `https://typepets.com/support.html?thanks=1`. That address shows a thank-you and stops the in-app note on that browser for six months.
+- **Stripe settings to keep in step with the copy:** the public business name and statement descriptor set to TypePets, and *After payment → Redirect* to `https://typepets.com/support.html?thanks=1`. That address shows a thank-you and stops the in-app note on that browser for six months. The site copy says "one-time donation" and never names an amount, so it stays true whether the link has a fixed price or "Customers choose what to pay".
 
 ## Structure
 
