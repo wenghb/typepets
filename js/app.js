@@ -1,7 +1,7 @@
 /**
  * TypePets — Main application module
  * Shared UI for every app page: toasts, theme/sound toggles, mobile nav,
- * profile switcher, and the grown-up gate in front of donation links.
+ * profile switcher, and the grown-up gate in front of tip links.
  */
 
 /**
@@ -179,8 +179,8 @@ document.addEventListener('keydown', () => {
 (function() {
     'use strict';
 
-    // /donate redirects to the Stripe Payment Link (see _redirects); /support.html is the page for grown-ups
-    const DONATE_URL = '/donate';
+    // /tip redirects to the Stripe Payment Link (see _redirects); /support.html is the page for grown-ups
+    const TIP_URL = '/tip';
     const SUPPORT_URL = '/support.html';
 
     function el(tag, className, text) {
@@ -320,11 +320,11 @@ document.addEventListener('keydown', () => {
             "Hi, I'm Henry, a parent. I built TypePets for my own kids, and it's free for every child: " +
             'no ads, no accounts, no premium tier.'));
         m.card.appendChild(el('p', 'tp-modal-text',
-            "If it's helping your family, you can make a one-time donation on Stripe's secure page. " +
+            "If it's helping your family, you can leave a one-time tip on Stripe's secure page. " +
             'TypePets never sees card details.'));
         const actions = el('div', 'tp-modal-actions');
-        const link = el('a', 'btn btn-primary', 'Donate with Stripe ↗');
-        link.href = DONATE_URL;
+        const link = el('a', 'btn btn-primary', 'Leave a tip ↗');
+        link.href = TIP_URL;
         link.target = '_blank';
         link.rel = 'noopener';
         link.setAttribute('data-gate-passed', '1');
@@ -344,9 +344,9 @@ document.addEventListener('keydown', () => {
         showParentGate(showDonateLink, { reason: 'This link is for grown-ups. Please ask one to answer:', id: 'donatePrompt' });
     }
 
-    // Every donate link on app pages goes through the grown-up gate first. The static links lose their
+    // Every tip link on app pages goes through the grown-up gate first. The static links lose their
     // href so middle-click, "open in new tab" and long-press can't skip the gate.
-    const DONATE_LINK = 'a[href="/donate"]:not([data-gate-passed]), a[href*="buy.stripe.com"]:not([data-gate-passed])';
+    const DONATE_LINK = 'a[href="/tip"]:not([data-gate-passed]), a[href="/donate"]:not([data-gate-passed]), a[href*="buy.stripe.com"]:not([data-gate-passed])';
     const GATED_LINK = DONATE_LINK + ', a[data-donate-gated]';
     function gateDonateLinks() {
         document.querySelectorAll(DONATE_LINK).forEach(a => {
@@ -408,10 +408,10 @@ document.addEventListener('keydown', () => {
         }
 
         // Support link inside the mobile menu (the nav button is hidden on phones). Not on the
-        // Support page itself, which has its own Donate button.
+        // Support page itself, which has its own tip button.
         if (!document.getElementById('supportPage')) {
             const support = el('a', 'nav-link nav-link-support', '💛 Support TypePets');
-            support.href = DONATE_URL;
+            support.href = TIP_URL;
             links.appendChild(support);
             gateDonateLinks();
         }

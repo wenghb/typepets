@@ -149,7 +149,7 @@
             <a href="dashboard.html" class="nav-link">Stats</a>
         </div>
         <div class="nav-right">
-            <a href="/donate" title="Support TypePets" class="donate-heart">💛 Support</a>
+            <a href="/tip" title="Support TypePets" class="donate-heart">💛 Support</a>
             <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light theme">🌙</button>
             <button class="sound-toggle" id="soundToggle" onclick="toggleSound()" title="Toggle sound">🔊</button>
             <div class="nav-user"><span id="userName">Player</span></div>
@@ -165,7 +165,7 @@
 
     <script src="../js/data.js?v=5efb85a6"></script>
     <script src="../js/sound.js?v=e57a4213"></script>
-    <script src="../js/app.js?v=d28eb20c"></script>
+    <script src="../js/app.js?v=52774b33"></script>
     <script src="../js/cloud-save.js?v=17283d3e"></script>
     <script src="../js/feedback.js?v=310f25f1"></script>
     <script src="../js/achievements.js?v=226274c8"></script>
@@ -287,7 +287,7 @@
         }
 
         // A note for the grown-up reading this page (never printed). The button goes through the
-        // grown-up gate in js/app.js, like every other donate link in the app.
+        // grown-up gate in js/app.js, like every other tip link in the app.
         function supportNote(childName) {
             const who = childName && childName !== 'Player' ? childName : 'your child';
             return h('aside', { class: 'r-support no-print', 'aria-label': 'A note for grown-ups' },
@@ -296,7 +296,7 @@
                     h('div', { class: 'r-support-label', text: 'For grown-ups' }),
                     h('h2', { text: 'TypePets is free, and made by a parent' }),
                     h('p', { text: `I'm Henry. I built TypePets for my own kids, and it's free for every child: no ads, ` +
-                        `no accounts and no premium tier. If it's helping ${who}, you can support it with a one-time donation.` }),
+                        `no accounts and no premium tier. If it's helping ${who}, you can leave a tip to say thanks.` }),
                     h('div', { class: 'r-support-actions' },
                         h('button', { type: 'button', class: 'btn btn-secondary', text: '💛 Support TypePets',
                             onclick: () => { if (typeof window.openDonate === 'function') window.openDonate(); } }),

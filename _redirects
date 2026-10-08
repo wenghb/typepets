@@ -11,6 +11,8 @@
 /pages    /pages/home.html  302
 /pages/   /pages/home.html  302
 
-# Donations: the one place the Stripe Payment Link lives. Every "Donate" button on the site
-# points at /donate, so a new link only needs changing here. (The parent-facing page is /support.html.)
+# Tips: the one place the Stripe Payment Link lives. Every "Leave a tip" button on the site
+# points at /tip, so a new link only needs changing here. (The parent-facing page is /support.html.)
+# /donate is the old name, kept so links that were already shared still work. Keep both lines in step.
+/tip      https://buy.stripe.com/3cI7sE1fNfj29ZJ39193y00  302
 /donate   https://buy.stripe.com/3cI7sE1fNfj29ZJ39193y00  302
