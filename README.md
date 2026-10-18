@@ -96,6 +96,23 @@ python3 scripts/version-assets.py          # the pack lists are JS, so restamp
 - The model garbles a word said on its own ("fox" comes out as "vox"), so single words and keys are read at the end of "Next word: …" and cut out using the model's word timings (`CARRIER`). Letter keys use fixed phonemes (`LETTER_PHONEMES`), because the model reads a lone "A" as the word "uh".
 - Packs download only when the voice is on, and only for the chosen voice: a training stage is 130–550 KB, an article 200–360 KB.
 
+## Visitor map
+
+The homepage's "kids everywhere" section is a grey dot map of the world with a bubble on every country that sent at least one visitor through Google Search. Bubble area follows each country's share of visits (the page shows no numbers, only "Fewer → More"); the six biggest are named on the map and the top eight listed underneath. It's plain SVG written into `index.html` between the `visitor-map` markers: no map library, no requests. The numbers come from Search Console, so refresh it now and then:
+
+1. Search Console → Performance → pick a date range (the whole history is fine) → **EXPORT** → **Download CSV**.
+2. Run the script on the zip it downloads, then restamp:
+
+```bash
+python3 scripts/visitor-map/build.py ~/Downloads/typepets.com-Performance-on-Search-YYYY-MM-DD.zip
+python3 scripts/visitor-map/build.py export.zip --check   # exits 1 if index.html is out of date
+```
+
+- It reads `Countries.csv` (clicks per country; impressions don't count) and `Chart.csv` (the dates shown under the map). Countries with zero clicks stay grey.
+- A country name it can't place stops the build and lists the names; add them to `NAME_FIXES` in the script. Nothing drops off the map quietly.
+- The land dots and each country's bubble position (Natural Earth's label point) come from `scripts/visitor-map/land.json`, built once from Natural Earth's public-domain 1:50m countries. Rebuilding it is only needed to change the grid (`--land <geojson>`, needs numpy; see the script's docstring).
+- Copy, bubble sizes and how many countries are named live in the script (`render()`, `BUBBLE_MAX`, `LABELS`, `TOP_CHIPS`); edit there, not in `index.html`. Styles are under "Where visitors come from" in `css/landing.css`; hovering (or tapping) a bubble names its country.
+
 ## Save codes
 
 A kid presses **Get my save code** on the Stats page and gets a short code like `TIGER-427-MOON` (word, 3 digits, word). Typing it on the Home page (or the Stats page) of any computer loads that player's progress there. From then on, every linked computer saves to the code by itself about a second after each change, and checks it whenever a page opens:
@@ -225,6 +242,7 @@ typepets/
 ├── audio/voice/        # Recorded voice packs (MP3), made by scripts/voice/build.py
 ├── scripts/
 │   ├── version-assets.py # Stamps CSS/JS links with ?v=<content hash>
+│   ├── visitor-map/    # build.py (homepage world map from a Search Console export) + land.json (land dots, bubble spots)
 │   └── voice/          # phrases.mjs (every spoken line) + build.py (records them)
 ├── _routes.json        # Only /api/* runs as a Pages Function
 └── _redirects          # Cloudflare Pages redirect rules

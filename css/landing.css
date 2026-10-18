@@ -272,6 +272,181 @@ body {
     margin-bottom: 48px;
 }
 
+/* ── Where visitors come from (world bubble map) ─────── */
+.reach {
+    padding: 96px 0 0;
+}
+
+.reach .section-sub strong {
+    color: var(--text);
+    font-weight: 800;
+}
+
+.reach-card {
+    margin: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px 36px 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 16px 40px rgba(74, 144, 217, 0.07);
+}
+
+.reach-map-wrap { position: relative; }
+
+.reach-map {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+}
+
+/* The land is short horizontal lines; a zero-length dash with round caps every
+   unit turns them into rows of dots. */
+.reach-land {
+    fill: none;
+    stroke: #DDE4EC;
+    stroke-width: 0.62;
+    stroke-linecap: round;
+    stroke-dasharray: 0 1;
+    stroke-dashoffset: 0.5;
+}
+
+.reach-bubbles circle {
+    fill: rgba(74, 144, 217, 0.42);
+    stroke: var(--accent);
+    stroke-width: 0.18;
+    transition: fill 0.15s, stroke 0.15s;
+}
+
+.reach-bubbles circle.is-hot {
+    fill: rgba(242, 169, 59, 0.6);
+    stroke: #F2A93B;
+}
+
+.reach-labels text {
+    font-family: var(--font);
+    font-size: 2.3px;
+    font-weight: 700;
+    fill: var(--text);
+    dominant-baseline: central;
+    paint-order: stroke;
+    stroke: var(--surface);
+    stroke-width: 0.7px;
+    stroke-linejoin: round;
+    pointer-events: none;
+}
+
+.reach-ping {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 0.3;
+    opacity: 0;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: reach-ping 3s ease-out infinite;
+    pointer-events: none;
+}
+
+@keyframes reach-ping {
+    0%   { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(1.8); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .reach-ping { animation: none; }
+}
+
+.reach-tip {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform: translate(-50%, calc(-100% - 12px));
+    background: var(--text);
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1.3;
+    padding: 6px 12px;
+    border-radius: 8px;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: 0 4px 14px rgba(45, 55, 72, 0.2);
+}
+
+.reach-foot {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    margin-top: 28px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border);
+}
+
+/* Sits in the empty South Pacific, bottom left of the map. */
+.reach-legend {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.reach-scale {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.reach-scale .reach-k1 { margin-left: 2px; }
+.reach-scale .reach-k3 { margin-right: 2px; }
+
+.reach-label {
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.reach-chips {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.reach-chips li {
+    background: var(--surface-2);
+    border-radius: 100px;
+    padding: 3px 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.reach-key {
+    border-radius: 50%;
+    background: rgba(74, 144, 217, 0.42);
+    border: 1px solid var(--accent);
+}
+
+.reach-k1 { width: 6px; height: 6px; }
+.reach-k2 { width: 11px; height: 11px; }
+.reach-k3 { width: 18px; height: 18px; }
+
+.reach-note {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 14px;
+}
+
 /* ── Features ─────────────────────────────────────────── */
 .features {
     padding: 96px 0;
@@ -1005,6 +1180,19 @@ section[id] { scroll-margin-top: 72px; }
     .features,
     .how-it-works,
     .faq { padding-top: 72px; padding-bottom: 72px; }
+    .reach { padding-top: 72px; }
+    .reach-card { padding: 20px 12px 18px; border-radius: 16px; }
+    .reach-land { stroke-width: 0.78; }
+    .reach-labels { display: none; }  /* too small to read; the list below names them */
+    .reach-foot { margin-top: 18px; }
+    .reach-legend {
+        position: static;
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px 12px;
+        margin-top: 14px;
+    }
     .showcase-row:last-child { margin-bottom: 0; }
     .mini-grid { grid-template-columns: 1fr; }
     .field-row { grid-template-columns: 1fr; }
