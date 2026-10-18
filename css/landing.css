@@ -354,7 +354,8 @@ body {
 
 /* Pop-in: the page script adds .reach-pop to the card, then .is-in the first time it
    scrolls into view. Bubbles spring up west to east, then the rings and names follow.
-   Without the script (or with Reduce Motion) everything simply shows. */
+   Without the script everything simply shows. This plays even with Reduce Motion on:
+   the owner wants every visitor to see it. */
 .reach-pop .reach-bubbles circle {
     transform-box: fill-box;
     transform-origin: center;
@@ -379,19 +380,6 @@ body {
 .reach-pop.is-in .reach-labels {
     opacity: 1;
     transition: opacity 0.4s 1.4s;  /* only on the way in, so they hide at once */
-}
-
-/* Reduce Motion: the ring stays put and only fades in and out. */
-@keyframes reach-glow {
-    0%, 100% { opacity: 0.15; }
-    50%      { opacity: 0.75; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .reach-ping {
-        animation-name: reach-glow;
-        transform: scale(1.3);
-    }
 }
 
 .reach-tip {

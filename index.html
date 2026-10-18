@@ -31,7 +31,7 @@
     <meta name="twitter:image:alt" content="TypePets: Learn typing the fun way. A color-coded keyboard with word bubbles and a hatching chick.">
 
     <link rel="canonical" href="https://typepets.com/">
-    <link rel="stylesheet" href="css/landing.css?v=db5ac291">
+    <link rel="stylesheet" href="css/landing.css?v=6e3374d9">
 
     <!-- Schema.org SoftwareApplication -->
     <script type="application/ld+json">
@@ -713,7 +713,6 @@
         (function () {
             const card = document.querySelector('.reach-card');
             if (!card || !('IntersectionObserver' in window)) return;
-            if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
             card.classList.add('reach-pop');
             new IntersectionObserver((entries, observer) => {
                 if (!entries[0].isIntersecting) return;
