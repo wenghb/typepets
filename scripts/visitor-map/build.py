@@ -13,7 +13,7 @@ EXPORT, Download CSV) and pass the zip it downloads:
     python3 scripts/visitor-map/build.py ~/Downloads/typepets.com-Performance-on-Search-2026-10-19.zip
     python3 scripts/visitor-map/build.py export.zip --check   # exit 1 if index.html is out of date
 
-The zip's Countries.csv gives the clicks per country and Chart.csv the dates.
+Only the zip's Countries.csv (clicks per country) is used; the page names the source, not the dates.
 A country name the script can't place stops the build with a list of the names, so
 nobody quietly drops off the map; add those to NAME_FIXES below.
 
@@ -26,7 +26,6 @@ from Natural Earth's 1:50m countries (public domain; needs numpy):
 """
 import argparse
 import csv
-import datetime
 import html
 import io
 import json
@@ -52,7 +51,7 @@ LAT_TOP, LAT_BOTTOM = 83.0, -56.0
 # area (radius ~ square root of visits), never smaller than BUBBLE_MIN.
 BUBBLE_MAX, BUBBLE_MIN = 7.0, 0.9
 LABELS = 6     # countries named on the map (desktop only; phones get the list below it)
-PINGS = 5      # pulsing rings on the countries with the most visits
+PINGS = 5      # rippling rings on the countries with the most visits
 TOP_CHIPS = 8  # countries in the "Most visits from" list
 LABEL_SIZE = 2.3  # map label font size, in dots
 
@@ -210,24 +209,18 @@ def from_runs(runs):
 # ── The map ──────────────────────────────────────────────────────────────────
 
 def read_export(path):
-    """Clicks per country and the date range, from a Search Console export zip (or its folder)."""
+    """Clicks per country, from a Search Console export zip (or the folder it unzips to)."""
     path = pathlib.Path(path).expanduser()
-
-    def read(name):
-        if path.is_dir():
-            return (path / name).read_text(encoding='utf-8-sig')
+    if path.is_dir():
+        text = (path / 'Countries.csv').read_text(encoding='utf-8-sig')
+    else:
         with zipfile.ZipFile(path) as archive:
-            return archive.read(name).decode('utf-8-sig')
+            text = archive.read('Countries.csv').decode('utf-8-sig')
 
     clicks = {}
-    for row in csv.DictReader(io.StringIO(read('Countries.csv'))):
+    for row in csv.DictReader(io.StringIO(text)):
         clicks[row['Country']] = clicks.get(row['Country'], 0) + int(row['Clicks'].replace(',', ''))
-
-    days = [row['Date'] for row in csv.DictReader(io.StringIO(read('Chart.csv')))
-            if int(row['Clicks'].replace(',', '')) or int(row['Impressions'].replace(',', ''))]
-    if not days:
-        sys.exit('Chart.csv has no days with any clicks or impressions.')
-    return clicks, min(days), max(days)
+    return clicks
 
 
 def place(clicks, countries):
@@ -263,11 +256,6 @@ def dots_path(dots):
     return ''.join(f'M{fmt(dot_x(row, col) - 0.5)} {row}h{n}' for row, col, n in to_runs(dots))
 
 
-def nice_date(day):
-    d = datetime.date.fromisoformat(day)
-    return f'{d:%b} {d.day}, {d.year}'
-
-
 def overlaps(a, b):
     return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
 
@@ -293,7 +281,7 @@ def place_labels(spots, ranked, shown):
     return ''.join(labels)
 
 
-def render(land, visits, shown, first_day, last_day):
+def render(land, visits, shown):
     countries = {c['code']: c for c in land['countries']}
     dots = from_runs(land['land'])
     ranked = sorted(visits, key=lambda code: (-visits[code], shown[code]))
@@ -306,12 +294,15 @@ def render(land, visits, shown, first_day, last_day):
     y0 = min(r for r, _ in dots) - 1.5
     y1 = max(r for r, _ in dots) + 1.5
 
-    # Biggest first, so smaller bubbles sit on top and stay easy to point at.
+    # Biggest first, so smaller bubbles sit on top and stay easy to point at. --i is the
+    # bubble's place from west to east: the page pops them in in that order.
+    west_to_east = {c: i for i, c in enumerate(sorted(visits, key=lambda c: (spots[c][0], c)))}
     bubbles = ''.join(f'<circle cx="{fmt(spots[c][0])}" cy="{fmt(spots[c][1])}" r="{fmt(spots[c][2])}" '
-                      f'data-name="{html.escape(shown[c])}"/>' for c in ranked)
-    pings = ''.join(f'<circle class="reach-ping" style="animation-delay:{i * 0.6:.1f}s" '
+                      f'style="--i:{west_to_east[c]}" data-name="{html.escape(shown[c])}"/>' for c in ranked)
+    # Two rings per top country, 1.2 s apart, starting once the bubbles have popped in.
+    pings = ''.join(f'<circle class="reach-ping" style="animation-delay:{1.5 + i * 0.5 + ring * 1.2:.1f}s" '
                     f'cx="{fmt(spots[c][0])}" cy="{fmt(spots[c][1])}" r="{fmt(spots[c][2])}"/>'
-                    for i, c in enumerate(ranked[:PINGS]))
+                    for i, c in enumerate(ranked[:PINGS]) for ring in (0, 1))
     labels = place_labels(spots, ranked, shown)
 
     continents = {countries[code]['continent'] for code in visits} - {'Seven seas (open ocean)', 'Antarctica'}
@@ -343,7 +334,7 @@ def render(land, visits, shown, first_day, last_day):
                     <ul class="reach-chips">{chips}</ul>
                 </figcaption>
             </figure>
-            <p class="reach-note">Countries with at least one visit from Google Search, {nice_date(first_day)} to {nice_date(last_day)}.</p>
+            <p class="reach-note">Countries with at least one visit from Google Search.</p>
         </div>
     </section>
     {END}'''
@@ -366,9 +357,9 @@ def main():
     land = json.loads(LAND_FILE.read_text(encoding='utf-8'))
     if (land['cols'], land['rows']) != (COLS, ROWS):
         sys.exit('land.json was built for a different grid: rebuild it with --land.')
-    clicks, first_day, last_day = read_export(args.export)
+    clicks = read_export(args.export)
     visits, shown = place(clicks, land['countries'])
-    block = render(land, visits, shown, first_day, last_day)
+    block = render(land, visits, shown)
 
     page = INDEX.read_text(encoding='utf-8')
     start, end = page.find(START), page.find(END)
@@ -382,7 +373,7 @@ def main():
         print('The visitor map is up to date.')
         return 0
     INDEX.write_text(new_page, encoding='utf-8')
-    print(f'Visitor map: {len(visits)} countries, {nice_date(first_day)} to {nice_date(last_day)}.')
+    print(f'Visitor map: {len(visits)} countries.')
     return 0
 
 

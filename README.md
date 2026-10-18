@@ -108,7 +108,7 @@ python3 scripts/visitor-map/build.py ~/Downloads/typepets.com-Performance-on-Sea
 python3 scripts/visitor-map/build.py export.zip --check   # exits 1 if index.html is out of date
 ```
 
-- It reads `Countries.csv` (clicks per country; impressions don't count) and `Chart.csv` (the dates shown under the map). Countries with zero clicks stay grey.
+- It reads only `Countries.csv` (clicks per country; impressions don't count). Countries with zero clicks get no bubble. The note under the map names the source (Google Search) but not the dates.
 - A country name it can't place stops the build and lists the names; add them to `NAME_FIXES` in the script. Nothing drops off the map quietly.
 - The land dots and each country's bubble position (Natural Earth's label point) come from `scripts/visitor-map/land.json`, built once from Natural Earth's public-domain 1:50m countries. Rebuilding it is only needed to change the grid (`--land <geojson>`, needs numpy; see the script's docstring).
 - Copy, bubble sizes and how many countries are named live in the script (`render()`, `BUBBLE_MAX`, `LABELS`, `TOP_CHIPS`); edit there, not in `index.html`. Styles are under "Where visitors come from" in `css/landing.css`; hovering (or tapping) a bubble names its country.
