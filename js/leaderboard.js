@@ -5,7 +5,6 @@
  * - Joining is optional. A kid picks one of three made-up names ("Speedy Otter"); nobody types
  *   anything that ends up on the board. Rows show that name, the pet as it's dressed and the
  *   week's XP. Their own row is marked "You", and pinned under the top 25 when it's further down.
- *   While few kids have joined, the server adds practice bots ("Robo Otter"), marked "Bot".
  * - Weeks start Monday 00:00 UTC. The week's XP is worked out from the sessions this computer
  *   already keeps (TypePetsData.getPracticeXp), so it's the same XP the pet got and the same on
  *   every computer a save code links.
@@ -376,12 +375,6 @@ const TypePetsLeaderboard = (function() {
         const name = el('span', 'lb-name');
         name.appendChild(el('span', 'lb-name-text', r.name));
         if (r.you) name.appendChild(el('span', 'lb-you-tag', 'You'));
-        if (r.bot) {
-            li.classList.add('lb-row-bot');
-            const tag = el('span', 'lb-bot-tag', 'Bot');
-            tag.title = 'A TypePets practice bot, not a real player';
-            name.appendChild(tag);
-        }
         li.appendChild(name);
         li.appendChild(el('span', 'lb-xp', `${fmt(r.xp)} XP`));
         return li;
