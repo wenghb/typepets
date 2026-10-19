@@ -13,7 +13,7 @@
  *                                                      409 { error: 'name_taken' }
  *   { action: 'update', id, token, name?, species, look, scores } → 200 { ok, name }
  *                                                      409 { error: 'name_taken' } (rename only)
- *   { action: 'board', week: 'this' | 'last', id? }  → 200 { ok, week, next_week_at, last_final_at, total, rows, you }
+ *   { action: 'board', week: 'this' | 'last', id? }  → 200 { ok, week, next_week_at, last_final_at, rows, you, known? }
  *   { action: 'leave', id, token }                   → 200 { ok }
  *
  * `scores` is { 'YYYY-MM-DD' (a week's Monday): xp }. The browser works it out from the
@@ -26,6 +26,11 @@
  * players nobody updated for RETENTION_DAYS, and weeks older than last week.
  *
  * Binding: FEEDBACK_DB (D1), shared with feedback and save codes; tables are created on first use.
+ *
+ * Practice bots: while few kids are on this week's board, friendly bots fill it up to BOT_FILL
+ * rows, so a new player has someone to pass. They're named "Robo <animal>", marked as bots on
+ * the page, aren't stored anywhere, and "practice" through the week on a schedule seeded by the
+ * week, so everyone sees the same numbers. Each real player on the board sends one bot away.
  *
  * Privacy: no IP address, cookie, player name, pet name or free text is stored. The id and
  * token are random and only tie a browser to its own row.
@@ -82,6 +87,22 @@ const XP_MAX = 1000000;              // far beyond a week of real practice; stop
 const WEEK_MS = 7 * 86400000;
 const WEEK_GRACE_HOURS = 48;         // last week still takes updates this long into the new one
 const BOARD_SIZE = 25;
+const BOT_FILL = 12;                 // bots fill this week's board up to this many rows
+const BOT_XP_MIN = 30;               // a bot's week ends somewhere between these (spread evenly
+const BOT_XP_MAX = 700;              // on a log scale): an easy-to-pass crowd for new players
+const BOT_WARMUP = [5, 25];          // XP each bot starts the week with, so the board is never bare
+const BOT_NAMES = ['Otter', 'Panda', 'Koala', 'Fox', 'Owl', 'Penguin', 'Puffin', 'Turtle', 'Llama',
+    'Bunny', 'Hedgehog', 'Hamster', 'Gecko', 'Frog', 'Robin', 'Parrot'];
+// Everyday wardrobe items only (js/wardrobe.js ids), so bots look like they're just getting started
+const BOT_LOOKS = {
+    color: ['classic', 'bubblegum', 'sky', 'mint', 'lemon', 'grape', 'tangerine', 'cherry', 'cocoa', 'snow'],
+    pattern: ['none', 'none', 'belly', 'spots'],
+    hat: ['none', 'none', 'party', 'beanie'],
+    face: ['none', 'none', 'none', 'round'],
+    neck: ['none', 'none', 'bell', 'bandana'],
+    place: ['meadow', 'meadow', 'beach', 'sea']
+};
+const BOT_SPECIES = ['egg', 'baby', 'baby', 'kid', 'kid', 'teen'];
 const RETENTION_DAYS = 60;           // a player's page sends something at least weekly while they visit
 const HOUSEKEEPING_ODDS = 50;        // 1 in this many updates also tidies up
 const JOIN_WINDOW_MIN = 10;
@@ -298,10 +319,57 @@ function parseLook(text) {
     try { return cleanLook(JSON.parse(text)); } catch (e) { return {}; }
 }
 
+/** A repeatable random number generator (mulberry32) seeded by a string. */
+function seededRandom(text) {
+    let h = 2166136261;
+    for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+    return function() {
+        h = (h + 0x6D2B79F5) | 0;
+        let t = Math.imul(h ^ (h >>> 15), 1 | h);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+/**
+ * This week's practice bots as they stand at `now`. Every draw comes from the week's seed in a
+ * fixed order, so a bot is the same all week and on every computer; only how far into the week
+ * it is changes their XP. Each bot starts with a small warm-up and practices once on some days,
+ * at a random time of day.
+ */
+function practiceBots(week, now, count) {
+    const rand = seededRandom('typepets-bots-' + week);
+    const pick = (list) => list[Math.floor(rand() * list.length)];
+    const names = BOT_NAMES.slice();
+    for (let i = names.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        [names[i], names[j]] = [names[j], names[i]];
+    }
+    const daysIn = (now - Date.parse(week + 'T00:00:00Z')) / 86400000;
+    const bots = [];
+    for (let i = 0; i < BOT_FILL; i++) {
+        const target = BOT_XP_MIN * Math.pow(BOT_XP_MAX / BOT_XP_MIN, rand());
+        const warmup = BOT_WARMUP[0] + rand() * (BOT_WARMUP[1] - BOT_WARMUP[0]);
+        const sessions = [];
+        for (let day = 0; day < 7; day++) {
+            const at = day + rand();                // any time of day: kids are in every time zone
+            const weight = 0.5 + rand();
+            if (rand() < 0.65) sessions.push({ at, weight });
+        }
+        if (!sessions.length) sessions.push({ at: 3.6, weight: 1 });
+        const total = sessions.reduce((sum, x) => sum + x.weight, 0);
+        const done = sessions.filter((x) => x.at <= daysIn).reduce((sum, x) => sum + x.weight, 0);
+        const look = {};
+        for (const slot of LOOK_SLOTS) look[slot] = pick(BOT_LOOKS[slot]);
+        bots.push({ name: 'Robo ' + names[i], species: pick(BOT_SPECIES), look, xp: Math.round(warmup + target * done / total), bot: true });
+    }
+    return bots.slice(0, count);
+}
+
 async function board(db, body, weeks) {
     const week = body.week === 'last' ? weeks.last : weeks.current;
     const id = typeof body.id === 'string' && ID_RE.test(body.id) ? body.id : '';
-    const [top, total, mine] = await db.batch([
+    const [top, count, mine, exists] = await db.batch([
         db.prepare(
             `SELECT s.player_id, s.xp, p.name, p.species, p.look
              FROM lb_scores s JOIN lb_players p ON p.id = s.player_id
@@ -315,26 +383,39 @@ async function board(db, body, weeks) {
                      WHERE o.week = s.week AND o.xp > s.xp) + 1 AS rank
              FROM lb_scores s JOIN lb_players p ON p.id = s.player_id
              WHERE s.week = ? AND s.player_id = ? AND s.xp > 0`
-        ).bind(week, id)
+        ).bind(week, id),
+        db.prepare('SELECT 1 AS yes FROM lb_players WHERE id = ?').bind(id)
     ]);
 
-    // Equal XP shares a rank (1, 2, 2, 4); within it, whoever got there first is listed first
+    const players = (top.results || []).map((r) => ({
+        name: r.name,
+        species: SPECIES.includes(r.species) ? r.species : 'egg',
+        look: parseLook(r.look),
+        xp: r.xp,
+        you: !!id && r.player_id === id
+    }));
+    const real = count.results && count.results[0] ? count.results[0].n : 0;
+    const bots = week === weeks.current
+        ? practiceBots(week, Date.now(), Math.max(0, BOT_FILL - real)).filter((b) => b.xp > 0)
+        : [];
+
+    // Highest XP first; on equal XP, players before bots (and players in the order they got
+    // there). Equal XP shares a rank (1, 2, 2, 4).
+    const sorted = players.concat(bots).sort((a, b) => b.xp - a.xp || (a.bot ? 1 : 0) - (b.bot ? 1 : 0)).slice(0, BOARD_SIZE);
     const rows = [];
-    for (const r of top.results || []) {
+    for (const r of sorted) {
         const prev = rows[rows.length - 1];
-        rows.push({
-            rank: prev && prev.xp === r.xp ? prev.rank : rows.length + 1,
-            name: r.name,
-            species: SPECIES.includes(r.species) ? r.species : 'egg',
-            look: parseLook(r.look),
-            xp: r.xp,
-            you: !!id && r.player_id === id
-        });
+        rows.push({ ...r, rank: prev && prev.xp === r.xp ? prev.rank : rows.length + 1 });
     }
     const m = mine.results && mine.results[0];
-    const you = m ? { rank: m.rank, name: m.name, species: m.species, look: parseLook(m.look), xp: m.xp } : null;
-    const n = total.results && total.results[0] ? total.results[0].n : 0;
-    return json({ ok: true, week, next_week_at: weeks.next, last_final_at: weeks.lastFinal, total: n, rows, you });
+    const you = m ? {
+        rank: m.rank + bots.filter((b) => b.xp > m.xp).length,
+        name: m.name, species: m.species, look: parseLook(m.look), xp: m.xp
+    } : null;
+    const out = { ok: true, week, next_week_at: weeks.next, last_final_at: weeks.lastFinal, rows, you };
+    // Whether the asking player still has a row, so a page can notice one that was removed
+    if (id) out.known = !!(exists.results && exists.results.length);
+    return json(out);
 }
 
 async function leave(db, body) {

@@ -5,6 +5,7 @@
  * - Joining is optional. A kid picks one of three made-up names ("Speedy Otter"); nobody types
  *   anything that ends up on the board. Rows show that name, the pet as it's dressed and the
  *   week's XP. Their own row is marked "You", and pinned under the top 25 when it's further down.
+ *   While few kids have joined, the server adds practice bots ("Robo Otter"), marked "Bot".
  * - Weeks start Monday 00:00 UTC. The week's XP is worked out from the sessions this computer
  *   already keeps (TypePetsData.getPracticeXp), so it's the same XP the pet got and the same on
  *   every computer a save code links.
@@ -326,10 +327,10 @@ const TypePetsLeaderboard = (function() {
         return { ok: true };
     }
 
-    async function loadBoard(which) {
+    async function loadBoard() {
         const link = activeLink();
-        const res = await call({ action: 'board', week: which, id: link ? link.id : undefined });
-        if (res.status === 200 && res.body.ok && Array.isArray(res.body.rows)) return { ok: true, board: res.body };
+        const res = await call({ action: 'board', week: 'this', id: link ? link.id : undefined });
+        if (res.status === 200 && res.body.ok && Array.isArray(res.body.rows)) return { ok: true, board: res.body, askedId: link ? link.id : null };
         const hint = res.status === 0 ? 'Check the internet connection and try again.' : 'Try again in a little while.';
         return { ok: false, error: `Couldn't load the leaderboard. ${hint}` };
     }
@@ -345,10 +346,6 @@ const TypePetsLeaderboard = (function() {
         const h = Math.floor(min / 60);
         if (h < 24) return `New week starts in ${plural(h, 'hour')}`;
         return `New week starts in ${plural(Math.floor(h / 24), 'day')}`;
-    }
-
-    function localDayTime(iso) {
-        return new Date(iso).toLocaleString(undefined, { weekday: 'long', hour: 'numeric', minute: '2-digit' });
     }
 
     function avatar(species, look, size) {
@@ -379,6 +376,12 @@ const TypePetsLeaderboard = (function() {
         const name = el('span', 'lb-name');
         name.appendChild(el('span', 'lb-name-text', r.name));
         if (r.you) name.appendChild(el('span', 'lb-you-tag', 'You'));
+        if (r.bot) {
+            li.classList.add('lb-row-bot');
+            const tag = el('span', 'lb-bot-tag', 'Bot');
+            tag.title = 'A TypePets practice bot, not a real player';
+            name.appendChild(tag);
+        }
         li.appendChild(name);
         li.appendChild(el('span', 'lb-xp', `${fmt(r.xp)} XP`));
         return li;
@@ -480,15 +483,11 @@ const TypePetsLeaderboard = (function() {
 
     function mountPage(root) {
         const meCard = root.querySelector('#lbMe');
-        const tabs = root.querySelectorAll('.lb-tab');
         const list = root.querySelector('#lbList');
         const pinned = root.querySelector('#lbPinned');
         const state = root.querySelector('#lbState');
         const resetEl = root.querySelector('#lbReset');
-        const boardTitle = root.querySelector('#lbBoardTitle');
-        let which = 'this';
-        let board = null;        // last board response for `which`
-        let thisWeek = null;     // { you, total } from the last this-week board, for your card
+        let board = null;        // the last board the server sent
         let loading = 0;         // load counter: only the newest answer is drawn
         let meMode = 'view';     // view | rename | leave
         let shownKey = null;     // what your card shows: 'join' or 'joined:<id>:<name>'
@@ -537,7 +536,7 @@ const TypePetsLeaderboard = (function() {
                 const res = await join(name);
                 if (res.ok) {
                     if (typeof window.showToast === 'function') window.showToast('🏆 You joined the leaderboard!', 'success', 4000);
-                    thisWeek = null;
+                    board = null;
                     renderMe('title');
                     loadAndDraw();
                 }
@@ -548,11 +547,11 @@ const TypePetsLeaderboard = (function() {
 
         function updateStats() {
             if (!stats) return;
-            const you = thisWeek && thisWeek.you;
+            const you = board && board.you;
             const xp = Math.max(weekXp(), you ? you.xp : 0);
             stats.sub.textContent = xp > 0 ? `${fmt(xp)} XP this week` : "Practice anything to get on this week's board.";
             stats.rank.hidden = !you;
-            if (you) stats.rank.textContent = `#${fmt(you.rank)} of ${fmt(thisWeek.total)} players`;
+            if (you) stats.rank.textContent = `#${fmt(you.rank)}`;
             stats.warn.hidden = !trouble;
             if (trouble === 'offline') stats.warn.textContent = "Couldn't send your newest XP yet. It goes up by itself once the internet is back.";
             else if (trouble) stats.warn.textContent = "Couldn't send your newest XP yet. TypePets will try again in a little while.";
@@ -616,7 +615,7 @@ const TypePetsLeaderboard = (function() {
                     yes.disabled = false;
                     if (!res.ok) { err.textContent = res.error; return; }
                     meMode = 'view';
-                    thisWeek = null;
+                    board = null;
                     renderMe('title');
                     loadAndDraw();
                 });
@@ -683,19 +682,10 @@ const TypePetsLeaderboard = (function() {
             pinned.replaceChildren();
             pinned.hidden = true;
             state.hidden = true;
-            boardTitle.textContent = which === 'this' ? 'This week' : 'Last week';
-            // Last week still takes late practice for 48 hours, so it's only final after that
-            const settling = which === 'last' && board.last_final_at && Date.parse(board.last_final_at) > Date.now();
-            if (which === 'this') {
-                resetEl.textContent = untilText(board.next_week_at);
-                resetEl.title = 'Starts ' + new Date(board.next_week_at).toLocaleString();
-            } else {
-                resetEl.textContent = settling ? `Late practice counts until ${localDayTime(board.last_final_at)}` : 'Final results';
-                resetEl.removeAttribute('title');
-            }
+            resetEl.textContent = untilText(board.next_week_at);
+            resetEl.title = 'Starts ' + new Date(board.next_week_at).toLocaleString();
             if (!board.rows.length) {
-                if (which === 'this') showState('empty', 'Nobody is on the board yet this week. Practice anything to be the first!', 'Start practicing');
-                else showState('empty', 'Nobody was on the board last week.');
+                showState('empty', 'Nobody is on the board yet this week. Practice anything to be the first!', 'Start practicing');
                 return;
             }
             board.rows.forEach((r) => list.appendChild(rowEl(r)));
@@ -704,14 +694,6 @@ const TypePetsLeaderboard = (function() {
                 pinned.hidden = false;
                 pinned.appendChild(el('li', 'lb-gap', '···'));
                 pinned.appendChild(rowEl({ ...you, you: true }));
-            }
-            if (which === 'last' && you) {
-                const text = settling
-                    ? `You're #${fmt(you.rank)} of ${fmt(board.total)} for last week so far, with ${fmt(you.xp)} XP.`
-                    : `You finished #${fmt(you.rank)} of ${fmt(board.total)} last week with ${fmt(you.xp)} XP. 🎉`;
-                state.hidden = false;
-                state.className = 'lb-state lb-state-finish';
-                state.replaceChildren(el('p', 'lb-finish', text));
             }
         }
 
@@ -722,8 +704,8 @@ const TypePetsLeaderboard = (function() {
             state.replaceChildren(el('p', 'lb-state-text', 'Loading the board…'));
             list.setAttribute('aria-busy', 'true');
             // Your newest XP goes up first, so the board you see includes it
-            if (which === 'this') await sync();
-            const res = await loadBoard(which);
+            await sync();
+            const res = await loadBoard();
             if (mine !== loading) return;
             list.setAttribute('aria-busy', 'false');
             if (!res.ok) {
@@ -734,20 +716,13 @@ const TypePetsLeaderboard = (function() {
                 return;
             }
             board = res.board;
-            if (which === 'this') thisWeek = { you: board.you, total: board.total };
+            // A row removed on the server (left elsewhere, expired, taken down) without anything
+            // to send from here yet: notice it now
+            const link = activeLink();
+            if (link && link.id === res.askedId && board.known === false) forget(link);
             drawBoard();
             refreshMe();
         }
-
-        tabs.forEach((t) => {
-            t.addEventListener('click', () => {
-                if (t.dataset.week === which) return;
-                which = t.dataset.week;
-                tabs.forEach((x) => x.setAttribute('aria-pressed', x.dataset.week === which ? 'true' : 'false'));
-                board = null;
-                loadAndDraw();
-            });
-        });
 
         listeners.push(refreshMe);
         renderMe();

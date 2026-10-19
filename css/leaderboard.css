@@ -314,29 +314,8 @@
     border-bottom: 1px solid var(--border-color);
 }
 
-.lb-tabs {
-    display: inline-flex;
-    padding: 4px;
-    border-radius: 999px;
-    background: var(--bg-primary);
-}
-
-.lb-tab {
-    border: none;
-    background: transparent;
-    padding: 8px 18px;
-    border-radius: 999px;
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 0.95rem;
-    color: var(--text-secondary);
-    cursor: pointer;
-}
-
-.lb-tab[aria-pressed="true"] {
-    background: var(--bg-card);
-    color: var(--text-primary);
-    box-shadow: var(--shadow-sm);
+.lb-board-title {
+    font-size: 1.1rem;
 }
 
 .lb-reset {
@@ -409,6 +388,19 @@
     letter-spacing: 0.3px;
 }
 
+.lb-bot-tag {
+    flex-shrink: 0;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-weight: 800;
+    font-size: 0.78rem;
+    letter-spacing: 0.3px;
+    cursor: help;
+}
+
 .lb-xp {
     font-family: var(--font-display);
     font-weight: 700;
@@ -476,15 +468,6 @@
 
 .lb-state .btn {
     margin: 14px 0 0;
-}
-
-.lb-state-finish {
-    padding: 6px 20px 18px;
-}
-
-.lb-finish {
-    font-weight: 800;
-    color: var(--text-primary);
 }
 
 .lb-fine {

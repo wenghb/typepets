@@ -12,7 +12,7 @@
     <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
     <link rel="stylesheet" href="../css/style.css?v=700b6366">
     <link rel="stylesheet" href="../css/pet-art.css?v=2e573092">
-    <link rel="stylesheet" href="../css/leaderboard.css?v=d51de9b3">
+    <link rel="stylesheet" href="../css/leaderboard.css?v=1fb5e624">
 </head>
 <body>
     <nav class="main-nav">
@@ -44,19 +44,15 @@
 
             <section class="lb-card lb-board" aria-labelledby="lbBoardTitle">
                 <div class="lb-board-head">
-                    <div class="lb-tabs" role="group" aria-label="Which week">
-                        <button type="button" class="lb-tab" data-week="this" aria-pressed="true">This week</button>
-                        <button type="button" class="lb-tab" data-week="last" aria-pressed="false">Last week</button>
-                    </div>
+                    <h2 class="lb-board-title" id="lbBoardTitle">Top typists</h2>
                     <span class="lb-reset" id="lbReset"></span>
                 </div>
-                <h2 class="sr-only" id="lbBoardTitle">This week</h2>
                 <ol class="lb-list" id="lbList" aria-labelledby="lbBoardTitle"></ol>
                 <ol class="lb-list lb-pinned" id="lbPinned" aria-label="Your place" hidden></ol>
                 <div class="lb-state" id="lbState" role="status"></div>
             </section>
 
-            <p class="lb-fine">Only XP from practice counts. Leaderboard names are made up by TypePets, so nobody's real name is ever shown. The board starts over every Monday (00:00 UTC). <a href="../privacy.html#leaderboard">How the leaderboard works</a></p>
+            <p class="lb-fine">Only XP from practice counts. Leaderboard names are made up by TypePets, so nobody's real name is ever shown. Rows marked "Bot" are TypePets practice bots that keep the board company while it fills up: pass them to climb! The board starts over every Monday (00:00 UTC). <a href="../privacy.html#leaderboard">How the leaderboard works</a></p>
         </div>
     </main>
 
@@ -69,7 +65,7 @@
     <script src="../js/app.js?v=52774b33"></script>
     <script src="../js/cloud-save.js?v=17283d3e"></script>
     <script src="../js/feedback.js?v=310f25f1"></script>
-    <script src="../js/leaderboard.js?v=308d5242"></script>
+    <script src="../js/leaderboard.js?v=cae391c5"></script>
     <script>
         TypePetsLeaderboard.mountPage(document.getElementById('leaderboard'));
     </script>
