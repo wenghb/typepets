@@ -157,22 +157,20 @@
     margin-top: 18px;
 }
 
-.lb-choices {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+.lb-build {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 10px;
-    min-height: 54px;
 }
 
-.lb-choices-loading {
-    grid-column: 1 / -1;
-    align-self: center;
-    color: var(--text-secondary);
-    font-weight: 700;
-}
-
-.lb-choice {
-    padding: 12px 10px;
+.lb-slot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 150px;
+    padding: 10px 16px;
     border: 2px solid var(--border-color);
     border-bottom-width: 5px;
     border-radius: 14px;
@@ -180,32 +178,135 @@
     color: var(--text-primary);
     font-family: var(--font-display);
     font-weight: 600;
-    font-size: 1.05rem;
+    font-size: 1.25rem;
     cursor: pointer;
-    transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+    transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-.lb-choice:hover {
+.lb-slot:hover,
+.lb-slot.is-open {
     border-color: var(--accent-blue);
 }
 
-.lb-choice:active {
-    transform: translateY(2px);
-    border-bottom-width: 3px;
-    margin-bottom: 2px;
+.lb-slot.is-open {
+    background: #EBF4FF;
+    color: #2B6CB0;
 }
 
-.lb-choice[aria-checked="true"] {
+[data-theme="dark"] .lb-slot.is-open {
+    background: #1E3550;
+    color: #BEE3F8;
+}
+
+.lb-slot:disabled {
+    cursor: progress;
+    opacity: 0.7;
+}
+
+.lb-slot-caret {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.lb-surprise {
+    margin-left: auto;
+}
+
+.lb-availability {
+    min-height: 1.4em;
+    margin-top: 10px;
+    color: var(--text-secondary);
+    font-weight: 700;
+    font-size: 0.88rem;
+}
+
+.lb-availability.is-free { color: #2F855A; }
+.lb-availability.is-taken { color: #C53030; }
+[data-theme="dark"] .lb-availability.is-free { color: #9AE6B4; }
+[data-theme="dark"] .lb-availability.is-taken { color: #FEB2B2; }
+
+.lb-words {
+    margin-top: 8px;
+    padding: 14px;
+    border-radius: 14px;
+    background: var(--bg-primary);
+}
+
+.lb-words[hidden] {
+    display: none;
+}
+
+.lb-words-title {
+    margin-bottom: 10px;
+    color: var(--text-secondary);
+    font-weight: 800;
+    font-size: 0.85rem;
+}
+
+.lb-groups {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.lb-group {
+    padding: 6px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.82rem;
+    cursor: pointer;
+}
+
+.lb-group:hover {
+    border-color: var(--accent-blue);
+}
+
+.lb-group[aria-pressed="true"] {
+    border-color: #2B6CB0;
+    background: #2B6CB0;
+    color: #fff;
+}
+
+.lb-word-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+    gap: 8px;
+}
+
+.lb-word {
+    padding: 9px 8px;
+    border: 2px solid var(--border-color);
+    border-bottom-width: 4px;
+    border-radius: 12px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.98rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, transform 0.1s ease;
+}
+
+.lb-word:hover {
+    border-color: var(--accent-blue);
+}
+
+.lb-word:active {
+    transform: translateY(2px);
+}
+
+.lb-word[aria-pressed="true"] {
     border-color: var(--accent-blue);
     background: #EBF4FF;
     color: #2B6CB0;
 }
 
-.lb-choice[aria-checked="true"]::before {
-    content: '✓ ';
-}
-
-[data-theme="dark"] .lb-choice[aria-checked="true"] {
+[data-theme="dark"] .lb-word[aria-pressed="true"] {
     background: #1E3550;
     color: #BEE3F8;
 }
@@ -229,11 +330,6 @@
 .lb-page .btn-secondary:hover {
     border-color: var(--accent-blue);
     background: var(--bg-card);
-}
-
-.lb-picker.is-busy .lb-go {
-    opacity: 0.75;
-    cursor: progress;
 }
 
 .lb-error {
@@ -489,8 +585,20 @@
         font-size: 1.15rem;
     }
 
-    .lb-choices {
-        grid-template-columns: 1fr;
+    .lb-slot {
+        flex: 1 1 calc(50% - 5px);
+        min-width: 0;
+        font-size: 1.05rem;
+        padding: 9px 12px;
+    }
+
+    .lb-surprise {
+        flex: 1 1 100%;
+        margin-left: 0;
+    }
+
+    .lb-word-grid {
+        grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
     }
 
     .lb-board-head {

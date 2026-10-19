@@ -2,13 +2,15 @@
  * TypePets — weekly leaderboard API (Cloudflare Pages Function, served at /api/leaderboard)
  *
  * Players who join are ranked by the XP they earned from practice this week. Weeks start on
- * Monday at 00:00 UTC. Nobody types anything that ends up on the board: a leaderboard name is
- * two words from the lists below ("Speedy Otter"), picked from suggestions, and a row shows
- * only that name, the pet's stage and look (wardrobe item ids) and the week's XP.
+ * Monday at 00:00 UTC. Nobody types anything that ends up on the board: a kid builds their
+ * leaderboard name from two word lists below ("Cosmic" + "Pancake"), and a row shows only that
+ * name, the pet's stage and look (wardrobe item ids) and the week's XP.
  *
  * Every call is a POST with a JSON body:
  *
+ *   { action: 'words' }                              → 200 { ok, first: [{ label, words }], second: [...] }
  *   { action: 'names' }                              → 200 { ok, names: [3 free names] }
+ *   { action: 'check', name }                        → 200 { ok, free }
  *   { action: 'join', name, species, look, scores }  → 201 { ok, id, token, name }
  *                                                      409 { error: 'name_taken' }
  *   { action: 'update', id, token, name?, species, look, scores } → 200 { ok, name }
@@ -37,41 +39,79 @@
 
 import { json, readBodyCapped, sameOrigin } from '../_lib/http.js';
 
-// Friendly words for 7–12 year olds. Every adjective works with every noun, and none of the
-// pairs can be read as unkind. Changing a word renames nobody (names are stored whole), but
-// a removed word can no longer be picked.
-const ADJECTIVES = [
-    'Brave', 'Bright', 'Bouncy', 'Breezy', 'Bubbly', 'Calm', 'Cheery', 'Clever', 'Cosmic', 'Cozy',
-    'Cuddly', 'Curious', 'Daring', 'Dashing', 'Dreamy', 'Eager', 'Fancy', 'Fearless', 'Fluffy',
-    'Friendly', 'Frosty', 'Fuzzy', 'Gentle', 'Giggly', 'Glowing', 'Golden', 'Grand', 'Groovy',
-    'Happy', 'Helpful', 'Hoppy', 'Jazzy', 'Jolly', 'Jumpy', 'Kind', 'Lively', 'Lucky', 'Magic',
-    'Merry', 'Mighty', 'Misty', 'Nimble', 'Noble', 'Peppy', 'Perky', 'Plucky', 'Polite', 'Quick',
-    'Quiet', 'Rapid', 'Rosy', 'Shiny', 'Silly', 'Sleepy', 'Snappy', 'Snowy', 'Sparkly', 'Speedy',
-    'Spotty', 'Starry', 'Sunny', 'Super', 'Swift', 'Tiny', 'Turbo', 'Wiggly', 'Witty', 'Zippy',
-    'Bold', 'Brilliant', 'Busy', 'Chirpy', 'Comfy', 'Crafty', 'Dapper', 'Dazzling', 'Gleaming',
-    'Glittery', 'Graceful', 'Hearty', 'Joyful', 'Marvelous', 'Mellow', 'Nifty', 'Patient', 'Peaceful',
-    'Playful', 'Radiant', 'Royal', 'Snazzy', 'Spiffy', 'Splendid', 'Steady', 'Stellar', 'Sturdy',
-    'Tidy', 'Trusty', 'Twinkly', 'Vivid', 'Wise'
+// Friendly words for 7–12 year olds, in groups for the name picker: a name is one word from
+// FIRST_WORDS and one from SECOND_WORDS ("Cosmic Pancake"). Kids build their own name from
+// them, so every word has to be kind on its own and next to any other. Changing a word renames
+// nobody (names are stored whole), but a removed word can no longer be picked.
+const FIRST_WORDS = [
+    { label: 'Fast and strong', words: [
+        'Speedy', 'Swift', 'Quick', 'Rapid', 'Turbo', 'Zippy', 'Nimble', 'Dashing', 'Snappy',
+        'Mighty', 'Super', 'Bold', 'Brave', 'Daring', 'Fearless', 'Plucky', 'Sturdy', 'Steady',
+        'Noble', 'Royal', 'Grand', 'Trusty', 'Busy', 'Epic', 'Heroic'
+    ] },
+    { label: 'Happy and kind', words: [
+        'Happy', 'Jolly', 'Merry', 'Cheery', 'Joyful', 'Peppy', 'Perky', 'Lively', 'Eager', 'Kind',
+        'Friendly', 'Gentle', 'Helpful', 'Polite', 'Patient', 'Calm', 'Peaceful', 'Mellow',
+        'Quiet', 'Wise', 'Clever', 'Witty', 'Curious', 'Lucky', 'Hearty', 'Chirpy', 'Sunny'
+    ] },
+    { label: 'Silly and cozy', words: [
+        'Silly', 'Giggly', 'Wiggly', 'Bouncy', 'Hoppy', 'Jumpy', 'Bubbly', 'Playful', 'Groovy',
+        'Jazzy', 'Snazzy', 'Spiffy', 'Nifty', 'Dapper', 'Fancy', 'Crafty', 'Cozy', 'Comfy',
+        'Cuddly', 'Fluffy', 'Fuzzy', 'Sleepy', 'Tiny', 'Tidy', 'Spotty', 'Dreamy', 'Wobbly',
+        'Squishy'
+    ] },
+    { label: 'Sparkly', words: [
+        'Shiny', 'Sparkly', 'Glittery', 'Gleaming', 'Glowing', 'Dazzling', 'Brilliant', 'Radiant',
+        'Bright', 'Vivid', 'Splendid', 'Marvelous', 'Magic', 'Cosmic', 'Starry', 'Stellar',
+        'Twinkly', 'Snowy', 'Frosty', 'Misty', 'Breezy', 'Graceful', 'Mystic', 'Lunar'
+    ] },
+    { label: 'Colors', words: [
+        'Golden', 'Rosy', 'Amber', 'Aqua', 'Coral', 'Crimson', 'Emerald', 'Indigo', 'Jade',
+        'Lavender', 'Lilac', 'Lime', 'Minty', 'Ruby', 'Sapphire', 'Scarlet', 'Silver', 'Teal',
+        'Violet', 'Copper', 'Rainbow', 'Pastel', 'Neon'
+    ] }
 ];
-const NOUNS = [
-    'Otter', 'Panda', 'Koala', 'Fox', 'Owl', 'Penguin', 'Puffin', 'Dolphin', 'Turtle', 'Tiger',
-    'Lion', 'Llama', 'Alpaca', 'Bunny', 'Kitten', 'Puppy', 'Hedgehog', 'Hamster', 'Beaver',
-    'Badger', 'Moose', 'Walrus', 'Seal', 'Narwhal', 'Octopus', 'Starfish', 'Seahorse', 'Crab',
-    'Gecko', 'Iguana', 'Frog', 'Newt', 'Duckling', 'Goose', 'Swan', 'Robin', 'Parrot', 'Toucan',
-    'Flamingo', 'Peacock', 'Falcon', 'Eagle', 'Raven', 'Bee', 'Ladybug', 'Butterfly', 'Firefly',
-    'Cricket', 'Pony', 'Unicorn', 'Dragon', 'Dino', 'Yeti', 'Phoenix', 'Zebra', 'Giraffe', 'Hippo',
-    'Rhino', 'Elephant', 'Camel', 'Kangaroo', 'Wombat', 'Platypus', 'Sloth', 'Lemur', 'Meerkat',
-    'Raccoon', 'Squirrel', 'Chipmunk', 'Cheetah', 'Jaguar', 'Lynx', 'Wolf', 'Bear', 'Yak', 'Bison',
-    'Orca', 'Whale', 'Manatee', 'Muffin', 'Cupcake', 'Pancake', 'Waffle', 'Noodle', 'Pickle',
-    'Dumpling', 'Pretzel', 'Taco', 'Biscuit', 'Cookie', 'Mango', 'Peach', 'Kiwi', 'Coconut',
-    'Popcorn', 'Bagel', 'Comet', 'Rocket', 'Meteor', 'Planet', 'Axolotl', 'Capybara', 'Chinchilla',
-    'Corgi', 'Ferret', 'Gerbil', 'Hummingbird', 'Jellyfish', 'Kingfisher', 'Lobster', 'Mongoose',
-    'Ocelot', 'Pelican', 'Quokka', 'Salamander', 'Stingray', 'Tadpole', 'Tortoise', 'Snowflake', 'Acorn'
+const SECOND_WORDS = [
+    { label: 'Cute critters', words: [
+        'Bunny', 'Kitten', 'Puppy', 'Corgi', 'Hamster', 'Gerbil', 'Hedgehog', 'Chinchilla',
+        'Ferret', 'Pony', 'Duckling', 'Goose', 'Alpaca', 'Llama', 'Otter', 'Panda', 'Koala',
+        'Sloth', 'Quokka', 'Capybara', 'Raccoon', 'Squirrel', 'Chipmunk', 'Beaver', 'Badger',
+        'Meerkat', 'Lemur', 'Wombat', 'Platypus', 'Mongoose', 'Bear'
+    ] },
+    { label: 'Wild animals', words: [
+        'Tiger', 'Lion', 'Cheetah', 'Jaguar', 'Lynx', 'Ocelot', 'Wolf', 'Fox', 'Moose', 'Bison',
+        'Yak', 'Zebra', 'Giraffe', 'Hippo', 'Rhino', 'Elephant', 'Camel', 'Kangaroo', 'Gecko',
+        'Iguana', 'Frog', 'Newt', 'Salamander', 'Tadpole', 'Tortoise', 'Turtle', 'Panther',
+        'Leopard', 'Gorilla'
+    ] },
+    { label: 'Sea creatures', words: [
+        'Dolphin', 'Orca', 'Whale', 'Narwhal', 'Seal', 'Walrus', 'Manatee', 'Octopus', 'Jellyfish',
+        'Starfish', 'Seahorse', 'Crab', 'Lobster', 'Stingray', 'Axolotl', 'Shark', 'Squid',
+        'Clownfish', 'Pufferfish'
+    ] },
+    { label: 'Birds and bugs', words: [
+        'Penguin', 'Puffin', 'Owl', 'Robin', 'Parrot', 'Toucan', 'Flamingo', 'Peacock', 'Falcon',
+        'Eagle', 'Raven', 'Swan', 'Pelican', 'Kingfisher', 'Hummingbird', 'Bee', 'Ladybug',
+        'Butterfly', 'Firefly', 'Cricket', 'Dragonfly', 'Beetle'
+    ] },
+    { label: 'Yummy food', words: [
+        'Muffin', 'Cupcake', 'Pancake', 'Waffle', 'Noodle', 'Pickle', 'Dumpling', 'Pretzel',
+        'Taco', 'Biscuit', 'Cookie', 'Mango', 'Peach', 'Kiwi', 'Coconut', 'Popcorn', 'Bagel',
+        'Acorn', 'Donut', 'Sundae', 'Smoothie', 'Brownie', 'Burrito', 'Pudding', 'Sprinkle',
+        'Croissant', 'Mochi', 'Churro', 'Blueberry', 'Cherry', 'Lemon', 'Melon'
+    ] },
+    { label: 'Space and magic', words: [
+        'Comet', 'Rocket', 'Meteor', 'Planet', 'Snowflake', 'Unicorn', 'Dragon', 'Dino', 'Yeti',
+        'Phoenix', 'Galaxy', 'Nebula', 'Astronaut', 'Moon', 'Star', 'Wizard', 'Knight', 'Ninja',
+        'Pirate', 'Robot', 'Mermaid', 'Fairy', 'Griffin', 'Pegasus', 'Volcano', 'Tornado'
+    ] }
 ];
+const ADJECTIVES = FIRST_WORDS.flatMap((g) => g.words);
+const NOUNS = SECOND_WORDS.flatMap((g) => g.words);
 const ADJECTIVE_SET = new Set(ADJECTIVES);
 const NOUN_SET = new Set(NOUNS);
 
-const ACTIONS = ['names', 'join', 'update', 'board', 'leave'];
+const ACTIONS = ['words', 'names', 'check', 'join', 'update', 'board', 'leave'];
 const SPECIES = ['egg', 'baby', 'kid', 'teen', 'adult', 'master'];
 const LOOK_SLOTS = ['color', 'pattern', 'hat', 'face', 'neck', 'place'];   // js/wardrobe.js SLOTS
 const LOOK_ID_RE = /^[a-z0-9_]{1,24}$/;
@@ -203,6 +243,14 @@ async function suggestNames(db) {
 }
 
 /** Upserts for a player's weeks. A player deleted meanwhile (left in another tab) gets no score. */
+/** Whether nobody has this name yet. */
+async function checkName(db, body) {
+    const name = validName(body.name);
+    if (!name) return json({ ok: false, error: 'bad_request' }, 400);
+    const row = await db.prepare('SELECT 1 AS yes FROM lb_players WHERE name = ?').bind(name).first();
+    return json({ ok: true, free: !row });
+}
+
 function scoreStatements(db, id, scores, now) {
     return scores.map((s) => db.prepare(
         `INSERT INTO lb_scores (player_id, week, xp, reached_at)
@@ -376,7 +424,9 @@ export async function onRequestPost(context) {
     try {
         await ensureSchema(db);
         const weeks = weeksNow(Date.now());
+        if (body.action === 'words') return json({ ok: true, first: FIRST_WORDS, second: SECOND_WORDS });
         if (body.action === 'names') return await suggestNames(db);
+        if (body.action === 'check') return await checkName(db, body);
         if (body.action === 'join') return await join(db, body, weeks);
         if (body.action === 'update') return await update(db, body, weeks);
         if (body.action === 'board') return await board(db, body, weeks);

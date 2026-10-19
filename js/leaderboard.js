@@ -2,8 +2,8 @@
  * TypePets — weekly leaderboard. Server: functions/api/leaderboard.js. The link to the
  * player's row lives in the player's data (data.js `leaderboard`), so a save code carries it.
  *
- * - Joining is optional. A kid picks one of three made-up names ("Speedy Otter"); nobody types
- *   anything that ends up on the board. Rows show that name, the pet as it's dressed and the
+ * - Joining is optional. A kid builds a name from two word lists ("Cosmic" + "Pancake"); nobody
+ *   types anything that ends up on the board. Rows show that name, the pet as it's dressed and the
  *   week's XP. Their own row is marked "You", and pinned under the top 25 when it's further down.
  * - Weeks start Monday 00:00 UTC. The week's XP is worked out from the sessions this computer
  *   already keeps (TypePetsData.getPracticeXp), so it's the same XP the pet got and the same on
@@ -265,11 +265,25 @@ const TypePetsLeaderboard = (function() {
         }
     }
 
+    let wordLists = null;   // { first, second } once loaded: the same for everyone, so asked once per page
+
+    /** The two word lists names are built from, grouped (functions/api/leaderboard.js). */
+    async function loadWords() {
+        if (wordLists) return { ok: true, lists: wordLists };
+        const res = await call({ action: 'words' });
+        const ok = (list) => Array.isArray(list) && list.length && list.every((g) => g && typeof g.label === 'string' && Array.isArray(g.words) && g.words.length);
+        if (res.status === 200 && ok(res.body.first) && ok(res.body.second)) {
+            wordLists = { first: res.body.first, second: res.body.second };
+            return { ok: true, lists: wordLists };
+        }
+        return { ok: false, error: errorMessage(res) };
+    }
+
     async function suggestNames() {
         const res = await call({ action: 'names' });
         if (res.status === 200 && Array.isArray(res.body.names)) {
             if (res.body.names.length) return { ok: true, names: res.body.names };
-            return { ok: false, error: 'Lots of names are taken right now. Try "Other names" again in a moment.' };
+            return { ok: false, error: 'Lots of names are taken right now. Try again in a moment.' };
         }
         return { ok: false, error: errorMessage(res) };
     }
@@ -381,96 +395,200 @@ const TypePetsLeaderboard = (function() {
     }
 
     /**
-     * Name picker: three suggestions (the first one picked), "Other names", and a button.
-     * onPick(name) resolves to { ok, error?, taken? }; a taken name loads new suggestions.
+     * Name builder: the name is a first word and a second word from the server's lists
+     * ("Cosmic" + "Pancake"). Each word is a button that opens its list, grouped ("Colors",
+     * "Yummy food"…); picking the first word moves on to the second. "Surprise me" picks a free
+     * pair. Whether the name is free is checked as it changes. Nothing is typed.
+     * opts: { verb ('Join as'), current (the name now, when renaming), onPick(name) → { ok, error?, taken? }, onCancel? }
      */
-    function namePicker(host, actionText, onPick, onCancel) {
+    function namePicker(host, opts) {
         const box = el('div', 'lb-picker');
-        const choices = el('div', 'lb-choices');
-        choices.setAttribute('role', 'radiogroup');
-        choices.setAttribute('aria-label', 'Leaderboard name');
+        const build = el('div', 'lb-build');
+        const slots = [button('lb-slot'), button('lb-slot')];
+        const surprise = button('btn btn-secondary lb-surprise', '🎲 Surprise me');
+        const status = el('p', 'lb-availability');
+        status.setAttribute('role', 'status');
+        const panel = el('div', 'lb-words');
+        panel.hidden = true;
+        const actions = el('div', 'lb-actions');
+        const go = button('btn btn-primary lb-go');
         const err = el('p', 'lb-error');
         err.setAttribute('role', 'alert');
-        const actions = el('div', 'lb-actions');
-        const go = button('btn btn-primary lb-go', actionText);
-        const more = button('btn btn-secondary lb-more', '🎲 Other names');
-        let picked = null;
+        const picked = ['', ''];
+        let lists = null;          // { first, second } from the server
+        let open = -1;             // which word's list is showing
+        let free = null;           // null = not known yet
+        let checkSeq = 0;
         let busy = false;
 
-        function setBusy(on, label) {
-            busy = on;
-            go.textContent = on && label ? label : actionText;
-            box.classList.toggle('is-busy', on);
-            go.setAttribute('aria-busy', on ? 'true' : 'false');
-        }
+        const SLOT_HINT = ['Pick your first word', 'Pick your second word'];
+        const name = () => picked.join(' ');
 
-        function select(name) {
-            picked = name;
-            choices.querySelectorAll('.lb-choice').forEach((b) => {
-                const on = b.dataset.name === name;
-                b.setAttribute('aria-checked', on ? 'true' : 'false');
-                b.tabIndex = on ? 0 : -1;
+        function groupsFor(i) { return lists ? (i === 0 ? lists.first : lists.second) : []; }
+
+        function renderSlots() {
+            slots.forEach((b, i) => {
+                b.replaceChildren(el('span', 'lb-slot-word', picked[i] || '…'), el('span', 'lb-slot-caret', '▾'));
+                b.setAttribute('aria-expanded', open === i ? 'true' : 'false');
+                b.setAttribute('aria-label', `${i === 0 ? 'First' : 'Second'} word: ${picked[i] || 'none'}. Change it`);
+                b.classList.toggle('is-open', open === i);
             });
+            const unchanged = opts.current && name() === opts.current;
+            go.textContent = picked[0] && picked[1] && !unchanged ? `${opts.verb} ${name()}` : (unchanged ? 'Change name' : opts.verb);
         }
 
-        async function refill() {
+        function renderStatus() {
+            status.className = 'lb-availability';
+            if (opts.current && name() === opts.current) {
+                status.textContent = "That's your name now. Change a word to pick a new one.";
+            } else if (free === true) {
+                status.classList.add('is-free');
+                status.textContent = '✓ Nobody has this name yet';
+            } else if (free === false) {
+                status.classList.add('is-taken');
+                status.textContent = 'Someone already has this name. Change a word.';
+            } else {
+                status.textContent = '';
+            }
+        }
+
+        async function checkFree() {
+            const mine = ++checkSeq;
+            free = null;
+            renderStatus();
+            if (!picked[0] || !picked[1] || (opts.current && name() === opts.current)) return;
+            const res = await call({ action: 'check', name: name() });
+            if (mine !== checkSeq) return;
+            free = res.status === 200 && res.body.ok ? !!res.body.free : null; // unknown: the join answer decides
+            renderStatus();
+        }
+
+        function showList(i, group) {
+            open = i;
+            renderSlots();
+            if (i < 0) { panel.hidden = true; return; }
+            const groups = groupsFor(i);
+            const current = group !== undefined ? group : Math.max(0, groups.findIndex((g) => g.words.includes(picked[i])));
+            panel.hidden = false;
+            const title = el('p', 'lb-words-title', SLOT_HINT[i]);
+            const chips = el('div', 'lb-groups');
+            chips.setAttribute('role', 'group');
+            chips.setAttribute('aria-label', `${i === 0 ? 'First' : 'Second'} word groups`);
+            groups.forEach((g, gi) => {
+                const chip = button('lb-group', g.label, () => showList(i, gi));
+                chip.setAttribute('aria-pressed', gi === current ? 'true' : 'false');
+                chips.appendChild(chip);
+            });
+            const grid = el('div', 'lb-word-grid');
+            grid.setAttribute('role', 'group');
+            grid.setAttribute('aria-label', groups[current] ? groups[current].label : SLOT_HINT[i]);
+            (groups[current] ? groups[current].words : []).forEach((w) => {
+                const b = button('lb-word', w, () => {
+                    picked[i] = w;
+                    err.textContent = '';
+                    checkFree();
+                    // The first word leads on to the second; the second closes the list
+                    showList(i === 0 ? 1 : -1);
+                    if (i === 0) focusFirstWord(); else slots[1].focus();
+                });
+                b.setAttribute('aria-pressed', w === picked[i] ? 'true' : 'false');
+                grid.appendChild(b);
+            });
+            panel.replaceChildren(title, chips, grid);
+        }
+
+        function focusFirstWord() {
+            const on = panel.querySelector('.lb-word[aria-pressed="true"]') || panel.querySelector('.lb-word');
+            if (on) on.focus();
+        }
+
+        async function surpriseMe() {
             if (busy) return;
-            setBusy(true);
+            busy = true;
             err.textContent = '';
-            choices.replaceChildren(el('span', 'lb-choices-loading', 'Finding names…'));
             const res = await suggestNames();
-            setBusy(false);
-            choices.replaceChildren();
-            if (!res.ok) {
-                picked = null;
-                err.textContent = res.error;
+            busy = false;
+            if (!res.ok) { err.textContent = res.error; return; }
+            const parts = res.names[0].split(' ');
+            picked[0] = parts[0];
+            picked[1] = parts[1];
+            showList(-1);
+            free = true; // the server only suggests free names
+            checkSeq++;
+            renderStatus();
+        }
+
+        async function start() {
+            slots.forEach((b) => { b.disabled = true; });
+            status.textContent = 'Getting words…';
+            const [words, names] = await Promise.all([
+                lists ? null : loadWords(),
+                opts.current ? null : suggestNames()
+            ]);
+            slots.forEach((b) => { b.disabled = false; });
+            if (words && !words.ok) {
+                status.textContent = '';
+                err.replaceChildren(document.createTextNode(words.error + ' '), button('lb-link', 'Try again', () => { err.textContent = ''; start(); }));
                 return;
             }
-            res.names.forEach((name) => {
-                const b = button('lb-choice', name, () => select(name));
-                b.dataset.name = name;
-                b.setAttribute('role', 'radio');
-                choices.appendChild(b);
-            });
-            select(res.names[0]);
+            if (words) lists = words.lists;
+            if (opts.current) {
+                const parts = opts.current.split(' ');
+                picked[0] = parts[0];
+                picked[1] = parts[1];
+            } else if (names && names.ok) {
+                const parts = names.names[0].split(' ');
+                picked[0] = parts[0];
+                picked[1] = parts[1];
+                free = true;
+            } else {
+                // No suggestion: start from any two words and check them
+                picked[0] = lists.first[0].words[0];
+                picked[1] = lists.second[0].words[0];
+                checkFree();
+            }
+            renderSlots();
+            renderStatus();
         }
 
-        // Arrow keys move between the names, like any radio group
-        choices.addEventListener('keydown', (e) => {
-            if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
-            const all = [...choices.querySelectorAll('.lb-choice')];
-            const i = all.findIndex((b) => b.dataset.name === picked);
-            if (i < 0) return;
-            e.preventDefault();
-            const next = all[(i + (e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? all.length - 1 : 1)) % all.length];
-            select(next.dataset.name);
-            next.focus();
-        });
+        slots.forEach((b, i) => b.addEventListener('click', () => {
+            if (!lists) return;
+            showList(open === i ? -1 : i);
+            if (open === i) focusFirstWord();
+        }));
+        surprise.addEventListener('click', surpriseMe);
 
         go.addEventListener('click', async () => {
-            if (busy) return;
-            if (!picked) { refill(); return; }
-            setBusy(true, 'Saving…');
+            if (busy || !picked[0] || !picked[1]) return;
+            if (opts.current && name() === opts.current) { err.textContent = "That's already your name. Change a word first."; return; }
+            if (free === false) { err.textContent = 'Someone already has this name. Change a word first.'; return; }
+            busy = true;
+            go.textContent = 'Saving…';
+            go.setAttribute('aria-busy', 'true');
             err.textContent = '';
-            const res = await onPick(picked);
-            setBusy(false);
-            if (res.ok || !box.isConnected) return;
+            const res = await opts.onPick(name());
+            busy = false;
+            go.setAttribute('aria-busy', 'false');
+            if (!box.isConnected) return;
+            renderSlots();
+            if (res.ok) return;
             err.textContent = res.error;
-            if (res.taken) {
-                await refill();
-                err.textContent = res.error;
-            }
+            if (res.taken) { free = false; checkSeq++; renderStatus(); }
         });
 
+        build.appendChild(slots[0]);
+        build.appendChild(slots[1]);
+        build.appendChild(surprise);
         actions.appendChild(go);
-        actions.appendChild(more);
-        more.addEventListener('click', refill);
-        if (onCancel) actions.appendChild(button('btn btn-secondary lb-cancel', 'Cancel', onCancel));
-        box.appendChild(choices);
+        if (opts.onCancel) actions.appendChild(button('btn btn-secondary lb-cancel', 'Cancel', opts.onCancel));
+        box.appendChild(build);
+        box.appendChild(status);
+        box.appendChild(panel);
         box.appendChild(actions);
         box.appendChild(err);
         host.appendChild(box);
-        refill();
+        renderSlots();
+        start();
         return box;
     }
 
@@ -516,7 +634,7 @@ const TypePetsLeaderboard = (function() {
             text.appendChild(title);
             const xp = weekXp();
             text.appendChild(el('p', 'lb-me-sub',
-                `Pick a leaderboard name. Other players see that name, ${petName()} and your XP this week, never your real name.`));
+                `Make your leaderboard name from two words. Other players see that name, ${petName()} and your XP this week, never your real name.`));
             if (xp > 0) text.appendChild(el('p', 'lb-me-xp', `You've earned ${fmt(xp)} XP this week already.`));
             top.appendChild(text);
             meCard.appendChild(top);
@@ -525,7 +643,7 @@ const TypePetsLeaderboard = (function() {
                 n.setAttribute('role', 'status');
                 meCard.appendChild(n);
             }
-            namePicker(meCard, 'Join', async (name) => {
+            namePicker(meCard, { verb: 'Join as', onPick: async (name) => {
                 const res = await join(name);
                 if (res.ok) {
                     if (typeof window.showToast === 'function') window.showToast('🏆 You joined the leaderboard!', 'success', 4000);
@@ -534,7 +652,7 @@ const TypePetsLeaderboard = (function() {
                     loadAndDraw();
                 }
                 return res;
-            });
+            } });
             return title;
         }
 
@@ -572,11 +690,11 @@ const TypePetsLeaderboard = (function() {
             const nodes = { title };
 
             if (meMode === 'rename') {
-                const step = el('p', 'lb-me-sub lb-me-step', 'Pick a new name:');
+                const step = el('p', 'lb-me-sub lb-me-step', 'Change one word or both:');
                 step.tabIndex = -1;
                 meCard.appendChild(step);
                 nodes.step = step;
-                namePicker(meCard, 'Use this name', async (name) => {
+                namePicker(meCard, { verb: 'Change to', current: link.name, onPick: async (name) => {
                     const res = await rename(name);
                     if (res.ok) {
                         meMode = 'view';
@@ -587,7 +705,7 @@ const TypePetsLeaderboard = (function() {
                         renderMe('title', res.error);
                     }
                     return res;
-                }, () => { meMode = 'view'; renderMe('change'); });
+                }, onCancel: () => { meMode = 'view'; renderMe('change'); } });
                 return nodes;
             }
 
