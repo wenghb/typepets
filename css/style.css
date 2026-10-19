@@ -2328,3 +2328,29 @@ button:not(:disabled):active, .btn:active {
         display: none;
     }
 }
+
+/* The Leaderboard link is just its trophy until the nav has room for the word (the word stays
+   for screen readers), and the links sit a little closer while the nav is tight */
+.nav-lb-icon {
+    display: none;
+}
+
+@media (min-width: 601px) and (max-width: 940px) {
+    .nav-link {
+        padding: 8px 10px;
+    }
+}
+
+@media (min-width: 601px) and (max-width: 1020px) {
+    .nav-lb-icon {
+        display: inline;
+    }
+    .nav-lb-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+    }
+}

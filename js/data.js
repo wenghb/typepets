@@ -11,6 +11,7 @@
  *  - backup / restore ("Pet Passport")
  *  - optional save code link (`cloud`): js/cloud-save.js keeps an online copy in step
  *  - the pet's look (`pet.look`, see js/wardrobe.js): only stored once a kid changes it
+ *  - optional weekly leaderboard link (`leaderboard`, see js/leaderboard.js): only once a kid joins
  */
 
 const TypePetsData = (function() {
@@ -54,6 +55,7 @@ const TypePetsData = (function() {
     const CODE_PREFIX_PLAIN = 'TP1.';
     const CODE_PREFIX_GZIP = 'TP1z.';
     const CLOUD_CODE_RE = /^[A-Z]{2,12}-\d{3}-[A-Z]{2,12}$/;   // TIGER-427-MOON (functions/api/save.js)
+    const LB_RETIRED_KEY = 'typepets_lb_retired';   // leaderboard rows to take off the board (js/leaderboard.js)
 
     // Wardrobe slots (js/wardrobe.js has the items). Item ids are checked there, against what's unlocked.
     const LOOK_SLOTS = ['color', 'pattern', 'hat', 'face', 'neck', 'place'];
@@ -167,6 +169,37 @@ const TypePetsData = (function() {
 
     function validAvatar(a) {
         return (typeof a === 'string' && a.length > 0 && a.length <= 8 && !/[<>&"']/.test(a)) ? a : PROFILE_AVATARS[0];
+    }
+
+    /**
+     * This player's place on the weekly leaderboard (js/leaderboard.js), or null when it's
+     * malformed: the row's random id + token, and the two-word name the kid picked.
+     */
+    function _cleanLeaderboard(lb) {
+        if (!isPlainObject(lb)) return null;
+        const str = (v, re) => (typeof v === 'string' && re.test(v) ? v : null);
+        const id = str(lb.id, /^[A-Za-z0-9_-]{16,40}$/);
+        const token = str(lb.token, /^[A-Za-z0-9_-]{16,80}$/);
+        const name = str(lb.name, /^[A-Z][a-z]{1,15} [A-Z][a-z]{1,15}$/);
+        if (!id || !token || !name) return null;
+        return { id, token, name, joined_at: typeof lb.joined_at === 'string' ? lb.joined_at.slice(0, 40) : _iso() };
+    }
+
+    /**
+     * The player's data stopped pointing at a leaderboard row (a backup or save code without it
+     * was loaded, another tab joined too, the profile was deleted). Queue the row on this browser
+     * so js/leaderboard.js takes it off the board; otherwise nobody could ever remove it.
+     */
+    function _retireLeaderboard(before, after) {
+        const old = _cleanLeaderboard(before);
+        const next = _cleanLeaderboard(after);
+        if (!old || (next && next.id === old.id)) return;
+        let list = [];
+        try { list = JSON.parse(_getItem(LB_RETIRED_KEY).value || '[]'); } catch (e) { list = []; }
+        if (!Array.isArray(list)) list = [];
+        list = list.filter(x => isPlainObject(x) && x.id !== old.id);
+        list.push({ id: old.id, token: old.token });
+        _setItem(LB_RETIRED_KEY, JSON.stringify(list.slice(-20)));
     }
 
     /** Wardrobe items the kid has already seen marked NEW: unique 'slot:id' strings. */
@@ -283,6 +316,8 @@ const TypePetsData = (function() {
                 last_practice_date: null, // local YYYY-MM-DD
                 freezes_used: []          // local dates that a streak freeze covered
             },
+            // leaderboard: { id, token, name, joined_at } is added when a kid joins the weekly
+            // leaderboard (js/leaderboard.js). Like the pet's look, it's never a default.
             activities: [],   // { type, description, xp_earned, extra, timestamp }
             articles: {
                 completed: [],    // array of article IDs
@@ -424,6 +459,10 @@ const TypePetsData = (function() {
         }
         d.articles.bests = bests;
         d.cloud = _cleanCloud(d.cloud);
+        if (d.leaderboard !== undefined) {
+            const lb = _cleanLeaderboard(d.leaderboard);
+            if (lb) d.leaderboard = lb; else delete d.leaderboard;
+        }
         return d;
     }
 
@@ -533,11 +572,13 @@ const TypePetsData = (function() {
 
     const _savedListeners = [];
     let _quietSave = false; // saving only the save code link isn't a progress change
+    let _lastSaveOk = true;
 
     function _save() {
-        if (_profileGone || !_data) return false;
+        if (_profileGone || !_data) return (_lastSaveOk = false);
         let ok = false;
         try { ok = _setItem(_key, JSON.stringify(_data)); } catch (e) { ok = false; }
+        _lastSaveOk = ok;
         if (!ok) _warnSaveFailed();
         if (ok && !_quietSave) {
             _savedListeners.forEach(fn => {
@@ -690,6 +731,8 @@ const TypePetsData = (function() {
             reg.active = reg.list.some(p => p.id === reg.active) ? reg.active : reg.list[0].id;
         }
         if (!saveRegistry(reg)) return { ok: false, error: 'storage' };
+        const gone = readProfileData(keyFor(id));
+        if (gone.ok && gone.data) _retireLeaderboard(gone.data.leaderboard, null);
         _removeItem(keyFor(id));
         _removeItem(keyFor(id) + '__v1_backup');
         _removeItem(keyFor(id) + '__corrupt');
@@ -1511,8 +1554,10 @@ const TypePetsData = (function() {
         if (_txDepth !== 0) return { ok: false, error: 'busy' };
         _reload();
         v.data.cloud = _cleanCloud(_data.cloud); // a linked player stays linked; the restored progress syncs up
+        const leaderboardBefore = _data.leaderboard;
         _data = v.data;
         if (!_save()) return { ok: false, error: 'storage' };
+        _retireLeaderboard(leaderboardBefore, _data.leaderboard);
         const reg = loadRegistry();
         const p = reg.list.find(x => x.id === _profileId);
         if (p) {
@@ -1597,10 +1642,51 @@ const TypePetsData = (function() {
         v.data.user = { ..._data.user };
         v.data.backup = { ..._data.backup };
         v.data.cloud = _cleanCloud(link);
+        const leaderboardBefore = _data.leaderboard;
         _data = v.data;
         _data.cloud.synced_hash = cloudHash();
         if (!_save()) return { ok: false, error: 'storage' };
+        _retireLeaderboard(leaderboardBefore, _data.leaderboard);
         return { ok: true, summary: v.summary };
+    }
+
+    // ─── Weekly leaderboard (js/leaderboard.js talks to the server) ─
+
+    /** { id, token, name, joined_at } when this player has joined the leaderboard, else null. */
+    function getLeaderboardLink() {
+        return _cleanLeaderboard(_ensure().leaderboard);
+    }
+
+    /**
+     * Join (a link from the server), rename, or leave (null). This is part of the player's
+     * progress, so a save code carries it and the kid has the same name on every computer.
+     * Returns { ok, link }; ok is false when the link is malformed or couldn't be saved.
+     */
+    function setLeaderboardLink(link) {
+        const clean = link === null ? null : _cleanLeaderboard(link);
+        if (link !== null && !clean) return { ok: false, link: getLeaderboardLink() };
+        const current = getLeaderboardLink();
+        if (JSON.stringify(current) === JSON.stringify(clean)) return { ok: true, link: current };
+        let before;
+        _tx(d => {
+            before = d.leaderboard; // fresh from storage: another tab may have joined meanwhile
+            if (clean) d.leaderboard = clean; else delete d.leaderboard;
+        });
+        if (!_lastSaveOk) return { ok: false, link: getLeaderboardLink() };
+        // A row replaced by another one (another tab joined too) goes off the board. Leaving
+        // (null) is done by js/leaderboard.js itself, so nothing is queued for it.
+        if (clean) _retireLeaderboard(before, clean);
+        return { ok: true, link: getLeaderboardLink() };
+    }
+
+    /** XP earned from practice between two times (ms, end exclusive): the same XP the pet got. */
+    function getPracticeXp(startMs, endMs) {
+        let xp = 0;
+        for (const s of _ensure().sessions) {
+            const t = Date.parse(s && s.timestamp);
+            if (isFinite(t) && t >= startMs && t < endMs) xp += _computeXp(s, s);
+        }
+        return xp;
     }
 
     // ─── Reset ───────────────────────────────────────────────
@@ -1609,9 +1695,11 @@ const TypePetsData = (function() {
         const nickname = _ensure().user.nickname;
         return _tx(d => {
             const cloud = d.cloud; // a linked player's save code starts over too
+            const leaderboard = _cleanLeaderboard(d.leaderboard); // …and keeps their leaderboard name
             _data = getDefaultData();
             _data.user.nickname = nickname;
             _data.cloud = cloud;
+            if (leaderboard) _data.leaderboard = leaderboard;
             return _data;
         });
     }
@@ -1651,6 +1739,8 @@ const TypePetsData = (function() {
         markBackupDone, snoozeBackupReminder, getBackupStatus,
         // Save code (js/cloud-save.js)
         getCloudLink, setCloudLink, cloudPayload, cloudHash, applyCloudData, onSaved,
+        // Weekly leaderboard (js/leaderboard.js)
+        getLeaderboardLink, setLeaderboardLink, getPracticeXp,
         // Reset
         resetAllData,
         // Helpers

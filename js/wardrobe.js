@@ -396,6 +396,23 @@ const TypePetsWardrobe = (function() {
         return `<span class="pet-avatar" style="${vars}" aria-hidden="true">${sceneHTML(species, look)}</span>`;
     }
 
+    /**
+     * Another player's pet (the leaderboard): drawn from their stage and look as sent, with
+     * anything this version doesn't know drawn as the default. Unlocks aren't checked here;
+     * they're the other player's.
+     */
+    function lookAvatarHTML(species, look, size) {
+        species = AVATAR_CROP[species] ? species : 'egg';
+        const out = {};
+        SLOTS.forEach(s => {
+            const item = look && find(s.id, look[s.id]);
+            out[s.id] = item ? item.id : DEFAULT_LOOK[s.id];
+        });
+        const side = AVATAR_CROP[species];
+        const vars = `--avatar-size: ${size}px; --avatar-scale: ${(size / side).toFixed(4)}; --avatar-x: ${-(150 - side / 2)}px; --avatar-y: ${-(222 - side)}px;`;
+        return `<span class="pet-avatar" style="${vars}" aria-hidden="true">${sceneHTML(species, out)}</span>`;
+    }
+
     // ─── Unlocks ──────────────────────────────────────────────
 
     function spaceArticleIds() {
@@ -670,6 +687,6 @@ const TypePetsWardrobe = (function() {
     return {
         SLOTS, ITEMS, DEFAULT_LOOK,
         find, keyOf, getProgress, requirement, isUnlocked, resolveLook, counts, nextUp, newItemKeys,
-        creatureHTML, applyPlace, thumbHTML, avatarHTML, announceNewUnlocks
+        creatureHTML, applyPlace, thumbHTML, avatarHTML, lookAvatarHTML, announceNewUnlocks
     };
 })();

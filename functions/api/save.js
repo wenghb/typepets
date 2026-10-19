@@ -78,7 +78,7 @@ const GUESS_MAX = 100;               // site-wide requests per window from compu
 // What progress holds (js/data.js getDefaultData); anything else is dropped. Lists are capped
 // at what the browser itself keeps.
 const DATA_KEYS = ['version', 'user', 'training', 'bubbles', 'pet', 'sessions', 'achievements',
-    'streaks', 'activities', 'articles', 'milestones', 'goals'];
+    'streaks', 'activities', 'articles', 'milestones', 'goals', 'leaderboard'];
 const LIST_CAPS = { sessions: 500, activities: 200, achievements: 200, milestones: 50 };
 
 const SCHEMA = [
