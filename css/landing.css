@@ -1342,10 +1342,19 @@ section[id] { scroll-margin-top: 72px; }
 }
 .nav-links a.nav-support:hover { color: #A86F00; }
 
+/* Reduce motion: nothing beats or floats; the heart glows softly in place instead */
 @media (prefers-reduced-motion: reduce) {
     .tp-heart,
+    .tp-heart-host:hover .tp-heart,
+    .tp-heart-host:focus-visible .tp-heart {
+        animation: tpHeartGlow 4s ease-in-out infinite;
+    }
     .tp-heart::before,
     .tp-heart::after {
-        animation: none !important;
+        display: none;
     }
+}
+@keyframes tpHeartGlow {
+    0%, 100% { filter: drop-shadow(0 0 0 rgba(255, 176, 0, 0)); }
+    50% { filter: drop-shadow(0 0 5px rgba(255, 176, 0, 0.95)); }
 }

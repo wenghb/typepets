@@ -2393,10 +2393,6 @@ button:not(:disabled):active, .btn:active {
 /* ─── Reduced motion ───────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
     .content,
-    .donate-heart,
-    .tp-heart,
-    .tp-heart::before,
-    .tp-heart::after,
     .profile-menu,
     .tp-modal-overlay,
     .toast,
@@ -2415,6 +2411,37 @@ button:not(:disabled):active, .btn:active {
     .btn:hover {
         transform: none !important;
     }
+
+    /* Support hearts: no beating, ring, shine or floating hearts. The heart and the nav pill glow
+       softly in place instead (only brightness changes, nothing moves or grows). */
+    .tp-heart,
+    .tp-heart-host:hover .tp-heart,
+    .tp-heart-host:focus-visible .tp-heart {
+        animation: tpHeartGlow 4s ease-in-out infinite;
+    }
+    .tp-heart::before,
+    .tp-heart::after {
+        display: none;
+    }
+    .donate-heart,
+    .donate-heart:hover,
+    .donate-heart:focus-visible {
+        animation: tpPillGlow 4s ease-in-out infinite;
+        transition: none;
+        transform: none;
+    }
+    .donate-heart.is-calm,
+    .donate-heart.is-calm .tp-heart {
+        animation: none;
+    }
+}
+@keyframes tpHeartGlow {
+    0%, 100% { filter: drop-shadow(0 0 0 rgba(255, 176, 0, 0)); }
+    50% { filter: drop-shadow(0 0 5px rgba(255, 176, 0, 0.95)); }
+}
+@keyframes tpPillGlow {
+    0%, 100% { box-shadow: 0 0 0 1px rgba(246, 194, 85, 0); }
+    50% { box-shadow: 0 0 0 1px rgba(246, 194, 85, 0.6), 0 0 12px rgba(246, 194, 85, 0.45); }
 }
 
 /* Phone nav: Support and Feedback live in the ☰ menu, so drop the header pill and button (the base rules above are declared later than the 600px block) */
