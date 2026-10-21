@@ -263,7 +263,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             }).then((res) => {
-                if (res.status === 201) { showThanks(); return; }
+                if (res.status === 201) { showThanks(payload); return; }
                 return res.json().catch(() => ({})).then((data) => {
                     const code = data && data.error;
                     if (res.status === 429) fail('Too many messages are coming in right now. Try again in a few minutes.');
@@ -284,7 +284,28 @@
             send.focus(); // disabling the button dropped focus; bring it back so Enter retries
         }
 
-        function showThanks() {
+        /** After happy feedback ("Love it", or a 4–5 face) a small note for grown-ups offers a tip.
+         *  The button goes through the grown-up gate (app.js `openDonate`). */
+        function supportNote() {
+            const note = el('div', 'fb-thanks-support');
+            note.appendChild(el('p', 'fb-thanks-support-label', 'For grown-ups'));
+            note.appendChild(el('p', 'fb-thanks-support-text',
+                "I'm Henry, a parent who built TypePets for my own kids. If it's helping, you can leave a tip to say thanks."));
+            const tip = button('btn btn-secondary tp-heart-host', null, () => {
+                if (typeof window.openDonate !== 'function') { location.href = '/support.html'; return; }
+                if (isModal && typeof opts.onClose === 'function') opts.onClose();
+                window.openDonate();
+            });
+            if (typeof window.tpHeartIcon === 'function') {
+                tip.appendChild(window.tpHeartIcon());
+                tip.appendChild(document.createTextNode(' '));
+            }
+            tip.appendChild(document.createTextNode('Support TypePets'));
+            note.appendChild(tip);
+            return note;
+        }
+
+        function showThanks(sent) {
             container.textContent = '';
             const done = el('div', 'fb-thanks');
             done.setAttribute('role', 'status');
@@ -305,6 +326,7 @@
                 actions.appendChild(open);
             }
             done.appendChild(actions);
+            if (sent && (sent.category === 'love' || sent.rating >= 4)) done.appendChild(supportNote());
             container.appendChild(done);
             if (typeof window.spawnConfetti === 'function') window.spawnConfetti(30);
         }

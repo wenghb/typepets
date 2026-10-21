@@ -769,6 +769,38 @@ a {
     margin: 0;
 }
 
+/* After happy feedback: a quiet note for grown-ups under the kid's buttons */
+.fb-thanks-support {
+    max-width: 420px;
+    margin: 26px auto 0;
+    padding: 18px 20px 20px;
+    border-radius: var(--radius-md);
+    background: rgba(246, 194, 85, 0.12);
+    border: 1px solid rgba(246, 194, 85, 0.45);
+}
+.fb-thanks-support-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #B7791F;
+    margin-bottom: 4px;
+}
+[data-theme="dark"] .fb-thanks-support-label {
+    color: #F6C255;
+}
+.fb-thanks-support-text {
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin-bottom: 14px;
+}
+.fb-thanks-support .btn {
+    margin: 0;
+    border: 1px solid rgba(246, 194, 85, 0.7);
+}
+
 /* Phones: the modal becomes a bottom sheet with Send always in reach */
 @keyframes fbSheetUp {
     from { transform: translateY(32px); opacity: 0.5; }
@@ -2232,35 +2264,107 @@ button:not(:disabled):active, .btn:active {
     }
 }
 
-/* Donate heart button in nav */
+/* ─── Support hearts ───────────────────────────────────────
+   A 💛 inside a Support button (.tp-heart in a .tp-heart-host) beats twice every few seconds;
+   hovering or focusing the button pops it and sends two small hearts floating up. */
+.tp-heart {
+    position: relative;
+    display: inline-block;
+    line-height: 1;
+    transform-origin: 50% 60%;
+    animation: tpHeartbeat 5s ease-in-out infinite;
+}
+.btn .tp-heart {
+    margin-right: 3px;
+}
+.tp-heart::before,
+.tp-heart::after {
+    content: '💛';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    font-size: 0.6em;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 0);
+}
+@keyframes tpHeartbeat {
+    0%, 15%, 100% { transform: scale(1); }
+    4% { transform: scale(1.3); }
+    8% { transform: scale(1.03); }
+    11% { transform: scale(1.2); }
+}
+@keyframes tpHeartPop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.4) rotate(-10deg); }
+    70% { transform: scale(0.95) rotate(5deg); }
+    100% { transform: scale(1.12); }
+}
+@keyframes tpHeartFloat {
+    0% { opacity: 0; transform: translate(-50%, 2px) scale(0.5); }
+    25% { opacity: 1; }
+    100% { opacity: 0; transform: translate(calc(-50% + var(--drift, 0px)), -22px) scale(1.05); }
+}
+@keyframes tpHeartRipple {
+    0%, 3% { box-shadow: 0 0 0 0 rgba(246, 194, 85, 0); }
+    5% { box-shadow: 0 0 0 0 rgba(246, 194, 85, 0.6); }
+    26%, 100% { box-shadow: 0 0 0 10px rgba(246, 194, 85, 0); }
+}
+@keyframes tpHeartShine {
+    from { background-position: 160% 0; }
+    to { background-position: -60% 0; }
+}
+
+/* Support pill in the nav: a soft ring goes out with each heartbeat and a shine runs across on hover.
+   On the practice pages (Training, Bubbles, Articles) js/app.js adds .is-calm so it keeps still
+   while kids type; hovering still works there. */
 .donate-heart {
+    position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     color: #F6C255;
-    background: rgba(246, 194, 85, 0.12);
+    background-color: rgba(246, 194, 85, 0.12);
+    background-image: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.6) 50%, transparent 65%);
+    background-size: 250% 100%;
+    background-position: 160% 0;
+    background-repeat: no-repeat;
     text-decoration: none;
     font-size: 0.95rem;
     font-weight: 700;
     padding: 6px 14px;
     border-radius: 20px;
     margin-right: 8px;
-    transition: all 0.3s ease;
-    animation: donateGlow 3s ease-in-out infinite;
+    transition: background-color 0.25s ease, color 0.25s ease, transform 0.25s ease;
+    animation: tpHeartRipple 5s ease-out infinite;
 }
-.donate-heart:hover {
-    background: rgba(246, 194, 85, 0.25);
-    transform: scale(1.08);
+[data-theme="dark"] .donate-heart {
+    background-image: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.28) 50%, transparent 65%);
+}
+.donate-heart.is-calm,
+.donate-heart.is-calm .tp-heart {
+    animation: none;
+}
+.donate-heart:hover,
+.donate-heart:focus-visible {
+    background-color: rgba(246, 194, 85, 0.25);
     color: #E5A800;
+    transform: translateY(-1px);
+    animation: tpHeartShine 0.9s ease-out;
 }
-@keyframes donateGlow {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(246, 194, 85, 0); }
-    50% { box-shadow: 0 0 12px 2px rgba(246, 194, 85, 0.3); }
+.tp-heart-host:hover .tp-heart,
+.tp-heart-host:focus-visible .tp-heart {
+    animation: tpHeartPop 0.5s ease-out forwards;
 }
-/* Heartbeat pulse on the emoji */
-.donate-heart::before {
-    content: '';
-    display: none;
+.tp-heart-host:hover .tp-heart::before,
+.tp-heart-host:focus-visible .tp-heart::before {
+    --drift: -11px;
+    animation: tpHeartFloat 1.1s ease-out;
+}
+.tp-heart-host:hover .tp-heart::after,
+.tp-heart-host:focus-visible .tp-heart::after {
+    --drift: 10px;
+    animation: tpHeartFloat 1.1s ease-out 0.22s;
 }
 
 /* ─── Print ────────────────────────────────────────────────── */
@@ -2290,6 +2394,9 @@ button:not(:disabled):active, .btn:active {
 @media (prefers-reduced-motion: reduce) {
     .content,
     .donate-heart,
+    .tp-heart,
+    .tp-heart::before,
+    .tp-heart::after,
     .profile-menu,
     .tp-modal-overlay,
     .toast,

@@ -17,7 +17,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=700b6366">
+    <link rel="stylesheet" href="css/style.css?v=3eab7e32">
     <style>
     .support-page { max-width: 940px; padding-top: 40px; padding-bottom: 64px; }
     .sp-eyebrow {
@@ -47,12 +47,20 @@
     .sp-give { position: sticky; top: 88px; border-top: 5px solid #F6C255; }
     .sp-give h2 { font-size: 1.3rem; margin-bottom: 6px; }
     .sp-give-text { color: var(--text-secondary); font-weight: 600; line-height: 1.55; margin-bottom: 18px; }
+    /* A shine runs across the tip button every few seconds; the heart beats (.tp-heart in style.css) */
     .sp-tip {
         display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
         padding: 14px 20px; font-size: 1.08rem; border-radius: var(--radius-md);
-        background: #F6C255; color: #3A2C05; box-shadow: 0 3px 0 #D9A53A;
+        background-color: #F6C255; color: #3A2C05; box-shadow: 0 3px 0 #D9A53A;
+        background-image: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.55) 50%, transparent 65%);
+        background-size: 250% 100%; background-position: 160% 0; background-repeat: no-repeat;
+        animation: spTipShine 6s ease-in-out 1.5s infinite;
     }
-    .sp-tip:hover { background: #F8CC6A; transform: translateY(-1px); box-shadow: 0 4px 0 #D9A53A, 0 8px 18px rgba(217, 165, 58, 0.25); }
+    @keyframes spTipShine {
+        0%, 72% { background-position: 160% 0; }
+        92%, 100% { background-position: -60% 0; }
+    }
+    .sp-tip:hover { background-color: #F8CC6A; transform: translateY(-1px); box-shadow: 0 4px 0 #D9A53A, 0 8px 18px rgba(217, 165, 58, 0.25); }
     .sp-tip:active { transform: translateY(2px); box-shadow: 0 1px 0 #D9A53A; }
     .sp-tip:focus-visible { outline: 3px solid var(--accent-blue); outline-offset: 3px; }
     .sp-tip-note { text-align: center; font-size: 0.8rem; color: var(--text-secondary); font-weight: 700; margin-top: 10px; }
@@ -99,6 +107,7 @@
     }
     @media (prefers-reduced-motion: reduce) {
         .sp-tip:hover, .sp-tip:active { transform: none; }
+        .sp-tip { animation: none; }
     }
     </style>
 </head>
@@ -150,7 +159,7 @@
                 <h2 id="giveTitle">Leave a tip</h2>
                 <p class="sp-give-text">A one-time tip through Stripe's secure checkout. No account needed.</p>
                 <!-- data-gate-passed: this page is for grown-ups, so the button skips the in-app grown-up question (js/app.js) -->
-                <a class="btn sp-tip" href="/tip" data-gate-passed="1"><span aria-hidden="true">💛</span><span>Leave a tip</span></a>
+                <a class="btn sp-tip tp-heart-host" href="/tip" data-gate-passed="1"><span class="tp-heart" aria-hidden="true">💛</span><span>Leave a tip</span></a>
                 <p class="sp-tip-note">Opens Stripe's checkout page</p>
                 <ul class="sp-facts">
                     <li><span aria-hidden="true">🔒</span><span>Stripe handles the payment. TypePets never sees your card details.</span></li>
@@ -190,8 +199,8 @@
     <div id="toast-container"></div>
 
     <script src="js/data.js?v=fd18e920"></script>
-    <script src="js/app.js?v=52774b33"></script>
-    <script src="js/donate-prompt.js?v=b18f33f0"></script>
+    <script src="js/app.js?v=d75d696c"></script>
+    <script src="js/donate-prompt.js?v=5158e355"></script>
     <script>
     (function() {
         'use strict';

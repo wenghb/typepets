@@ -97,3 +97,85 @@
     .article th, .article td { padding: 8px 10px; }
     .article table { font-size: 0.85rem; }
 }
+
+/* "Who makes TypePets" note at the end of every post (the landing page's maker card, smaller) */
+.article .maker-note {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    margin: 48px 0 0;
+    padding: 28px 30px;
+    background: var(--surface);
+    border: 1px solid rgba(246, 194, 85, 0.55);
+    border-top: 4px solid #F6C255;
+    border-radius: var(--radius);
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.04);
+}
+.article .maker-note-avatar {
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    background: rgba(246, 194, 85, 0.18);
+    box-shadow: inset 0 0 0 2px rgba(246, 194, 85, 0.5);
+}
+.article .maker-note-body { min-width: 0; }
+.article .maker-note-eyebrow {
+    margin: 0 0 4px;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #B7791F;
+    line-height: 1.4;
+}
+.article .maker-note-title {
+    margin: 0 0 8px;
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.35;
+}
+.article .maker-note-text { margin: 0; font-size: 0.95rem; line-height: 1.7; }
+.article .maker-note-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 22px;
+    margin-top: 18px;
+}
+.article a.maker-note-tip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 22px;
+    border-radius: 12px;
+    background: #F6C255;
+    color: #3A2C05;
+    font-weight: 700;
+    box-shadow: 0 3px 0 #D9A53A;
+    transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.article a.maker-note-tip:hover {
+    text-decoration: none;
+    background: #F8CC6A;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 0 #D9A53A, 0 8px 18px rgba(217, 165, 58, 0.25);
+}
+.article a.maker-note-tip:active { transform: translateY(2px); box-shadow: 0 1px 0 #D9A53A; }
+.article a.maker-note-tip:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.article a.maker-note-link { font-size: 0.92rem; }
+
+@media (max-width: 600px) {
+    .article .maker-note { flex-direction: column; gap: 12px; padding: 24px 20px; }
+    .article .maker-note-avatar { width: 46px; height: 46px; font-size: 1.4rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .article a.maker-note-tip:hover,
+    .article a.maker-note-tip:active { transform: none; }
+}

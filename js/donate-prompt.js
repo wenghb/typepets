@@ -64,7 +64,12 @@
             "and no tracking. If it's helping with typing, you can leave a small tip to say thanks."));
 
         const actions = el('div', 'donate-card-actions');
-        const support = el('button', 'btn btn-primary', 'Support TypePets');
+        const support = el('button', 'btn btn-primary tp-heart-host');
+        if (typeof window.tpHeartIcon === 'function') {
+            support.appendChild(window.tpHeartIcon());
+            support.appendChild(document.createTextNode(' '));
+        }
+        support.appendChild(document.createTextNode('Support TypePets'));
         support.type = 'button';
         support.addEventListener('click', () => {
             const s = getState();

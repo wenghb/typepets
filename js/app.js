@@ -197,6 +197,16 @@ document.addEventListener('keydown', () => {
         return b;
     }
 
+    // Pages where kids are mid-lesson: the Support pill doesn't beat there
+    const CALM_PAGES = ['training', 'bubbles', 'articles'];
+
+    /** The beating 💛 for Support buttons (its button needs .tp-heart-host for the hover hearts). */
+    function heartIcon() {
+        const icon = el('span', 'tp-heart', '💛');
+        icon.setAttribute('aria-hidden', 'true');
+        return icon;
+    }
+
     // ─── Modal helper ────────────────────────────────────────
 
     function openModal(opts) {
@@ -314,7 +324,9 @@ document.addEventListener('keydown', () => {
     function showDonateLink() {
         // id="donatePrompt": Bubble Pop pauses its game while this element exists
         const m = openModal({ className: 'donate-final', label: 'Support TypePets', id: 'donatePrompt' });
-        m.card.appendChild(el('div', 'tp-modal-emoji', '💛'));
+        const emoji = el('div', 'tp-modal-emoji');
+        emoji.appendChild(heartIcon());
+        m.card.appendChild(emoji);
         m.card.appendChild(el('h3', null, 'Support TypePets'));
         m.card.appendChild(el('p', 'tp-modal-text',
             "Hi, I'm Henry, a parent. I built TypePets for my own kids, and it's free for every child: " +
@@ -377,6 +389,7 @@ document.addEventListener('keydown', () => {
 
     window.showParentGate = showParentGate;
     window.openDonate = openDonate;
+    window.tpHeartIcon = heartIcon;
     window.tpOpenModal = openModal;
 
     // ─── Mobile navigation ───────────────────────────────────
@@ -399,18 +412,25 @@ document.addEventListener('keydown', () => {
 
         if (!links.id) links.id = 'navLinks';
 
-        // Header Support pill: wrap the word so tablet widths can show just the heart (see style.css)
+        // Header Support pill: the heart gets its own span so it can beat, and the word its own so
+        // tablet widths can show just the heart (see "Support hearts" in style.css). On practice
+        // pages the pill keeps still (.is-calm) so it doesn't pull kids' eyes off the lesson.
         const pill = nav.querySelector('.nav-right .donate-heart');
         if (pill && pill.textContent.trim() === '💛 Support') {
-            pill.textContent = '💛';
+            pill.textContent = '';
+            pill.appendChild(heartIcon());
             pill.appendChild(el('span', 'donate-heart-label', 'Support'));
+            pill.classList.add('tp-heart-host');
             pill.setAttribute('aria-label', 'Support TypePets');
+            if (CALM_PAGES.indexOf(page) !== -1) pill.classList.add('is-calm');
         }
 
         // Support link inside the mobile menu (the nav button is hidden on phones). Not on the
         // Support page itself, which has its own tip button.
         if (!document.getElementById('supportPage')) {
-            const support = el('a', 'nav-link nav-link-support', '💛 Support TypePets');
+            const support = el('a', 'nav-link nav-link-support tp-heart-host');
+            support.appendChild(heartIcon());
+            support.appendChild(document.createTextNode(' Support TypePets'));
             support.href = TIP_URL;
             links.appendChild(support);
             gateDonateLinks();
