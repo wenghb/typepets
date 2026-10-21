@@ -2305,52 +2305,77 @@ button:not(:disabled):active, .btn:active {
     25% { opacity: 1; }
     100% { opacity: 0; transform: translate(calc(-50% + var(--drift, 0px)), -22px) scale(1.05); }
 }
-@keyframes tpHeartRipple {
-    0%, 3% { box-shadow: 0 0 0 0 rgba(246, 194, 85, 0); }
-    5% { box-shadow: 0 0 0 0 rgba(246, 194, 85, 0.6); }
-    26%, 100% { box-shadow: 0 0 0 10px rgba(246, 194, 85, 0); }
-}
 @keyframes tpHeartShine {
     from { background-position: 160% 0; }
     to { background-position: -60% 0; }
 }
 
-/* Support pill in the nav: a soft ring goes out with each heartbeat and a shine runs across on hover.
-   On the practice pages (Training, Bubbles, Articles) js/app.js adds .is-calm so it keeps still
-   while kids type; hovering still works there. */
+/* Support pill in the nav: a solid gold button. Every 6 seconds it wiggles like a notification and a
+   shine sweeps across (the first time ~2 s after the page opens). On the practice pages (Training,
+   Bubbles, Articles) js/app.js adds .is-calm so it keeps still while kids type; hovering still works. */
 .donate-heart {
     position: relative;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    color: #F6C255;
-    background-color: rgba(246, 194, 85, 0.12);
-    background-image: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.6) 50%, transparent 65%);
+    color: #3A2C05;
+    background-color: #F6C255;
+    background-image: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.7) 50%, transparent 65%);
     background-size: 250% 100%;
     background-position: 160% 0;
     background-repeat: no-repeat;
     text-decoration: none;
     font-size: 0.95rem;
-    font-weight: 700;
+    font-weight: 800;
     padding: 6px 14px;
     border-radius: 20px;
     margin-right: 8px;
-    transition: background-color 0.25s ease, color 0.25s ease, transform 0.25s ease;
-    animation: tpHeartRipple 5s ease-out infinite;
+    transition: background-color 0.25s ease, transform 0.25s ease;
+    animation: tpPillWiggle 6s ease-in-out -3s infinite, tpPillShine 6s ease-in-out -3s infinite;
 }
-[data-theme="dark"] .donate-heart {
-    background-image: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.28) 50%, transparent 65%);
+.donate-heart .tp-heart {
+    animation: none;
 }
-.donate-heart.is-calm,
-.donate-heart.is-calm .tp-heart {
+.donate-heart.is-calm {
     animation: none;
 }
 .donate-heart:hover,
 .donate-heart:focus-visible {
-    background-color: rgba(246, 194, 85, 0.25);
-    color: #E5A800;
+    background-color: #F8CC6A;
+    color: #3A2C05;
     transform: translateY(-1px);
     animation: tpHeartShine 0.9s ease-out;
+}
+@keyframes tpPillWiggle {
+    0%, 78%, 93%, 100% { transform: rotate(0); }
+    81% { transform: rotate(-7deg); }
+    84% { transform: rotate(6deg); }
+    87% { transform: rotate(-4deg); }
+    90% { transform: rotate(2deg); }
+}
+@keyframes tpPillShine {
+    0%, 90% { background-position: 160% 0; }
+    100% { background-position: -60% 0; }
+}
+/* Sparkles for "reduce motion" (see the Reduced motion block); hidden otherwise */
+.donate-heart::before,
+.donate-heart::after {
+    content: '✨';
+    position: absolute;
+    display: none;
+    opacity: 0;
+    pointer-events: none;
+    line-height: 1;
+}
+.donate-heart::before {
+    right: -6px;
+    top: -8px;
+    font-size: 12px;
+}
+.donate-heart::after {
+    left: -7px;
+    bottom: -6px;
+    font-size: 10px;
 }
 .tp-heart-host:hover .tp-heart,
 .tp-heart-host:focus-visible .tp-heart {
@@ -2423,17 +2448,40 @@ button:not(:disabled):active, .btn:active {
     .tp-heart::after {
         display: none;
     }
+    /* The nav pill: no wiggle or shine. It glows in place, its heart glows, and two sparkles
+       take turns fading in (opacity only). */
     .donate-heart,
     .donate-heart:hover,
     .donate-heart:focus-visible {
-        animation: tpPillGlow 4s ease-in-out infinite;
+        animation: tpPillGlow 3s ease-in-out infinite;
         transition: none;
         transform: none;
+    }
+    .donate-heart .tp-heart,
+    .tp-heart-host.donate-heart:hover .tp-heart,
+    .tp-heart-host.donate-heart:focus-visible .tp-heart {
+        animation: tpHeartGlow 3s ease-in-out infinite;
+    }
+    .donate-heart::before,
+    .donate-heart::after {
+        display: block;
+        animation: tpSparkle 2.4s ease-in-out infinite;
+    }
+    .donate-heart::after {
+        animation-delay: 1.2s;
     }
     .donate-heart.is-calm,
     .donate-heart.is-calm .tp-heart {
         animation: none;
     }
+    .donate-heart.is-calm::before,
+    .donate-heart.is-calm::after {
+        display: none;
+    }
+}
+@keyframes tpSparkle {
+    0%, 100% { opacity: 0; }
+    40%, 60% { opacity: 1; }
 }
 @keyframes tpHeartGlow {
     0%, 100% { filter: drop-shadow(0 0 0 rgba(255, 176, 0, 0)); }
