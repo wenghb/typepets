@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
         <loc>https://typepets.com/</loc>
-        <lastmod>2026-10-06</lastmod>
+        <lastmod>2026-10-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>1.0</priority>
     </url>
@@ -50,25 +50,43 @@
     </url>
     <url>
         <loc>https://typepets.com/blog/</loc>
-        <lastmod>2026-09-23</lastmod>
+        <lastmod>2026-10-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
+        <loc>https://typepets.com/blog/typing-curriculum-k-5/</loc>
+        <lastmod>2026-10-22</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://typepets.com/blog/animal-typing-games-for-kids/</loc>
+        <lastmod>2026-10-22</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://typepets.com/blog/paws-in-typing-town/</loc>
+        <lastmod>2026-10-22</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
         <loc>https://typepets.com/blog/typing-goals-by-grade/</loc>
-        <lastmod>2026-09-23</lastmod>
+        <lastmod>2026-10-22</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
     </url>
     <url>
         <loc>https://typepets.com/blog/chromebook-typing-practice/</loc>
-        <lastmod>2026-10-06</lastmod>
+        <lastmod>2026-10-22</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
     </url>
     <url>
         <loc>https://typepets.com/blog/dance-mat-typing-alternative/</loc>
-        <lastmod>2026-10-06</lastmod>
+        <lastmod>2026-10-22</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
     </url>
@@ -86,7 +104,7 @@
     </url>
     <url>
         <loc>https://typepets.com/blog/best-free-typing-games-kids-2026/</loc>
-        <lastmod>2026-10-06</lastmod>
+        <lastmod>2026-10-22</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
     </url>

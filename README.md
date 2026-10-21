@@ -251,7 +251,10 @@ typepets/
 │   ├── dance-mat-typing-alternative/
 │   ├── typing-games-no-ads-no-login/
 │   ├── chromebook-typing-practice/
-│   └── typing-goals-by-grade/
+│   ├── typing-goals-by-grade/
+│   ├── typing-curriculum-k-5/
+│   ├── animal-typing-games-for-kids/
+│   └── paws-in-typing-town/
 ├── css/
 │   ├── style.css       # App styles
 │   ├── landing.css     # Landing page styles
