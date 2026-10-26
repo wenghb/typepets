@@ -1,4 +1,4 @@
-/* ─── Weekly leaderboard (pages/leaderboard.html, js/leaderboard.js) ─── */
+/* ─── Leaderboard (pages/leaderboard.html, js/leaderboard.js) ─── */
 
 .sr-only {
     position: absolute;
@@ -414,7 +414,7 @@
     font-size: 1.1rem;
 }
 
-.lb-reset {
+.lb-window {
     color: var(--text-secondary);
     font-weight: 700;
     font-size: 0.85rem;

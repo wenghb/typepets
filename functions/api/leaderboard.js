@@ -1,31 +1,34 @@
 /**
- * TypePets — weekly leaderboard API (Cloudflare Pages Function, served at /api/leaderboard)
+ * TypePets — leaderboard API (Cloudflare Pages Function, served at /api/leaderboard)
  *
- * Players who join are ranked by the XP they earned from practice this week. Weeks start on
- * Monday at 00:00 UTC. Nobody types anything that ends up on the board: a kid builds their
- * leaderboard name from two word lists below ("Cosmic" + "Pancake"), and a row shows only that
- * name, the pet's stage and look (wardrobe item ids) and the week's XP.
+ * Players who join are ranked by the XP they earned from practice in the last DAYS days: today
+ * (UTC) and the days before it. The window moves on one day at 00:00 UTC, so each day's XP
+ * stays on the board for a full DAYS days. (It used to be a calendar week that started over on
+ * Monday, which took a kid who joined on Sunday off the board the next day.) Nobody types
+ * anything that ends up on the board: a kid builds their leaderboard name from two word lists
+ * below ("Cosmic" + "Pancake"), and a row shows only that name, the pet's stage and look
+ * (wardrobe item ids) and the XP.
  *
  * Every call is a POST with a JSON body:
  *
  *   { action: 'words' }                              → 200 { ok, first: [{ label, words }], second: [...] }
  *   { action: 'names' }                              → 200 { ok, names: [3 free names] }
  *   { action: 'check', name }                        → 200 { ok, free }
- *   { action: 'join', name, species, look, scores }  → 201 { ok, id, token, name }
+ *   { action: 'join', name, species, look, days }    → 201 { ok, id, token, name }
  *                                                      409 { error: 'name_taken' }
- *   { action: 'update', id, token, name?, species, look, scores } → 200 { ok, name }
+ *   { action: 'update', id, token, name?, species, look, days } → 200 { ok, name }
  *                                                      409 { error: 'name_taken' } (rename only)
- *   { action: 'board', week: 'this' | 'last', id? }  → 200 { ok, week, next_week_at, last_final_at, rows, you, known? }
+ *   { action: 'board', id? }                         → 200 { ok, from, to, next_day_at, rows, you, known? }
  *   { action: 'leave', id, token }                   → 200 { ok }
  *
- * `scores` is { 'YYYY-MM-DD' (a week's Monday): xp }. The browser works it out from the
- * sessions it already keeps, so it is the same on every computer a save code links. Only
- * this week counts, plus last week for WEEK_GRACE_HOURS after it ends (progress made offline
- * on Sunday can still land). A week's XP only ever goes up.
+ * `days` is { 'YYYY-MM-DD' (a UTC day): xp }. The browser works it out from the sessions it
+ * already keeps, so it is the same on every computer a save code links. Any day still on the
+ * board takes updates (progress made offline can land up to DAYS days later). A day's XP only
+ * ever goes up. Pages from before the switch sent weekly `scores` instead; those are ignored.
  *
  * An unknown `id` answers 404 { error: 'not_found' } (the player left, or the name expired);
  * a wrong token answers 403. Housekeeping (on every join and now and then on updates) deletes
- * players nobody updated for RETENTION_DAYS, and weeks older than last week.
+ * players nobody updated for RETENTION_DAYS, and days that have left the board.
  *
  * Binding: FEEDBACK_DB (D1), shared with feedback and save codes; tables are created on first use.
  *
@@ -115,14 +118,14 @@ const ACTIONS = ['words', 'names', 'check', 'join', 'update', 'board', 'leave'];
 const SPECIES = ['egg', 'baby', 'kid', 'teen', 'adult', 'master'];
 const LOOK_SLOTS = ['color', 'pattern', 'hat', 'face', 'neck', 'place'];   // js/wardrobe.js SLOTS
 const LOOK_ID_RE = /^[a-z0-9_]{1,24}$/;
-const WEEK_RE = /^\d{4}-\d{2}-\d{2}$/;
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const ID_RE = /^[A-Za-z0-9_-]{16,40}$/;
 const MAX_BODY_BYTES = 4 * 1024;
-const XP_MAX = 1000000;              // far beyond a week of real practice; stops absurd numbers
-const WEEK_MS = 7 * 86400000;
-const WEEK_GRACE_HOURS = 48;         // last week still takes updates this long into the new one
+const XP_MAX = 1000000;              // far beyond a day of real practice; stops absurd numbers
+const DAY_MS = 86400000;
+const DAYS = 7;                      // the board adds up today and the 6 days before it (js/leaderboard.js has the same)
 const BOARD_SIZE = 25;
-const RETENTION_DAYS = 60;           // a player's page sends something at least weekly while they visit
+const RETENTION_DAYS = 60;           // a player's page sends something every day they visit
 const HOUSEKEEPING_ODDS = 50;        // 1 in this many updates also tidies up
 const JOIN_WINDOW_MIN = 10;
 const JOIN_MAX = 60;                 // site-wide new players per window
@@ -139,14 +142,17 @@ const SCHEMA = [
     )`,
     'CREATE INDEX IF NOT EXISTS idx_lb_players_created ON lb_players (created_at)',
     'CREATE INDEX IF NOT EXISTS idx_lb_players_updated ON lb_players (updated_at)',
-    `CREATE TABLE IF NOT EXISTS lb_scores (
+    `CREATE TABLE IF NOT EXISTS lb_days (
         player_id TEXT NOT NULL,
-        week TEXT NOT NULL,
+        day TEXT NOT NULL,
         xp INTEGER NOT NULL,
         reached_at TEXT NOT NULL,
-        PRIMARY KEY (player_id, week)
+        PRIMARY KEY (player_id, day)
     )`,
-    'CREATE INDEX IF NOT EXISTS idx_lb_scores_week ON lb_scores (week, xp DESC, reached_at)'
+    'CREATE INDEX IF NOT EXISTS idx_lb_days_day ON lb_days (day)',
+    // Weekly totals from before the board counted days (2026-10-26). They can't be split into
+    // days, and every browser sends its days again on its next visit, so nothing is lost.
+    'DROP TABLE IF EXISTS lb_scores'
 ];
 
 let schemaReady = false;
@@ -161,24 +167,20 @@ function getDb(env) {
     return env && env.FEEDBACK_DB ? env.FEEDBACK_DB : null;
 }
 
-// ─── Weeks ───────────────────────────────────────────────────
+// ─── Days ────────────────────────────────────────────────────
 
-/** Monday (UTC) of the week holding `ms`, as YYYY-MM-DD. js/leaderboard.js has the same rule. */
-function weekOf(ms) {
-    const d = new Date(ms);
-    const back = (d.getUTCDay() + 6) % 7;
-    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - back)).toISOString().slice(0, 10);
+/** The UTC day holding `ms`, as YYYY-MM-DD. js/leaderboard.js has the same rule. */
+function dayOf(ms) {
+    return new Date(ms).toISOString().slice(0, 10);
 }
 
-function weeksNow(now) {
-    const current = weekOf(now);
-    const start = Date.parse(current + 'T00:00:00Z');
+/** The days on the board now, oldest (`from`) to today (`to`), and when the next day starts. */
+function windowNow(now) {
+    const today = Date.parse(dayOf(now) + 'T00:00:00Z');
     return {
-        current,
-        last: weekOf(start - 1),
-        lastOpen: now - start < WEEK_GRACE_HOURS * 3600000,
-        lastFinal: new Date(start + WEEK_GRACE_HOURS * 3600000).toISOString(),
-        next: new Date(start + WEEK_MS).toISOString()
+        from: dayOf(today - (DAYS - 1) * DAY_MS),
+        to: dayOf(today),
+        next: new Date(today + DAY_MS).toISOString()
     };
 }
 
@@ -216,15 +218,17 @@ function cleanLook(look) {
     return out;
 }
 
-/** [{ week, xp }] for the weeks that may still change, or null when `scores` is malformed. */
-function cleanScores(scores, weeks) {
-    if (!isObject(scores)) return null;
+/** [{ day, xp }] for the days still on the board, or null when `days` is malformed. */
+function cleanDays(days, win) {
+    // A page from before the switch sends weekly `scores` and no `days`: its XP waits for a reload
+    if (days === undefined) return [];
+    if (!isObject(days)) return null;
     const out = [];
-    for (const [week, xp] of Object.entries(scores)) {
-        if (!WEEK_RE.test(week)) return null;
+    for (const [day, xp] of Object.entries(days)) {
+        if (!DAY_RE.test(day)) return null;
         if (!Number.isInteger(xp) || xp < 0 || xp > XP_MAX) return null;
-        // Other weeks (a wrong clock, a stale tab) are left alone, not an error
-        if (xp > 0 && (week === weeks.current || (week === weeks.last && weeks.lastOpen))) out.push({ week, xp });
+        // Other days (a wrong clock, a stale tab) are left alone, not an error
+        if (xp > 0 && day >= win.from && day <= win.to) out.push({ day, xp });
     }
     return out;
 }
@@ -242,7 +246,6 @@ async function suggestNames(db) {
     return json({ ok: true, names: list.filter((n) => !used.has(n)).slice(0, 3) });
 }
 
-/** Upserts for a player's weeks. A player deleted meanwhile (left in another tab) gets no score. */
 /** Whether nobody has this name yet. */
 async function checkName(db, body) {
     const name = validName(body.name);
@@ -251,22 +254,23 @@ async function checkName(db, body) {
     return json({ ok: true, free: !row });
 }
 
-function scoreStatements(db, id, scores, now) {
-    return scores.map((s) => db.prepare(
-        `INSERT INTO lb_scores (player_id, week, xp, reached_at)
+/** Upserts for a player's days. A player deleted meanwhile (left in another tab) gets no score. */
+function dayStatements(db, id, days, now) {
+    return days.map((s) => db.prepare(
+        `INSERT INTO lb_days (player_id, day, xp, reached_at)
          SELECT ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM lb_players WHERE id = ?)
-         ON CONFLICT (player_id, week) DO UPDATE SET xp = excluded.xp, reached_at = excluded.reached_at
-         WHERE excluded.xp > lb_scores.xp`
-    ).bind(id, s.week, s.xp, now, id));
+         ON CONFLICT (player_id, day) DO UPDATE SET xp = excluded.xp, reached_at = excluded.reached_at
+         WHERE excluded.xp > lb_days.xp`
+    ).bind(id, s.day, s.xp, now, id));
 }
 
-/** Forget old weeks, players nobody has used for RETENTION_DAYS, and scores left without a player. */
-async function housekeeping(db, weeks) {
-    const expired = new Date(Date.now() - RETENTION_DAYS * 86400000).toISOString();
+/** Forget days off the board, players nobody has used for RETENTION_DAYS, and days left without a player. */
+async function housekeeping(db, win) {
+    const expired = new Date(Date.now() - RETENTION_DAYS * DAY_MS).toISOString();
     await db.batch([
-        db.prepare('DELETE FROM lb_scores WHERE week < ?').bind(weeks.last),
+        db.prepare('DELETE FROM lb_days WHERE day < ?').bind(win.from),
         db.prepare('DELETE FROM lb_players WHERE updated_at < ?').bind(expired),
-        db.prepare('DELETE FROM lb_scores WHERE player_id NOT IN (SELECT id FROM lb_players)')
+        db.prepare('DELETE FROM lb_days WHERE player_id NOT IN (SELECT id FROM lb_players)')
     ]);
 }
 
@@ -274,18 +278,18 @@ function isUniqueError(e) {
     return /UNIQUE/i.test(String(e && e.message));
 }
 
-async function join(db, body, weeks) {
+async function join(db, body, win) {
     const name = validName(body.name);
     const species = SPECIES.includes(body.species) ? body.species : null;
-    const scores = cleanScores(body.scores, weeks);
-    if (!name || !species || !scores) return json({ ok: false, error: 'bad_request' }, 400);
+    const days = cleanDays(body.days, win);
+    if (!name || !species || !days) return json({ ok: false, error: 'bad_request' }, 400);
 
     const recent = await db.prepare('SELECT COUNT(*) AS n FROM lb_players WHERE created_at > ?')
         .bind(new Date(Date.now() - JOIN_WINDOW_MIN * 60000).toISOString()).first();
     if (recent && recent.n >= JOIN_MAX) return json({ ok: false, error: 'busy' }, 429);
 
     // Housekeeping rides along with new players (so freed names can be suggested again)
-    await housekeeping(db, weeks);
+    await housekeeping(db, win);
 
     const id = randomId(18);
     const token = randomId(18);
@@ -294,7 +298,7 @@ async function join(db, body, weeks) {
         await db.batch([
             db.prepare('INSERT INTO lb_players (id, token, name, species, look, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
                 .bind(id, token, name, species, JSON.stringify(cleanLook(body.look)), now, now),
-            ...scoreStatements(db, id, scores, now)
+            ...dayStatements(db, id, days, now)
         ]);
     } catch (e) {
         if (isUniqueError(e)) return json({ ok: false, error: 'name_taken' }, 409);
@@ -314,12 +318,12 @@ async function owned(db, body) {
     return { row };
 }
 
-async function update(db, body, weeks) {
+async function update(db, body, win) {
     const species = SPECIES.includes(body.species) ? body.species : null;
-    const scores = cleanScores(body.scores, weeks);
+    const days = cleanDays(body.days, win);
     const rename = body.name !== undefined;
     const name = rename ? validName(body.name) : null;
-    if (!species || !scores || (rename && !name)) return json({ ok: false, error: 'bad_request' }, 400);
+    if (!species || !days || (rename && !name)) return json({ ok: false, error: 'bad_request' }, 400);
 
     const found = await owned(db, body);
     if (found.error) return found.error;
@@ -331,14 +335,14 @@ async function update(db, body, weeks) {
         : db.prepare('UPDATE lb_players SET species = ?, look = ?, updated_at = ? WHERE id = ? RETURNING name').bind(species, look, now, found.row.id);
     let results;
     try {
-        results = await db.batch([player, ...scoreStatements(db, found.row.id, scores, now)]);
+        results = await db.batch([player, ...dayStatements(db, found.row.id, days, now)]);
     } catch (e) {
         if (isUniqueError(e)) return json({ ok: false, error: 'name_taken' }, 409);
         throw e;
     }
     const row = results[0].results && results[0].results[0];
     if (!row) return json({ ok: false, error: 'not_found' }, 404); // left in the meantime
-    if (randomIndex(HOUSEKEEPING_ODDS) === 0) await housekeeping(db, weeks);
+    if (randomIndex(HOUSEKEEPING_ODDS) === 0) await housekeeping(db, win);
     return json({ ok: true, name: row.name });
 }
 
@@ -346,42 +350,48 @@ function parseLook(text) {
     try { return cleanLook(JSON.parse(text)); } catch (e) { return {}; }
 }
 
-async function board(db, body, weeks) {
-    const week = body.week === 'last' ? weeks.last : weeks.current;
+// Each player's XP over the days on the board, ranked. Equal XP shares a rank (1, 2, 2, 4);
+// within it, whoever got there first (their newest XP came in earliest) is listed first.
+// Returns the top rows plus the asking player's row wherever it is.
+const BOARD_SQL = `
+    WITH totals AS (
+        SELECT d.player_id, SUM(d.xp) AS xp, MAX(d.reached_at) AS reached_at
+        FROM lb_days d JOIN lb_players p ON p.id = d.player_id
+        WHERE d.day >= ? AND d.day <= ?
+        GROUP BY d.player_id
+    ), ranked AS (
+        SELECT player_id, xp,
+               RANK() OVER (ORDER BY xp DESC) AS rank,
+               ROW_NUMBER() OVER (ORDER BY xp DESC, reached_at ASC, player_id) AS pos
+        FROM totals WHERE xp > 0
+    )
+    SELECT r.player_id, r.xp, r.rank, r.pos, p.name, p.species, p.look
+    FROM ranked r JOIN lb_players p ON p.id = r.player_id
+    WHERE r.pos <= ? OR r.player_id = ?
+    ORDER BY r.pos`;
+
+async function board(db, body, win) {
     const id = typeof body.id === 'string' && ID_RE.test(body.id) ? body.id : '';
-    const [top, mine, exists] = await db.batch([
-        db.prepare(
-            `SELECT s.player_id, s.xp, p.name, p.species, p.look
-             FROM lb_scores s JOIN lb_players p ON p.id = s.player_id
-             WHERE s.week = ? AND s.xp > 0
-             ORDER BY s.xp DESC, s.reached_at ASC LIMIT ?`
-        ).bind(week, BOARD_SIZE),
-        db.prepare(
-            `SELECT s.xp, p.name, p.species, p.look,
-                    (SELECT COUNT(*) FROM lb_scores o JOIN lb_players q ON q.id = o.player_id
-                     WHERE o.week = s.week AND o.xp > s.xp) + 1 AS rank
-             FROM lb_scores s JOIN lb_players p ON p.id = s.player_id
-             WHERE s.week = ? AND s.player_id = ? AND s.xp > 0`
-        ).bind(week, id),
+    const [ranked, exists] = await db.batch([
+        db.prepare(BOARD_SQL).bind(win.from, win.to, BOARD_SIZE, id),
         db.prepare('SELECT 1 AS yes FROM lb_players WHERE id = ?').bind(id)
     ]);
 
-    // Equal XP shares a rank (1, 2, 2, 4); within it, whoever got there first is listed first
     const rows = [];
-    for (const r of top.results || []) {
-        const prev = rows[rows.length - 1];
-        rows.push({
-            rank: prev && prev.xp === r.xp ? prev.rank : rows.length + 1,
+    let you = null;
+    for (const r of ranked.results || []) {
+        const row = {
+            rank: r.rank,
             name: r.name,
             species: SPECIES.includes(r.species) ? r.species : 'egg',
             look: parseLook(r.look),
-            xp: r.xp,
-            you: !!id && r.player_id === id
-        });
+            xp: r.xp
+        };
+        const mine = !!id && r.player_id === id;
+        if (r.pos <= BOARD_SIZE) rows.push({ ...row, you: mine });
+        if (mine) you = row;
     }
-    const m = mine.results && mine.results[0];
-    const you = m ? { rank: m.rank, name: m.name, species: m.species, look: parseLook(m.look), xp: m.xp } : null;
-    const out = { ok: true, week, next_week_at: weeks.next, last_final_at: weeks.lastFinal, rows, you };
+    const out = { ok: true, from: win.from, to: win.to, next_day_at: win.next, rows, you };
     // Whether the asking player still has a row, so a page can notice one that was removed
     if (id) out.known = !!(exists.results && exists.results.length);
     return json(out);
@@ -391,7 +401,7 @@ async function leave(db, body) {
     const found = await owned(db, body);
     if (found.error) return found.error;
     await db.batch([
-        db.prepare('DELETE FROM lb_scores WHERE player_id = ?').bind(found.row.id),
+        db.prepare('DELETE FROM lb_days WHERE player_id = ?').bind(found.row.id),
         db.prepare('DELETE FROM lb_players WHERE id = ?').bind(found.row.id)
     ]);
     return json({ ok: true });
@@ -423,13 +433,13 @@ export async function onRequestPost(context) {
 
     try {
         await ensureSchema(db);
-        const weeks = weeksNow(Date.now());
+        const win = windowNow(Date.now());
         if (body.action === 'words') return json({ ok: true, first: FIRST_WORDS, second: SECOND_WORDS });
         if (body.action === 'names') return await suggestNames(db);
         if (body.action === 'check') return await checkName(db, body);
-        if (body.action === 'join') return await join(db, body, weeks);
-        if (body.action === 'update') return await update(db, body, weeks);
-        if (body.action === 'board') return await board(db, body, weeks);
+        if (body.action === 'join') return await join(db, body, win);
+        if (body.action === 'update') return await update(db, body, win);
+        if (body.action === 'board') return await board(db, body, win);
         return await leave(db, body);
     } catch (e) {
         console.error('leaderboard request failed', body.action, e);

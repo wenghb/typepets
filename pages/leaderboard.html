@@ -12,7 +12,7 @@
     <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
     <link rel="stylesheet" href="../css/style.css?v=47226c18">
     <link rel="stylesheet" href="../css/pet-art.css?v=2e573092">
-    <link rel="stylesheet" href="../css/leaderboard.css?v=e789d477">
+    <link rel="stylesheet" href="../css/leaderboard.css?v=8f2e6e69">
 </head>
 <body>
     <nav class="main-nav">
@@ -37,7 +37,7 @@
         <div class="lb-page" id="leaderboard">
             <header class="lb-header">
                 <h1>🏆 Leaderboard</h1>
-                <p>Who practiced the most this week? Every lesson, game and article earns XP.</p>
+                <p>Who practiced the most in the last 7 days? Every lesson, game and article earns XP.</p>
             </header>
 
             <section class="lb-card lb-me" id="lbMe" aria-label="You on the leaderboard"></section>
@@ -45,27 +45,27 @@
             <section class="lb-card lb-board" aria-labelledby="lbBoardTitle">
                 <div class="lb-board-head">
                     <h2 class="lb-board-title" id="lbBoardTitle">Top typists</h2>
-                    <span class="lb-reset" id="lbReset"></span>
+                    <span class="lb-window" id="lbWindow"></span>
                 </div>
                 <ol class="lb-list" id="lbList" aria-labelledby="lbBoardTitle"></ol>
                 <ol class="lb-list lb-pinned" id="lbPinned" aria-label="Your place" hidden></ol>
                 <div class="lb-state" id="lbState" role="status"></div>
             </section>
 
-            <p class="lb-fine">Only XP from practice counts. Leaderboard names are built from TypePets word lists, so nobody's real name is ever shown. The board starts over every Monday (00:00 UTC). <a href="../privacy.html#leaderboard">How the leaderboard works</a></p>
+            <p class="lb-fine">Only XP from practice counts. The board adds up the last 7 days and moves on one day at a time (at 00:00 UTC), so XP stays on it for a full week. Leaderboard names are built from TypePets word lists, so nobody's real name is ever shown. <a href="../privacy.html#leaderboard">How the leaderboard works</a></p>
         </div>
     </main>
 
     <div id="toast-container"></div>
 
-    <script src="../js/data.js?v=fd18e920"></script>
+    <script src="../js/data.js?v=47944518"></script>
     <script src="../js/articles-data.js?v=062f93bf"></script>
     <script src="../js/wardrobe.js?v=47292524"></script>
     <script src="../js/sound.js?v=e57a4213"></script>
     <script src="../js/app.js?v=d75d696c"></script>
     <script src="../js/cloud-save.js?v=17283d3e"></script>
     <script src="../js/feedback.js?v=da30c6d3"></script>
-    <script src="../js/leaderboard.js?v=8b4b27d9"></script>
+    <script src="../js/leaderboard.js?v=857ed386"></script>
     <script>
         TypePetsLeaderboard.mountPage(document.getElementById('leaderboard'));
     </script>

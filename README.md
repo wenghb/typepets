@@ -12,7 +12,7 @@ Free online typing practice for kids ages 7–12. Finger training, bubble pop ga
 - 🫧 **Bubble Pop** — 20 levels of typing fun, from single letters to full words
 - 📖 **Read & Type** — Practice with real articles about science, animals, and space
 - 🐾 **Pet Evolution** — Grow a virtual pet from egg through 6 evolution stages
-- 🏆 **Weekly Leaderboard** — Optional: players who join are ranked by the XP they earned from practice this week, under a made-up name ("Speedy Otter") with their dressed-up pet. Starts over every Monday (see [Leaderboard](#leaderboard))
+- 🏆 **Leaderboard** — Optional: players who join are ranked by the XP they earned from practice in the last 7 days, under a made-up name ("Speedy Otter") with their dressed-up pet. Moves on one day at a time, so nobody drops off all at once (see [Leaderboard](#leaderboard))
 - 🎨 **Pet Wardrobe** — Colors, patterns, hats, glasses, neck things and places for the pet. The colors are free from day one; the rest unlock with practice milestones (no shop, no random rewards)
 - 🎯 **Smart Difficulty** — Auto-adjusts to focus on weak keys
 - 📊 **Dashboard** — Speed charts, accuracy heatmaps, and achievement badges
@@ -21,7 +21,7 @@ Free online typing practice for kids ages 7–12. Finger training, bubble pop ga
 - 🎓 **Certificates & report** — Printable certificates and a parent/teacher progress report
 - 💬 **Feedback** — Kid-friendly feedback form (💬 in the nav, or `/feedback.html`) with a private inbox at `/admin/feedback.html`
 - 🗣️ **Voice** — Spoken finger hints in Training and read-aloud in Articles, from natural-sounding recordings made ahead of time, in three voices kids can switch between (see [Voice recordings](#voice-recordings))
-- 🔒 **Privacy** — All progress in localStorage; the only things ever sent are feedback someone chooses to submit, for players who get a save code their progress without their name, and for players who join the leaderboard a made-up name, their pet's look and their weekly XP (no names, no IPs)
+- 🔒 **Privacy** — All progress in localStorage; the only things ever sent are feedback someone chooses to submit, for players who get a save code their progress without their name, and for players who join the leaderboard a made-up name, their pet's look and their XP for each of the last 7 days (no names, no IPs)
 - 🌙 **Dark Mode** — Easy on the eyes for longer sessions
 
 ## Tech Stack
@@ -143,24 +143,24 @@ npx wrangler d1 execute typepets-feedback --remote --command "SELECT COUNT(*) AS
 
 ## Leaderboard
 
-`pages/leaderboard.html` ("Leaderboard" in the nav, just 🏆 at tablet widths where the nav is tight) ranks players who joined by the XP they earned from practice this week. Weeks start Monday 00:00 UTC. The page shows this week only, and your rank without the number of players (both read better while the board is young). The API can still return last week (`week: 'last'`) if a tab for it comes back.
+`pages/leaderboard.html` ("Leaderboard" in the nav, just 🏆 at tablet widths where the nav is tight) ranks players who joined by the XP they earned from practice in the last 7 days: today (UTC) and the 6 days before it. The window moves on one day at 00:00 UTC, so each day's XP stays on the board for a full week and nobody drops off all at once. (Until 2026-10-26 it was a calendar week that started over every Monday, which took a kid who joined on Sunday off the board the next day.) The page shows your rank without the number of players (it reads better while the board is young).
 
 - **Names are built from word lists, never typed.** A kid makes their name from two lists in `functions/api/leaderboard.js` (`FIRST_WORDS` × `SECOND_WORDS`, in groups such as "Colors" and "Yummy food"; 127 × 159 ≈ 20,000 names): each word is a button that opens its list, picking the first word moves on to the second, and "🎲 Surprise me" picks a free pair. The join card starts with a free suggestion, so a kid can just press Join. The page gets the lists from the API (`words`) and checks a name as it changes (`check`). Every word has to be kind on its own and next to any other. Names are unique (409 if someone just took it). Free typing was considered and turned down: kids type their real full names (public display needs verifiable parental consent under COPPA) and filters miss rude words. A row shows the name, the pet's stage and wardrobe look, and the XP. Nothing a kid types, not even the pet's name, ever reaches the board.
 - **Finding yourself.** The browser keeps its row's random id and token in the player's data (`leaderboard`, see `js/data.js`; only added on joining, like `pet.look`), so its own row is marked "You" and pinned under the top 25 when it's further down. A save code carries the link, so the name is the same on every computer.
 - **No stuck rows.** When the player's data stops pointing at a row without the kid pressing Leave (a backup or save code from before joining is loaded, the other computer's copy wins a save-code conflict, another tab joined too, the profile is deleted), `js/data.js` queues the row in localStorage (`typepets_lb_retired`) and `js/leaderboard.js` takes it off the board. A row the server no longer has (left on another computer, or expired) is noted in `typepets_lb_gone` and the page offers to join again; with a save code linked, the data itself isn't touched, so the save code can't see a false conflict.
-- **XP is worked out, not counted.** `TypePetsData.getPracticeXp()` adds up the XP of this week's sessions, using the same rule that fed the pet, so it can't double count and every linked computer agrees. `js/leaderboard.js` (loaded on Home, Training, Bubbles, Articles, Pet and the Leaderboard page) sends it with the pet's stage and look ~1.5 s after a change, and only when something changed. Offline progress goes up later; last week still takes updates for 48 hours after it ends. The server keeps the highest XP it has seen for a week.
+- **XP is worked out, not counted.** `TypePetsData.getPracticeXp()` adds up the XP of each day's sessions, using the same rule that fed the pet, so it can't double count and every linked computer agrees. `js/leaderboard.js` (loaded on Home, Training, Bubbles, Articles, Pet and the Leaderboard page) sends the XP for each of the 7 days (`days: { 'YYYY-MM-DD': xp }`) with the pet's stage and look ~1.5 s after a change, and only when something changed. The server keeps the highest XP it has seen for each day (`lb_days`) and the board adds up the days in the window, so a player who stops visiting still slides down day by day. Offline progress goes up later, as long as its day is still on the board.
 - **Equal XP shares a rank** (1, 2, 2, 4); whoever got there first is listed first.
-- **Leaving** ("Leave the leaderboard") deletes the row and its scores at once. Housekeeping (every join, and 1 in 50 updates) deletes weeks before last week and rows nobody updated for 60 days. A joined player's browser sends an update at least once a week while they visit (each new week changes what it would send), so only players who stopped visiting expire.
+- **Leaving** ("Leave the leaderboard") deletes the row and its scores at once. Housekeeping (every join, and 1 in 50 updates) deletes days that have left the board and rows nobody updated for 60 days. A joined player's browser sends an update every day they visit (each new day changes what it would send), so only players who stopped visiting expire.
 - **Retries** happen only when they can help (no connection, 429, 5xx), backing off from 1 to 10 minutes. The board also says whether the asking player's row still exists, so a row removed on the server is noticed the next time the page opens.
 
-Honest limits: the server can't watch anyone type, so a grown-up with developer tools could send made-up XP for their own row (it can't touch anyone else's). XP over 1,000,000 a week is refused, new rows are capped at 60 per 10 minutes site-wide, and the terms say made-up scores may be removed. The cap is site-wide, so a script could keep it full or slowly use up names; the Cloudflare rate-limiting rule suggested under Save codes (per IP, at the edge, nothing stored) covers `/api/leaderboard` too. To remove a row (its browser then sees the row is gone and offers to join again):
+Honest limits: the server can't watch anyone type, so a grown-up with developer tools could send made-up XP for their own row (it can't touch anyone else's). XP over 1,000,000 in a day is refused, new rows are capped at 60 per 10 minutes site-wide, and the terms say made-up scores may be removed. The cap is site-wide, so a script could keep it full or slowly use up names; the Cloudflare rate-limiting rule suggested under Save codes (per IP, at the edge, nothing stored) covers `/api/leaderboard` too. To remove a row (its browser then sees the row is gone and offers to join again):
 
 ```bash
-npx wrangler d1 execute typepets-feedback --remote --command "SELECT p.name, s.week, s.xp FROM lb_scores s JOIN lb_players p ON p.id = s.player_id ORDER BY s.xp DESC LIMIT 20"
-npx wrangler d1 execute typepets-feedback --remote --command "DELETE FROM lb_scores WHERE player_id IN (SELECT id FROM lb_players WHERE name = 'Speedy Otter'); DELETE FROM lb_players WHERE name = 'Speedy Otter'"
+npx wrangler d1 execute typepets-feedback --remote --command "SELECT p.name, SUM(d.xp) AS xp FROM lb_days d JOIN lb_players p ON p.id = d.player_id WHERE d.day >= date('now', '-6 days') GROUP BY p.id ORDER BY xp DESC LIMIT 20"
+npx wrangler d1 execute typepets-feedback --remote --command "DELETE FROM lb_days WHERE player_id IN (SELECT id FROM lb_players WHERE name = 'Speedy Otter'); DELETE FROM lb_players WHERE name = 'Speedy Otter'"
 ```
 
-Setup: none. The tables (`lb_players`, `lb_scores`) live in the feedback database (`FEEDBACK_DB`) and are created on first use.
+Setup: none. The tables (`lb_players`, `lb_days`) live in the feedback database (`FEEDBACK_DB`) and are created on first use.
 
 ## Pet wardrobe
 
@@ -237,7 +237,7 @@ typepets/
 │   ├── _lib/http.js    # Helpers shared by the Functions (JSON replies, body limits, redaction)
 │   ├── api/feedback.js # Pages Function: POST feedback, admin list/update/delete (D1)
 │   ├── api/save.js     # Pages Function: save codes (create / load / update / delete, D1)
-│   └── api/leaderboard.js # Pages Function: weekly leaderboard (names / join / update / board / leave, D1)
+│   └── api/leaderboard.js # Pages Function: leaderboard (names / join / update / board / leave, D1)
 ├── favicon.ico
 ├── img/
 │   ├── og-image.png    # 1200×630 social share image
@@ -264,7 +264,7 @@ typepets/
 │   ├── pet-art.css     # The pet, its looks and backgrounds (Pet page, Home, report, leaderboard)
 │   ├── leaderboard.css # Leaderboard page
 │   └── pet.css         # Pet page styles
-├── js/                 # App JavaScript (data.js = localStorage, cloud-save.js = save code sync, wardrobe.js = pet looks, leaderboard.js = weekly leaderboard)
+├── js/                 # App JavaScript (data.js = localStorage, cloud-save.js = save code sync, wardrobe.js = pet looks, leaderboard.js = leaderboard)
 ├── privacy.html
 ├── terms.html
 ├── sitemap.xml

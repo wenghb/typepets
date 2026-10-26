@@ -1,13 +1,15 @@
 /**
- * TypePets — weekly leaderboard. Server: functions/api/leaderboard.js. The link to the
+ * TypePets — leaderboard. Server: functions/api/leaderboard.js. The link to the
  * player's row lives in the player's data (data.js `leaderboard`), so a save code carries it.
  *
  * - Joining is optional. A kid builds a name from two word lists ("Cosmic" + "Pancake"); nobody
  *   types anything that ends up on the board. Rows show that name, the pet as it's dressed and the
- *   week's XP. Their own row is marked "You", and pinned under the top 25 when it's further down.
- * - Weeks start Monday 00:00 UTC. The week's XP is worked out from the sessions this computer
- *   already keeps (TypePetsData.getPracticeXp), so it's the same XP the pet got and the same on
- *   every computer a save code links.
+ *   XP. Their own row is marked "You", and pinned under the top 25 when it's further down.
+ * - The board adds up the last 7 days: today (UTC) and the 6 days before it. It moves on one day
+ *   at 00:00 UTC, so each day's XP stays on the board for a full week and nobody drops off all at
+ *   once. Each day's XP is worked out from the sessions this computer already keeps
+ *   (TypePetsData.getPracticeXp), so it's the same XP the pet got and the same on every computer
+ *   a save code links.
  * - Every page that loads this file sends the XP a moment after it changes (and when the page
  *   opens, if it changed elsewhere). Offline is fine: it goes up later. Nothing is sent for
  *   players who haven't joined.
@@ -27,13 +29,14 @@ const TypePetsLeaderboard = (function() {
     const SENT_KEY = 'typepets_lb_sent';       // localStorage: { [row id]: fingerprint the server last took }
     const GONE_KEY = 'typepets_lb_gone';       // localStorage: ids of rows the server no longer has
     const RETIRED_KEY = 'typepets_lb_retired'; // localStorage, written by data.js: [{ id, token }] to take off the board
-    const WEEK_MS = 7 * 86400000;
-    const GRACE_MS = 48 * 3600000;             // last week still takes updates this long (functions/api/leaderboard.js)
+    const DAY_MS = 86400000;
+    const DAYS = 7;                            // days the board adds up (functions/api/leaderboard.js has the same)
+    const LAST_DAYS = `the last ${DAYS} days`;
     const PUSH_DELAY_MS = 1500;
     const RETRY_MS = 60000;
     const RETRY_MAX_MS = 10 * 60000;
     const TIMEOUT_MS = 15000;
-    const XP_MAX = 1000000;                    // the server refuses more in a week
+    const XP_MAX = 1000000;                    // the server refuses more in a day
     const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
     const EXPIRED_NOTE = 'Your leaderboard name was removed or has expired. Pick a name to join again.';
 
@@ -64,10 +67,6 @@ const TypePetsLeaderboard = (function() {
 
     function fmt(n) {
         return Number(n || 0).toLocaleString('en-US');
-    }
-
-    function plural(n, word) {
-        return `${fmt(n)} ${word}${n === 1 ? '' : 's'}`;
     }
 
     function readJson(key, fallback) {
@@ -103,43 +102,42 @@ const TypePetsLeaderboard = (function() {
         return link && !goneIds().includes(link.id) ? link : null;
     }
 
-    // ─── Weeks and what gets sent ────────────────────────────
+    // ─── Days and what gets sent ─────────────────────────────
 
-    /** Monday (UTC) of the week holding `ms`, as YYYY-MM-DD. Same rule as the server. */
-    function weekOf(ms) {
-        const d = new Date(ms);
-        const back = (d.getUTCDay() + 6) % 7;
-        return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - back)).toISOString().slice(0, 10);
+    /** The UTC day holding `ms`, as YYYY-MM-DD. Same rule as the server. */
+    function dayOf(ms) {
+        return new Date(ms).toISOString().slice(0, 10);
     }
 
-    function weekStartMs(week) {
-        return Date.parse(week + 'T00:00:00Z');
+    /** Start (ms) of each day on the board now, oldest first, ending with today. */
+    function boardDays() {
+        const today = Date.parse(dayOf(Date.now()) + 'T00:00:00Z');
+        const starts = [];
+        for (let i = DAYS - 1; i >= 0; i--) starts.push(today - i * DAY_MS);
+        return starts;
     }
 
-    /** This week's practice XP (from the sessions on this computer). */
-    function weekXp() {
-        const start = weekStartMs(weekOf(Date.now()));
-        return TypePetsData.getPracticeXp(start, start + WEEK_MS);
+    /** Practice XP from the days on the board now (from the sessions on this computer). */
+    function recentXp() {
+        const starts = boardDays();
+        return TypePetsData.getPracticeXp(starts[0], starts[starts.length - 1] + DAY_MS);
     }
 
-    /** { species, look, scores }: the pet as it looks now, and XP for the weeks the server still takes. */
+    /** { species, look, days }: the pet as it looks now, and each board day's XP. */
     function snapshot() {
-        const now = Date.now();
-        const week = weekOf(now);
-        const start = weekStartMs(week);
-        const scores = {};
-        scores[week] = Math.min(XP_MAX, TypePetsData.getPracticeXp(start, start + WEEK_MS));
-        if (now - start < GRACE_MS) {
-            const last = weekOf(start - 1);
-            scores[last] = Math.min(XP_MAX, TypePetsData.getPracticeXp(weekStartMs(last), start));
+        const days = {};
+        // Every day is sent, even at 0 XP: the list moves on daily, so a visit each day says
+        // the player is still around
+        for (const start of boardDays()) {
+            days[dayOf(start)] = Math.min(XP_MAX, TypePetsData.getPracticeXp(start, start + DAY_MS));
         }
         const pet = TypePetsData.getPet();
         const look = TypePetsWardrobe.resolveLook(pet, TypePetsWardrobe.getProgress());
-        return { species: pet.species, look, scores };
+        return { species: pet.species, look, days };
     }
 
     function fingerprint(link, snap) {
-        return JSON.stringify([link.name, snap.species, snap.look, snap.scores]);
+        return JSON.stringify([link.name, snap.species, snap.look, snap.days]);
     }
 
     // ─── Server calls ────────────────────────────────────────
@@ -342,7 +340,7 @@ const TypePetsLeaderboard = (function() {
 
     async function loadBoard() {
         const link = activeLink();
-        const res = await call({ action: 'board', week: 'this', id: link ? link.id : undefined });
+        const res = await call({ action: 'board', id: link ? link.id : undefined });
         if (res.status === 200 && res.body.ok && Array.isArray(res.body.rows)) return { ok: true, board: res.body, askedId: link ? link.id : null };
         const hint = res.status === 0 ? 'Check the internet connection and try again.' : 'Try again in a little while.';
         return { ok: false, error: `Couldn't load the leaderboard. ${hint}` };
@@ -350,15 +348,11 @@ const TypePetsLeaderboard = (function() {
 
     // ─── Page ────────────────────────────────────────────────
 
-    function untilText(iso) {
-        const ms = Date.parse(iso) - Date.now();
+    /** "Tuesday, Oct 20" for a YYYY-MM-DD board day (a UTC day). */
+    function dayLabel(day) {
+        const ms = Date.parse(day + 'T00:00:00Z');
         if (!isFinite(ms)) return '';
-        if (ms <= 60000) return 'New week starts in a minute';
-        const min = Math.floor(ms / 60000);
-        if (min < 60) return `New week starts in ${plural(min, 'minute')}`;
-        const h = Math.floor(min / 60);
-        if (h < 24) return `New week starts in ${plural(h, 'hour')}`;
-        return `New week starts in ${plural(Math.floor(h / 24), 'day')}`;
+        return new Date(ms).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' });
     }
 
     function avatar(species, look, size) {
@@ -597,7 +591,7 @@ const TypePetsLeaderboard = (function() {
         const list = root.querySelector('#lbList');
         const pinned = root.querySelector('#lbPinned');
         const state = root.querySelector('#lbState');
-        const resetEl = root.querySelector('#lbReset');
+        const windowEl = root.querySelector('#lbWindow');
         let board = null;        // the last board the server sent
         let loading = 0;         // load counter: only the newest answer is drawn
         let meMode = 'view';     // view | rename | leave
@@ -629,13 +623,13 @@ const TypePetsLeaderboard = (function() {
             const top = el('div', 'lb-me-top');
             top.appendChild(ownAvatar());
             const text = el('div', 'lb-me-text');
-            const title = el('h2', 'lb-me-title', 'Join the weekly leaderboard');
+            const title = el('h2', 'lb-me-title', 'Join the leaderboard');
             title.tabIndex = -1;
             text.appendChild(title);
-            const xp = weekXp();
+            const xp = recentXp();
             text.appendChild(el('p', 'lb-me-sub',
-                `Make your leaderboard name from two words. Other players see that name, ${petName()} and your XP this week, never your real name.`));
-            if (xp > 0) text.appendChild(el('p', 'lb-me-xp', `You've earned ${fmt(xp)} XP this week already.`));
+                `Make your leaderboard name from two words. Other players see that name, ${petName()} and your XP from ${LAST_DAYS}, never your real name.`));
+            if (xp > 0) text.appendChild(el('p', 'lb-me-xp', `You've earned ${fmt(xp)} XP in ${LAST_DAYS} already.`));
             top.appendChild(text);
             meCard.appendChild(top);
             if (note) {
@@ -659,8 +653,8 @@ const TypePetsLeaderboard = (function() {
         function updateStats() {
             if (!stats) return;
             const you = board && board.you;
-            const xp = Math.max(weekXp(), you ? you.xp : 0);
-            stats.sub.textContent = xp > 0 ? `${fmt(xp)} XP this week` : "Practice anything to get on this week's board.";
+            const xp = Math.max(recentXp(), you ? you.xp : 0);
+            stats.sub.textContent = xp > 0 ? `${fmt(xp)} XP in ${LAST_DAYS}` : 'Practice anything to get on the board.';
             stats.rank.hidden = !you;
             if (you) stats.rank.textContent = `#${fmt(you.rank)}`;
             stats.warn.hidden = !trouble;
@@ -793,10 +787,11 @@ const TypePetsLeaderboard = (function() {
             pinned.replaceChildren();
             pinned.hidden = true;
             state.hidden = true;
-            resetEl.textContent = untilText(board.next_week_at);
-            resetEl.title = 'Starts ' + new Date(board.next_week_at).toLocaleString();
+            windowEl.textContent = `XP from ${LAST_DAYS}`;
+            const since = dayLabel(board.from);
+            windowEl.title = since ? `Counts XP from ${since} to today. Every day the oldest day drops off.` : '';
             if (!board.rows.length) {
-                showState('empty', 'Nobody is on the board yet this week. Practice anything to be the first!', 'Start practicing');
+                showState('empty', `Nobody has earned XP in ${LAST_DAYS}. Practice anything to be the first!`, 'Start practicing');
                 return;
             }
             board.rows.forEach((r) => list.appendChild(rowEl(r)));
@@ -853,8 +848,8 @@ const TypePetsLeaderboard = (function() {
     start();
 
     return {
-        weekOf: weekOf,
-        weekXp: weekXp,
+        dayOf: dayOf,
+        recentXp: recentXp,
         sync: sync,
         mountPage: mountPage
     };

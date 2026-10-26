@@ -11,7 +11,7 @@
  *  - backup / restore ("Pet Passport")
  *  - optional save code link (`cloud`): js/cloud-save.js keeps an online copy in step
  *  - the pet's look (`pet.look`, see js/wardrobe.js): only stored once a kid changes it
- *  - optional weekly leaderboard link (`leaderboard`, see js/leaderboard.js): only once a kid joins
+ *  - optional leaderboard link (`leaderboard`, see js/leaderboard.js): only once a kid joins
  */
 
 const TypePetsData = (function() {
@@ -172,7 +172,7 @@ const TypePetsData = (function() {
     }
 
     /**
-     * This player's place on the weekly leaderboard (js/leaderboard.js), or null when it's
+     * This player's place on the leaderboard (js/leaderboard.js), or null when it's
      * malformed: the row's random id + token, and the two-word name the kid picked.
      */
     function _cleanLeaderboard(lb) {
@@ -316,7 +316,7 @@ const TypePetsData = (function() {
                 last_practice_date: null, // local YYYY-MM-DD
                 freezes_used: []          // local dates that a streak freeze covered
             },
-            // leaderboard: { id, token, name, joined_at } is added when a kid joins the weekly
+            // leaderboard: { id, token, name, joined_at } is added when a kid joins the
             // leaderboard (js/leaderboard.js). Like the pet's look, it's never a default.
             activities: [],   // { type, description, xp_earned, extra, timestamp }
             articles: {
@@ -1650,7 +1650,7 @@ const TypePetsData = (function() {
         return { ok: true, summary: v.summary };
     }
 
-    // ─── Weekly leaderboard (js/leaderboard.js talks to the server) ─
+    // ─── Leaderboard (js/leaderboard.js talks to the server) ───────
 
     /** { id, token, name, joined_at } when this player has joined the leaderboard, else null. */
     function getLeaderboardLink() {
@@ -1739,7 +1739,7 @@ const TypePetsData = (function() {
         markBackupDone, snoozeBackupReminder, getBackupStatus,
         // Save code (js/cloud-save.js)
         getCloudLink, setCloudLink, cloudPayload, cloudHash, applyCloudData, onSaved,
-        // Weekly leaderboard (js/leaderboard.js)
+        // Leaderboard (js/leaderboard.js)
         getLeaderboardLink, setLeaderboardLink, getPracticeXp,
         // Reset
         resetAllData,
